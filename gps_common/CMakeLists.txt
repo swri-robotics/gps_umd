@@ -75,4 +75,5 @@ install(DIRECTORY include/${PROJECT_NAME}/
 )
 
 catkin_install_python(PROGRAMS nodes/fix_translator
+							   nodes/ins_translator	
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

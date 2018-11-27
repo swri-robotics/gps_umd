@@ -12,6 +12,9 @@ set(DEPS
   sensor_msgs
   std_msgs
   rospy
+  novatel_gps_msgs
+  tf
+  geometry_msgs
 )
 
 find_package(catkin REQUIRED COMPONENTS
@@ -33,6 +36,8 @@ generate_messages(DEPENDENCIES
   nav_msgs
   sensor_msgs
   std_msgs
+  novatel_gps_msgs
+  geometry_msgs
 )
 
 ###################################################
@@ -42,8 +47,8 @@ generate_messages(DEPENDENCIES
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS 
-    message_runtime
-    ${DEPS}
+  message_runtime
+  ${DEPS}
 )
 
 ###########

@@ -1,0 +1,14 @@
+<launch>
+  
+   <param name="robot_description" textfile="$(find gps_common)/car_003.urdf" />
+   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+   <node name="utm_odometry_node" pkg="gps_common" type="utm_odometry_node">
+   <param name="frame_id" value="odom"/> 
+   <param name="child_frame_id" value="base_link"/>
+   <param name="use_ins" value="true"/>
+   <param name="publish_odom_tf" value="true"/>
+   </node>
+
+</launch>
+

@@ -19,7 +19,7 @@
 
 using namespace gps_common;
 
-ros::Publisher odom_pub;
+ros::Publisher odom_pub, world_odom_pub;
 ros::Subscriber gps_source_sub;
 std::string frame_id, child_frame_id;
 double rot_cov, y_offset, x_offset, z_offset;
@@ -110,6 +110,7 @@ void insCallBack(const novatel_gps_msgs::InspvaConstPtr& ins) {
   }
   if (odom_pub) {
     nav_msgs::Odometry odom;
+    nav_msgs::Odometry odom_world;
     odom.header.stamp = ins->header.stamp;
 
     if (frame_id.empty())
@@ -153,7 +154,14 @@ void insCallBack(const novatel_gps_msgs::InspvaConstPtr& ins) {
 							0,0,0,0,1,0,
 							0,0,0,0,0,1};
 
+    odom_world = odom;
+    odom_world.pose.pose.position.x = easting;
+    odom_world.pose.pose.position.y = northing;
+    odom_world.pose.pose.position.z = ins->height;
+
+    world_odom_pub.publish(odom_world);
     odom_pub.publish(odom);
+
     if(publish_odom_tf)
     {
     	odom_tf.header.stamp = odom.header.stamp;
@@ -193,6 +201,7 @@ int main (int argc, char **argv) {
   if(use_ins)
   {
 	  odom_pub = node.advertise<nav_msgs::Odometry>("/odom", 10);
+	  world_odom_pub = node.advertise<nav_msgs::Odometry>("/odom_world", 10);
 	  gps_source_sub = node.subscribe("/inspva", 10, insCallBack);
   }
   else

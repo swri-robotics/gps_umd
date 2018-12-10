@@ -18,38 +18,15 @@ set(DEPS
 )
 
 find_package(catkin REQUIRED COMPONENTS
-  #message_generation
-  ${DEPS}
-)
-
-#######################################
-## Declare ROS messages and services ##
-#######################################
-
-#add_message_files(
-  #FILES
-  #GPSStatus.msg
-  #  GPSFix.msg
-#)
-
-#generate_messages(DEPENDENCIES 
-#  nav_msgs
-#  sensor_msgs
-#  std_msgs
-#  novatel_gps_msgs
-#  geometry_msgs
-#)
+             ${DEPS})
 
 ###################################################
 ## Declare things to be passed to other projects ##
 ###################################################
 
-catkin_package(
-  INCLUDE_DIRS include
-  CATKIN_DEPENDS 
-  #message_runtime
-  ${DEPS}
-)
+catkin_package(INCLUDE_DIRS include
+               CATKIN_DEPENDS 
+               ${DEPS})
 
 ###########
 ## Build ##
@@ -60,10 +37,8 @@ add_executable(${PROJECT_NAME}/utm_odometry_node src/utm_odometry_node.cpp)
 set_target_properties(${PROJECT_NAME}/utm_odometry_node PROPERTIES OUTPUT_NAME "utm_odometry_node")
 target_link_libraries(${PROJECT_NAME}/utm_odometry_node ${catkin_LIBRARIES})
 add_dependencies(${PROJECT_NAME}/utm_odometry_node
-  #${PROJECT_NAME}_generate_messages_cpp 
-  ${catkin_EXPORTED_TARGETS} 
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
-)
+                 ${catkin_EXPORTED_TARGETS} 
+                 ${${PROJECT_NAME}_EXPORTED_TARGETS})
 
 #############
 ## Install ##

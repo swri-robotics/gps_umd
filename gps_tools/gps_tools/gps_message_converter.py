@@ -1,11 +1,11 @@
 from sensor_msgs.msg import NavSatFix
 from sensor_msgs.msg import NavSatStatus
-from gps_common.msg import GPSFix
-from gps_common.msg import GPSStatus
+from gps_msgs.msg import GPSFix
+from gps_msgs.msg import GPSStatus
 
 
 def navsatfix_to_gpsfix(navsat_msg):
-    # Convert sensor_msgs/NavSatFix messages to gps_common/GPSFix messages
+    # Convert sensor_msgs/NavSatFix messages to gps_msgs/GPSFix messages
     gpsfix_msg = GPSFix()
     gpsfix_msg.header = navsat_msg.header
     gpsfix_msg.status.status = navsat_msg.status.status
@@ -37,7 +37,7 @@ def navsatfix_to_gpsfix(navsat_msg):
 
 
 def gpsfix_to_navsatfix(gpsfix_msg):
-    # Convert gps_common/GPSFix messages to sensor_msgs/NavSatFix messages
+    # Convert gps_msgs/GPSFix messages to sensor_msgs/NavSatFix messages
     navsat_msg = NavSatFix()
     navsat_msg.header = gpsfix_msg.header
 

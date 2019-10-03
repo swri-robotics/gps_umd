@@ -24,7 +24,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-namespace gps_common
+namespace gps_tools
 {
 
 const double RADIANS_PER_DEGREE = M_PI/180.0;

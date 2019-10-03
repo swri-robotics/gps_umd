@@ -1,0 +1,8 @@
+.project
+.cproject
+.pydevproject
+.settings
+.idea
+.o
+.pyc
+cmake-build-debug

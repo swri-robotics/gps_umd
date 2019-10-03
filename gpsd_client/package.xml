@@ -16,7 +16,7 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>roscpp</build_depend>
-  <build_depend>gps_common</build_depend>
+  <build_depend>gps_msgs</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>pkg-config</build_depend>
   <build_depend>libgps</build_depend>

@@ -1,12 +1,11 @@
-gps_umd [![Build Status](https://travis-ci.org/swri-robotics/gps_umd.svg?branch=master)](https://travis-ci.org/swri-robotics/gps_umd)
+gps_umd [![Build Status](https://travis-ci.org/swri-robotics/gps_umd.svg?branch=dashing-devel)](https://travis-ci.org/swri-robotics/gps_umd)
 =======
 
-This package is a space to stage messages and common GPS-processing routines.  The previous maintainer has not released these packages since ROS Indigo; this fork was created in order to fix them up and release them for ROS Jade and Kinetic.
+This package contains messages for representing data from GPS devices and algorithms for manipulating it.
 
-One change of note is that in the version of libgps in Ubuntu 16.04, the `STATUS_DGPS_FIX` flag was removed, so the `gpsd_client` package will be unable to indicate whether DGPS was used in a fix or not.
+This branch converts the messages and algorithms in this repository to support ROS 2 Dashing.
 
-Otherwise, the API is unchanged; see http://wiki.ros.org/gps_common .
-
+There have been a few architectural changes; if you were using these packages in ROS1, note that the `gps_common` package has been split into two packages: `gps_msgs` contains only message definitions, and `gps_tools` contains the nodes and scripts that were in `gps_common`.  In addition, all of the C++ nodes that were in this repository have been converted into Components.
 
 NavSatFix vs. GPSFix
 --------------------

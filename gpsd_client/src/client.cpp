@@ -175,7 +175,11 @@ class GPSDClient {
         fix.gdop = p->gdop;
 #endif
 
+#if GPSD_API_MAJOR_VERSION < 8
+        fix.err = p->epe;
+#else
         fix.err = p->fix.eph;
+#endif
         fix.err_vert = p->fix.epv;
         fix.err_track = p->fix.epd;
         fix.err_speed = p->fix.eps;

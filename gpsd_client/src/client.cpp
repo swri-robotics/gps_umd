@@ -175,7 +175,7 @@ class GPSDClient {
         fix.gdop = p->gdop;
 #endif
 
-        fix.err = p->epe;
+        fix.err = p->fix.eph;
         fix.err_vert = p->fix.epv;
         fix.err_track = p->fix.epd;
         fix.err_speed = p->fix.eps;

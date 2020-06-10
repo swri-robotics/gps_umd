@@ -217,15 +217,15 @@ namespace gpsd_client
       /* TODO: Support SBAS and other GBAS. */
 
 #if GPSD_API_MAJOR_VERSION >= 9
-      if (use_gps_time && (p->online.tv_sec || p->online.tv_nsec)) {
-        fix->header.stamp = ros::Time(p->fix.time.tv_sec, p->fix.time.tv_nsec);
+      if (use_gps_time_ && (p->online.tv_sec || p->online.tv_nsec)) {
+        fix->header.stamp = rclcpp::Time(p->fix.time.tv_sec, p->fix.time.tv_nsec);
 #else
-      if (use_gps_time && !std::isnan(p->fix.time)) {
-        fix->header.stamp = ros::Time(p->fix.time);
+      if (use_gps_time_ && !std::isnan(p->fix.time)) {
+        fix->header.stamp = rclcpp::Time(p->fix.time);
 #endif
       }
       else {
-        fix->header.stamp = ros::Time::now();
+        fix->header.stamp = this->get_clock()->now();
       }
 
       fix->header.frame_id = frame_id_;

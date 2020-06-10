@@ -13,10 +13,12 @@ find_package(sensor_msgs REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules (libgps REQUIRED libgps)
 
-include_directories(${libgps_INCLUDE_DIRS})
-
 add_library(${PROJECT_NAME} SHARED
   src/client.cpp
+)
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+  ${libgps_INCLUDE_DIRS}
 )
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE "COMPOSITION_BUILDING_DLL"
@@ -44,7 +46,6 @@ install(TARGETS ${PROJECT_NAME}
 
 ament_export_dependencies(ament_cmake)
 ament_export_dependencies(rclcpp)
-ament_export_include_directories(${rclcpp_INCLUDE_DIRS})
-ament_export_libraries(${PROJECT_NAME} ${rclcpp_LIBRARIES})
+ament_export_libraries(${PROJECT_NAME})
 
 ament_package()

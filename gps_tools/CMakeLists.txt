@@ -14,10 +14,13 @@ find_package(sensor_msgs REQUIRED)
 # Install the python module for this package
 ament_python_install_package(${PROJECT_NAME})
 
-include_directories(include)
-
 add_library(utm_odometry_component SHARED
   src/utm_odometry_component.cpp)
+target_include_directories(utm_odometry_component
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 target_compile_definitions(utm_odometry_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
 rclcpp_components_register_nodes(utm_odometry_component "gps_tools::UtmOdometryComponent")
@@ -30,6 +33,11 @@ ament_target_dependencies(utm_odometry_component
 
 add_library(utm_odometry_to_navsatfix_component SHARED
   src/utm_odometry_to_navsatfix_component.cpp)
+target_include_directories(utm_odometry_to_navsatfix_component
+  PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 target_compile_definitions(utm_odometry_to_navsatfix_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
 rclcpp_components_register_nodes(utm_odometry_to_navsatfix_component "gps_tools::UtmOdometryToNavSatFixComponent")
@@ -46,13 +54,15 @@ if(NOT WIN32)
 endif()
 
 install(TARGETS
-  utm_odometry_component
-  utm_odometry_to_navsatfix_component
+    utm_odometry_component
+    utm_odometry_to_navsatfix_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
 )
-
+install(DIRECTORY include/
+  DESTINATION include
+)
 install(PROGRAMS
     scripts/bag_converter
     nodes/fix_translator
@@ -60,11 +70,12 @@ install(PROGRAMS
 )
 
 # Export package dependencies
-ament_export_dependencies(ament_cmake)
-ament_export_dependencies(ament_cmake_python)
-ament_export_dependencies(rclcpp)
-ament_export_dependencies(rclpy)
-ament_export_include_directories(include ${rclcpp_INCLUDE_DIRS})
-ament_export_libraries(${PROJECT_NAME} ${rclcpp_LIBRARIES})
+ament_export_dependencies(ament_cmake
+  ament_cmake_python
+  rclcpp
+  rclpy
+)
+ament_export_include_directories(include)
+ament_export_libraries(${PROJECT_NAME})
 
 ament_package()

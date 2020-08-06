@@ -1,6 +1,9 @@
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Changelog for package gps_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1.0.4 (Unreleased)
+------------------
+* Added mappings to the messages in the ROS gps_common package for use with ros1_bridge
 
 1.0.3 (2020-06-10)
 ------------------

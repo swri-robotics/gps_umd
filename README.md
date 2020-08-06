@@ -34,3 +34,8 @@ The node `fix_translator` converts [sensor_msgs/NavSatFix](http://docs.ros.org/a
 ```
 
 Only adjust the topic names after "to=" in each remap line.
+
+Use with ros1_bridge
+--------------------------------
+
+The [ros1_bridge](https://index.ros.org/p/ros1_bridge/) package must be built from source to enable playback of GPSFix and GPSStatus messages stored in ROS1 bags.

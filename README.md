@@ -38,4 +38,4 @@ Only adjust the topic names after "to=" in each remap line.
 Use with ros1_bridge
 --------------------------------
 
-The [ros1_bridge](https://index.ros.org/p/ros1_bridge/) package must be built from source to enable playback of GPSFix and GPSStatus messages stored in ROS1 bags.
+The [ros1_bridge](https://index.ros.org/p/ros1_bridge/) package must be built from source to enable playback of GPSFix and GPSStatus messages stored in ROS1 bags. This requires that the applicable ROS1 `gps_common` and ROS2 `gps_msgs` packages are first installed.

@@ -148,14 +148,22 @@ class GPSDClient {
 #endif
       }
 
-      if ((p->status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+      if ((p->status != STATUS_NO_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
         status.status = 0; // FIXME: gpsmm puts its constants in the global
                            // namespace, so `GPSStatus::STATUS_FIX' is illegal.
 
 // STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
-#if GPSD_API_MAJOR_VERSION != 6
-        if (p->status & STATUS_DGPS_FIX)
-          status.status |= 18; // same here
+#ifdef STATUS_DGPS_FIX
+        if (p->status == STATUS_DGPS_FIX)
+          status.status = 18; // same here
+#endif
+#ifdef STATUS_RTK_FIX
+        if (p->status == STATUS_RTK_FIX)
+          status.status = 19; // same here
+#endif
+#ifdef STATUS_RTK_FLT
+        if (p->status == STATUS_RTK_FLT)
+          status.status = 20; // same here
 #endif
 
 #if GPSD_API_MAJOR_VERSION >= 9
@@ -236,7 +244,7 @@ class GPSDClient {
           fix->status.status = 0; // NavSatStatus::STATUS_FIX;
           break;
 // STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
-#if GPSD_API_MAJOR_VERSION != 6 
+#ifdef STATUS_DGPS_FIX
         case STATUS_DGPS_FIX:
           fix->status.status = 2; // NavSatStatus::STATUS_GBAS_FIX;
           break;

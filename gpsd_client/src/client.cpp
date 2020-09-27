@@ -157,14 +157,6 @@ class GPSDClient {
         if (p->status == STATUS_DGPS_FIX)
           status.status = 18; // same here
 #endif
-#ifdef STATUS_RTK_FIX
-        if (p->status == STATUS_RTK_FIX)
-          status.status = 19; // same here
-#endif
-#ifdef STATUS_RTK_FLT
-        if (p->status == STATUS_RTK_FLT)
-          status.status = 20; // same here
-#endif
 
 #if GPSD_API_MAJOR_VERSION >= 9
         fix.time = (double)(p->fix.time.tv_sec) + (double)(p->fix.time.tv_nsec) / 1000000.;

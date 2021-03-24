@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
   <name>gpsd_client</name>
   <version>0.3.2</version>
   <description>connects to a GPSd server and broadcasts GPS fixes 
@@ -14,11 +14,11 @@
   <url type="website">http://ros.org/wiki/gpsd_client</url>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>pkg-config</buildtool_depend>
 
-  <build_depend>roscpp</build_depend>
-  <build_depend>gps_common</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>pkg-config</build_depend>
-  <build_depend>libgps</build_depend>
+  <depend>gps_common</depend>
+  <depend>libgps</depend>
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
 
 </package>

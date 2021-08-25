@@ -148,13 +148,22 @@ class GPSDClient {
 #endif
       }
 
+#if GPSD_API_MAJOR_VERSION >= 10
+      if ((p->fix.status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+#else
       if ((p->status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+#endif
+
         status.status = 0; // FIXME: gpsmm puts its constants in the global
                            // namespace, so `GPSStatus::STATUS_FIX' is illegal.
 
 // STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
 #if GPSD_API_MAJOR_VERSION != 6
+#if GPSD_API_MAJOR_VERSION >= 10
+        if (p->fix.status & STATUS_DGPS_FIX)
+#else
         if (p->status & STATUS_DGPS_FIX)
+#endif
           status.status |= 18; // same here
 #endif
 
@@ -228,7 +237,11 @@ class GPSDClient {
        * so we need to use the ROS message's integer values
        * for status.status
        */
+#if GPSD_API_MAJOR_VERSION >= 10
+      switch (p->fix.status) {
+#else
       switch (p->status) {
+#endif
         case STATUS_NO_FIX:
           fix->status.status = -1; // NavSatStatus::STATUS_NO_FIX;
           break;

@@ -149,7 +149,11 @@ class GPSDClient {
       }
 
 #if GPSD_API_MAJOR_VERSION >= 10
+#ifdef STATUS_FIX
       if ((p->fix.status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+#else
+      if ((p->fix.status & STATUS_GPS) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+#endif
 #else
       if ((p->status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
 #endif
@@ -160,7 +164,11 @@ class GPSDClient {
 // STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
 #if GPSD_API_MAJOR_VERSION != 6
 #if GPSD_API_MAJOR_VERSION >= 10
+#ifdef STATUS_DGPS_FIX
         if (p->fix.status & STATUS_DGPS_FIX)
+#else
+        if (p->fix.status & STATUS_DGPS)
+#endif
 #else
         if (p->status & STATUS_DGPS_FIX)
 #endif
@@ -242,15 +250,27 @@ class GPSDClient {
 #else
       switch (p->status) {
 #endif
+#ifdef STATUS_NO_FIX
         case STATUS_NO_FIX:
+#else
+        case STATUS_UNK:
+#endif
           fix->status.status = -1; // NavSatStatus::STATUS_NO_FIX;
           break;
+#ifdef STATUS_FIX
         case STATUS_FIX:
+#else
+        case STATUS_GPS:
+#endif
           fix->status.status = 0; // NavSatStatus::STATUS_FIX;
           break;
 // STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
 #if GPSD_API_MAJOR_VERSION != 6 
+#ifdef STATUS_DGPS_FIX
         case STATUS_DGPS_FIX:
+#else
+        case STATUS_DGPS:
+#endif
           fix->status.status = 2; // NavSatStatus::STATUS_GBAS_FIX;
           break;
 #endif

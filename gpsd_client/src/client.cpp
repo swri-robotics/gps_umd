@@ -151,8 +151,10 @@ class GPSDClient {
 #if GPSD_API_MAJOR_VERSION >= 10
 #ifdef STATUS_FIX
       if ((p->fix.status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
-#else
+#elif defined STATUS_GPS
       if ((p->fix.status & STATUS_GPS) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+#else
+#error "Either STATUS_FIX or STATUS_GPS should be defined"
 #endif
 #else
       if ((p->status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
@@ -166,8 +168,10 @@ class GPSDClient {
 #if GPSD_API_MAJOR_VERSION >= 10
 #ifdef STATUS_DGPS_FIX
         if (p->fix.status & STATUS_DGPS_FIX)
-#else
+#elif defined STATUS_DGPS
         if (p->fix.status & STATUS_DGPS)
+#else
+#error "Either STATUS_DGPS_FIX or STATUS_DGPS should be defined"
 #endif
 #else
         if (p->status & STATUS_DGPS_FIX)
@@ -252,15 +256,19 @@ class GPSDClient {
 #endif
 #ifdef STATUS_NO_FIX
         case STATUS_NO_FIX:
-#else
+#elif defined STATUS_UNK
         case STATUS_UNK:
+#else
+#error "Either STATUS_NO_FIX or STATUS_UNK should be defined"
 #endif
           fix->status.status = -1; // NavSatStatus::STATUS_NO_FIX;
           break;
 #ifdef STATUS_FIX
         case STATUS_FIX:
-#else
+#elif defined STATUS_GPS
         case STATUS_GPS:
+#else
+#error "Either STATUS_FIX or STATUS_GPS should be defined"
 #endif
           fix->status.status = 0; // NavSatStatus::STATUS_FIX;
           break;
@@ -268,8 +276,10 @@ class GPSDClient {
 #if GPSD_API_MAJOR_VERSION != 6 
 #ifdef STATUS_DGPS_FIX
         case STATUS_DGPS_FIX:
-#else
+#elif defined STATUS_DGPS
         case STATUS_DGPS:
+#else
+#error "Either STATUS_DGPS_FIX or STATUS_DGPS should be defined"
 #endif
           fix->status.status = 2; // NavSatStatus::STATUS_GBAS_FIX;
           break;

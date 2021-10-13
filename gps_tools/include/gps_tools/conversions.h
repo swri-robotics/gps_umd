@@ -183,7 +183,10 @@ static inline void LLtoUTM(const double Lat, const double Long,
 	LongOriginRad = LongOrigin * RADIANS_PER_DEGREE;
 
 	//compute the UTM Zone from the latitude and longitude
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
 	snprintf(UTMZone, 4, "%d%c", ZoneNumber, UTMLetterDesignator(Lat));
+#pragma GCC diagnostic pop
 
 	eccPrimeSquared = (eccSquared)/(1-eccSquared);
 

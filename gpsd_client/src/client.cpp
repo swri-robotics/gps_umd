@@ -22,8 +22,8 @@ namespace gpsd_client
       check_fix_by_variance_(true),
       frame_id_("gps")
     {
-      timer_ = create_wall_timer(1s, std::bind(&GPSDClientComponent::step, this));
       start();
+      timer_ = create_wall_timer(1s, std::bind(&GPSDClientComponent::step, this));
       RCLCPP_INFO(this->get_logger(), "Instantiated.");
     }
 

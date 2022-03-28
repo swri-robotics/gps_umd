@@ -5,7 +5,10 @@
 #include <sensor_msgs/msg/nav_sat_status.hpp>
 #include <libgpsmm.h>
 
+#include <chrono>
 #include <cmath>
+
+using namespace std::chrono_literals;
 
 namespace gpsd_client
 {
@@ -18,7 +21,11 @@ namespace gpsd_client
       use_gps_time_(true),
       check_fix_by_variance_(true),
       frame_id_("gps")
-    {}
+    {
+      start();
+      timer_ = create_wall_timer(1s, std::bind(&GPSDClientComponent::step, this));
+      RCLCPP_INFO(this->get_logger(), "Instantiated.");
+    }
 
     bool start()
     {
@@ -207,6 +214,7 @@ namespace gpsd_client
 
       fix.status = status;
 
+      RCLCPP_DEBUG(this->get_logger(), "Publishing gps fix...");
       gps_fix_pub_->publish(fix);
     }
 
@@ -271,6 +279,7 @@ namespace gpsd_client
 
       fix->position_covariance_type = sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
+      RCLCPP_DEBUG(this->get_logger(), "Publishing navsatfix...");
       navsatfix_pub_->publish(std::move(fix));
     }
 
@@ -282,6 +291,7 @@ namespace gpsd_client
     bool use_gps_time_;
     bool check_fix_by_variance_;
     std::string frame_id_;
+    rclcpp::TimerBase::SharedPtr timer_;
   };
 }
 

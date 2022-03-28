@@ -183,7 +183,7 @@ static inline void LLtoUTM(const double Lat, const double Long,
 	LongOriginRad = LongOrigin * RADIANS_PER_DEGREE;
 
 	//compute the UTM Zone from the latitude and longitude
-	snprintf(UTMZone, 4, "%d%c", ZoneNumber, UTMLetterDesignator(Lat));
+	snprintf(UTMZone, 13, "%d%c", ZoneNumber, UTMLetterDesignator(Lat));
 
 	eccPrimeSquared = (eccSquared)/(1-eccSquared);
 
@@ -210,7 +210,7 @@ static inline void LLtoUTM(const double Lat, const double Long,
 static inline void LLtoUTM(const double Lat, const double Long,
                            double &UTMNorthing, double &UTMEasting,
                            std::string &UTMZone) {
-  char zone_buf[] = {0, 0, 0, 0};
+  char zone_buf[13] = {0};
 
   LLtoUTM(Lat, Long, UTMNorthing, UTMEasting, zone_buf);
 

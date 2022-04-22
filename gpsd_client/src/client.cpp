@@ -90,7 +90,7 @@ class GPSDClient {
     }
 
     void stop() {
-      // gpsmm doesn't have a close method? OK ...
+      delete gps;
     }
 
   private:

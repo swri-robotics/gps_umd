@@ -1,9 +1,31 @@
+#include <libgpsmm.h>
+
+// gps.h defines some macros which conflict with enum values in NavSatStatus.h,
+// so we map them to new names before including other headers.
+#ifdef STATUS_FIX
+  enum {
+    GPSD_STATUS_NO_FIX   = STATUS_NO_FIX,
+    GPSD_STATUS_FIX      = STATUS_FIX,
+    GPSD_STATUS_DGPS_FIX = STATUS_DGPS_FIX,
+  };
+  #undef STATUS_NO_FIX
+  #undef STATUS_FIX
+  #undef STATUS_DGPS_FIX
+#else
+  // Renamed in gpsd >= 3.23.1 (commits d4a4d8d3, af3b7dc0, 7d7b889f) without
+  // revising the API version number.
+  enum {
+    GPSD_STATUS_NO_FIX   = STATUS_UNK,
+    GPSD_STATUS_FIX      = STATUS_GPS,
+    GPSD_STATUS_DGPS_FIX = STATUS_DGPS,
+  };
+#endif
+
 #include <ros/ros.h>
 #include <gps_common/GPSFix.h>
 #include <gps_common/GPSStatus.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/NavSatStatus.h>
-#include <libgpsmm.h>
 
 #include <cmath>
 
@@ -148,27 +170,22 @@ class GPSDClient {
 #endif
       }
 
-#if GPSD_API_MAJOR_VERSION >= 12
-      if ((p->fix.status & STATUS_GPS) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
-#elif GPSD_API_MAJOR_VERSION >= 10
-      if ((p->fix.status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+#if GPSD_API_MAJOR_VERSION >= 10
+      if ((p->fix.status & GPSD_STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
 #else
-      if ((p->status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+      if ((p->status & GPSD_STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
 #endif
 
-        status.status = 0; // FIXME: gpsmm puts its constants in the global
-                           // namespace, so `GPSStatus::STATUS_FIX' is illegal.
+        status.status = GPSStatus::STATUS_FIX;
 
-// STATUS_DGPS_FIX was removed in API version 6 but re-added afterward and next renamed since the version 12
+// STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
 #if GPSD_API_MAJOR_VERSION != 6
-#if GPSD_API_MAJOR_VERSION >= 12
-        if (p->fix.status & STATUS_DGPS)
-#elif GPSD_API_MAJOR_VERSION >= 10
-        if (p->fix.status & STATUS_DGPS_FIX)
+#if GPSD_API_MAJOR_VERSION >= 10
+        if (p->fix.status & GPSD_STATUS_DGPS_FIX)
 #else
-        if (p->status & STATUS_DGPS_FIX)
+        if (p->status & GPSD_STATUS_DGPS_FIX)
 #endif
-          status.status |= 18; // same here
+          status.status |= GPSStatus::STATUS_DGPS_FIX;
 #endif
 
 #if GPSD_API_MAJOR_VERSION >= 9
@@ -210,7 +227,7 @@ class GPSDClient {
 
         /* TODO: attitude */
       } else {
-        status.status = -1; // STATUS_NO_FIX or STATUS_UNK
+        status.status = GPSStatus::STATUS_NO_FIX;
       }
 
       fix.status = status;
@@ -237,30 +254,21 @@ class GPSDClient {
 
       fix.header.frame_id = frame_id;
 
-      /* gpsmm pollutes the global namespace with STATUS_,
-       * so we need to use the ROS message's integer values
-       * for status.status
-       */
 #if GPSD_API_MAJOR_VERSION >= 10
       switch (p->fix.status) {
 #else
       switch (p->status) {
 #endif
-#if GPSD_API_MAJOR_VERSION >= 12
-        case STATUS_GPS:
-#else
-        case STATUS_NO_FIX:
-#endif
-          fix.status.status = 0; // NavSatStatus::STATUS_FIX or NavSatStatus::STATUS_GPS;
+        case GPSD_STATUS_NO_FIX:
+          fix.status.status = NavSatStatus::STATUS_NO_FIX;
           break;
-// STATUS_DGPS_FIX was removed in API version 6 but re-added afterward and next renamed since the version 12
+        case GPSD_STATUS_FIX:
+          fix.status.status = NavSatStatus::STATUS_FIX;
+          break;
+// STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
 #if GPSD_API_MAJOR_VERSION != 6
-#if GPSD_API_MAJOR_VERSION >= 12
-        case STATUS_DGPS:
-#else
-        case STATUS_DGPS_FIX:
-#endif
-          fix.status.status = 2; // NavSatStatus::STATUS_GBAS_FIX;
+        case GPSD_STATUS_DGPS_FIX:
+          fix.status.status = NavSatStatus::STATUS_GBAS_FIX;
           break;
 #endif
       }

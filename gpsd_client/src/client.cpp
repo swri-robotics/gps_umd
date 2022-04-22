@@ -27,6 +27,7 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/NavSatStatus.h>
 
+#include <cstdlib>
 #include <cmath>
 
 using namespace gps_common;
@@ -45,12 +46,12 @@ class GPSDClient {
       privnode.param("frame_id", frame_id, frame_id);
 
       std::string host = "localhost";
-      int port = 2947;
+      int port = atoi(DEFAULT_GPSD_PORT);
       privnode.getParam("host", host);
       privnode.getParam("port", port);
 
       char port_s[12];
-      snprintf(port_s, 12, "%d", port);
+      snprintf(port_s, sizeof(port_s), "%d", port);
 
       gps_data_t *resp = NULL;
 

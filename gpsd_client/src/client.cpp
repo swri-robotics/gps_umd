@@ -219,23 +219,23 @@ class GPSDClient {
     }
 
     void process_data_navsat(struct gps_data_t* p) {
-      NavSatFixPtr fix(new NavSatFix);
+      NavSatFix fix;
 
       /* TODO: Support SBAS and other GBAS. */
 
 #if GPSD_API_MAJOR_VERSION >= 9
       if (use_gps_time && (p->online.tv_sec || p->online.tv_nsec)) {
-        fix->header.stamp = ros::Time(p->fix.time.tv_sec, p->fix.time.tv_nsec);
+        fix.header.stamp = ros::Time(p->fix.time.tv_sec, p->fix.time.tv_nsec);
 #else
       if (use_gps_time && !std::isnan(p->fix.time)) {
-        fix->header.stamp = ros::Time(p->fix.time);
+        fix.header.stamp = ros::Time(p->fix.time);
 #endif
       }
       else {
-        fix->header.stamp = ros::Time::now();
+        fix.header.stamp = ros::Time::now();
       }
 
-      fix->header.frame_id = frame_id;
+      fix.header.frame_id = frame_id;
 
       /* gpsmm pollutes the global namespace with STATUS_,
        * so we need to use the ROS message's integer values
@@ -251,7 +251,7 @@ class GPSDClient {
 #else
         case STATUS_NO_FIX:
 #endif
-          fix->status.status = 0; // NavSatStatus::STATUS_FIX or NavSatStatus::STATUS_GPS;
+          fix.status.status = 0; // NavSatStatus::STATUS_FIX or NavSatStatus::STATUS_GPS;
           break;
 // STATUS_DGPS_FIX was removed in API version 6 but re-added afterward and next renamed since the version 12
 #if GPSD_API_MAJOR_VERSION != 6
@@ -260,16 +260,16 @@ class GPSDClient {
 #else
         case STATUS_DGPS_FIX:
 #endif
-          fix->status.status = 2; // NavSatStatus::STATUS_GBAS_FIX;
+          fix.status.status = 2; // NavSatStatus::STATUS_GBAS_FIX;
           break;
 #endif
       }
 
-      fix->status.service = NavSatStatus::SERVICE_GPS;
+      fix.status.service = NavSatStatus::SERVICE_GPS;
 
-      fix->latitude = p->fix.latitude;
-      fix->longitude = p->fix.longitude;
-      fix->altitude = p->fix.altitude;
+      fix.latitude = p->fix.latitude;
+      fix.longitude = p->fix.longitude;
+      fix.altitude = p->fix.altitude;
 
       /* gpsd reports status=OK even when there is no current fix,
        * as long as there has been a fix previously. Throw out these
@@ -281,11 +281,11 @@ class GPSDClient {
         return;
       }
 
-      fix->position_covariance[0] = p->fix.epx;
-      fix->position_covariance[4] = p->fix.epy;
-      fix->position_covariance[8] = p->fix.epv;
+      fix.position_covariance[0] = p->fix.epx;
+      fix.position_covariance[4] = p->fix.epy;
+      fix.position_covariance[8] = p->fix.epv;
 
-      fix->position_covariance_type = NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+      fix.position_covariance_type = NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
       navsat_fix_pub.publish(fix);
     }

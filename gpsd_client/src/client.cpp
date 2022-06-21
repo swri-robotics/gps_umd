@@ -20,26 +20,35 @@ namespace gpsd_client
       gps_(nullptr),
       use_gps_time_(true),
       check_fix_by_variance_(true),
-      frame_id_("gps")
+      frame_id_("gps"),
+      publish_rate_(1)
     {
       start();
-      timer_ = create_wall_timer(1s, std::bind(&GPSDClientComponent::step, this));
+      timer_ = create_wall_timer(publish_period_ms, std::bind(&GPSDClientComponent::step, this));
       RCLCPP_INFO(this->get_logger(), "Instantiated.");
     }
 
     bool start()
     {
+      this->declare_parameter("use_gps_time");
+      this->declare_parameter("check_fix_by_variance");
+      this->declare_parameter("frame_id");
+      this->declare_parameter("publish_rate");
+
       gps_fix_pub_ = create_publisher<gps_msgs::msg::GPSFix>("extended_fix", 1);
       navsatfix_pub_ = create_publisher<sensor_msgs::msg::NavSatFix>("fix", 1);
 
-      get_parameter_or("use_gps_time", use_gps_time_, use_gps_time_);
-      get_parameter_or("check_fix_by_variance", check_fix_by_variance_, check_fix_by_variance_);
-      get_parameter_or("frame_id", frame_id_, frame_id_);
+      this->get_parameter_or("use_gps_time", use_gps_time_, use_gps_time_);
+      this->get_parameter_or("check_fix_by_variance", check_fix_by_variance_, check_fix_by_variance_);
+      this->get_parameter_or("frame_id", frame_id_, frame_id_);
+      this->get_parameter_or("publish_rate", publish_rate_, publish_rate_);
+
+      publish_period_ms = std::chrono::milliseconds{(int)(1000 / publish_rate_)};
 
       std::string host = "localhost";
       int port = 2947;
-      get_parameter_or("host",  host, host);
-      get_parameter_or("port", port, port);
+      this->get_parameter_or("host", host, host);
+      this->get_parameter_or("port", port, port);
 
       char port_s[12];
       snprintf(port_s, 12, "%d", port);
@@ -291,6 +300,8 @@ namespace gpsd_client
     bool use_gps_time_;
     bool check_fix_by_variance_;
     std::string frame_id_;
+    int publish_rate_;
+    std::chrono::milliseconds publish_period_ms{};
     rclcpp::TimerBase::SharedPtr timer_;
   };
 }

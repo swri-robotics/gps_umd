@@ -30,10 +30,10 @@ namespace gpsd_client
 
     bool start()
     {
-      this->declare_parameter("use_gps_time");
-      this->declare_parameter("check_fix_by_variance");
-      this->declare_parameter("frame_id");
-      this->declare_parameter("publish_rate");
+      this->declare_parameter<bool>("use_gps_time");
+      this->declare_parameter<bool>("check_fix_by_variance");
+      this->declare_parameter<std::string>("frame_id");
+      this->declare_parameter<int>("publish_rate");
 
       gps_fix_pub_ = create_publisher<gps_msgs::msg::GPSFix>("extended_fix", 1);
       navsatfix_pub_ = create_publisher<sensor_msgs::msg::NavSatFix>("fix", 1);

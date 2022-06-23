@@ -267,6 +267,8 @@ class GPSDClient {
        * fake results, which have NaN variance
        */
       if (std::isnan(p->fix.epx) && check_fix_by_variance) {
+        ROS_DEBUG_THROTTLE(1,
+            "GPS status was reported as OK, but variance was invalid");
         return;
       }
 

@@ -279,6 +279,10 @@ namespace gpsd_client
        */
       if (std::isnan(p->fix.epx) && check_fix_by_variance_)
       {
+        RCLCPP_DEBUG_THROTTLE(this->get_logger(),
+          *this->get_clock(),
+          1000,
+          "GPS status was reported as OK, but variance was invalid");
         return;
       }
 

@@ -34,4 +34,12 @@ def generate_launch_description():
             output='screen',
     )
 
-    return launch.LaunchDescription([container])
+    return launch.LaunchDescription([container,
+            launch.actions.RegisterEventHandler(
+                event_handler=launch.event_handlers.OnProcessExit(
+                    target_action=container,
+                    on_exit=[launch.actions.EmitEvent(
+                        event=launch.events.Shutdown())]
+                    ))
+                ])
+

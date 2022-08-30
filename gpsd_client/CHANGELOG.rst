@@ -2,8 +2,8 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.5 (2022-08-30)
+------------------
 * Cleaner shutdown after unload
 * Fix build issues with gpsd 3.21 and 3.23
 * Fixing build warnings about deprecated API. DISTRIBUTION A. Approved for public release; distribution unlimited. OPSEC `#4584 <https://github.com/swri-robotics/gps_umd/issues/4584>`_ (`#61 <https://github.com/swri-robotics/gps_umd/issues/61>`_)

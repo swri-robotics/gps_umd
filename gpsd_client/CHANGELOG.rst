@@ -2,6 +2,17 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Cleaner shutdown after unload
+* Fix build issues with gpsd 3.21 and 3.23
+* Fixing build warnings about deprecated API. DISTRIBUTION A. Approved for public release; distribution unlimited. OPSEC `#4584 <https://github.com/swri-robotics/gps_umd/issues/4584>`_ (`#61 <https://github.com/swri-robotics/gps_umd/issues/61>`_)
+* Adding debug message to help diagnose failures (`#60 <https://github.com/swri-robotics/gps_umd/issues/60>`_)
+* User configurable publish rate (`#58 <https://github.com/swri-robotics/gps_umd/issues/58>`_)
+ * Add demo launch file
+* Fix ros2 component topics (`#46 <https://github.com/swri-robotics/gps_umd/issues/46>`_)
+* Contributors: Dave Mohamad, David Anthony, Philip Cheney
+
 1.0.4 (2020-08-14)
 ------------------
 

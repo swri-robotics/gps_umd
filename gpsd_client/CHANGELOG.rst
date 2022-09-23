@@ -2,8 +2,8 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.6 (2022-09-23)
+------------------
 * Fixing Foxy regression (`#67 <https://github.com/swri-robotics/gps_umd/issues/67>`_)
   Addresses https://github.com/swri-robotics/gps_umd/issues/66
 * Contributors: David Anthony

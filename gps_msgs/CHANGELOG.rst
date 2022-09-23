@@ -5,6 +5,12 @@ Changelog for package gps_msgs
 1.0.5 (2022-08-30)
 ------------------
 
+Forthcoming
+-----------
+* 1.0.5
+* Updating changelogs
+* Contributors: David Anthony
+
 1.0.4 (2020-08-14)
 ------------------
 * Add support for ros1 bridge (`#32 <https://github.com/swri-robotics/gps_umd/issues/32>`_)

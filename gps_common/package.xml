@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>gps_common</name>
-  <version>0.3.2</version>
+  <version>0.3.3</version>
   <description>GPS messages and common routines for use in GPS drivers</description>
 
   <maintainer email="timo.roehling@fkie.fraunhofer.de">Timo Roehling</maintainer>

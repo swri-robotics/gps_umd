@@ -2,8 +2,8 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.3 (2022-11-28)
+------------------
 * Adding better debugging output to help diagnose corner case (`#59 <https://github.com/swri-robotics/gps_umd/issues/59>`_)
   * Adding better debugging output to help diagnose corner case
   DISTRIBUTION A. Approved for public release; distribution unlimited. OPSEC `#4584 <https://github.com/swri-robotics/gps_umd/issues/4584>`_

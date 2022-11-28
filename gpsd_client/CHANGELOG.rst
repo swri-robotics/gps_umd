@@ -2,6 +2,18 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Adding better debugging output to help diagnose corner case (`#59 <https://github.com/swri-robotics/gps_umd/issues/59>`_)
+  * Adding better debugging output to help diagnose corner case
+  DISTRIBUTION A. Approved for public release; distribution unlimited. OPSEC `#4584 <https://github.com/swri-robotics/gps_umd/issues/4584>`_
+* Merge pull request `#39 <https://github.com/swri-robotics/gps_umd/issues/39>`_ from shr-project/jansa/gpsd
+  Fix build with gpsd-3.21
+* Fix build with gpsd-3.21
+  Adapt to changes from this commit:
+  https://gitlab.com/gpsd/gpsd/-/commit/29991d6ffeb41ecfc8297db68bb68be0128c8514
+* Contributors: David Anthony, Martin Jansa
+
 0.3.2 (2020-05-25)
 ------------------
 * Fix build with gpsd 3.20 (`#28 <https://github.com/swri-robotics/gps_umd/issues/28>`_)

@@ -7,10 +7,6 @@ Changelog for package gps_umd
 
 1.0.5 (2022-08-30)
 ------------------
-
-1.0.6 (2022-09-23)
-------------------
-* 1.0.5
 * Updating changelogs
 * Contributors: David Anthony
 

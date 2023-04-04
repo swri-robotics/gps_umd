@@ -2,8 +2,8 @@
 Changelog for package gps_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2023-04-04)
+------------------
 * Fixing Exports (`#73 <https://github.com/swri-robotics/gps_umd/issues/73>`_)
   * Fixing exported libraries
 * Contributors: David Anthony

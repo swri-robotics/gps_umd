@@ -2,8 +2,8 @@
 Changelog for package gps_tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.7 (2023-04-04)
+------------------
 * Specifying correct libraries to export (`#71 <https://github.com/swri-robotics/gps_umd/issues/71>`_)
 * Contributors: David Anthony
 

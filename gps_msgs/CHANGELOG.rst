@@ -4,15 +4,11 @@ Changelog for package gps_msgs
 
 1.0.6 (2022-09-23)
 ------------------
+* Updating changelogs
+* Contributors: David Anthony
 
 1.0.5 (2022-08-30)
 ------------------
-
-1.0.6 (2022-09-23)
-------------------
-* 1.0.5
-* Updating changelogs
-* Contributors: David Anthony
 
 1.0.4 (2020-08-14)
 ------------------

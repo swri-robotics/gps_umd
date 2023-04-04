@@ -2,6 +2,12 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
+1.0.6 (2023-04-04)
+------------------
+
 1.0.5 (2022-08-30)
 ------------------
 * Cleaner shutdown after unload

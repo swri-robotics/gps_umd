@@ -2,6 +2,14 @@
 Changelog for package gps_tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Specifying correct libraries to export (`#71 <https://github.com/swri-robotics/gps_umd/issues/71>`_)
+* Contributors: David Anthony
+
+1.0.5 (2023-04-04)
+------------------
+
 1.0.5 (2022-08-30)
 ------------------
 * Fix truncation warning for UTM zone snprintf() (`#45 <https://github.com/swri-robotics/gps_umd/issues/45>`_)

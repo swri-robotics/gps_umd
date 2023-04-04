@@ -7,7 +7,7 @@ Forthcoming
 * Specifying correct libraries to export (`#71 <https://github.com/swri-robotics/gps_umd/issues/71>`_)
 * Contributors: David Anthony
 
-1.0.5 (2023-04-04)
+1.0.6 (2023-04-04)
 ------------------
 
 1.0.5 (2022-08-30)

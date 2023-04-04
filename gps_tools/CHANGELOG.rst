@@ -2,6 +2,9 @@
 Changelog for package gps_tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.0.6 (2022-09-23)
+------------------
+
 1.0.5 (2022-08-30)
 ------------------
 * Fix truncation warning for UTM zone snprintf() (`#45 <https://github.com/swri-robotics/gps_umd/issues/45>`_)

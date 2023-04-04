@@ -76,6 +76,6 @@ ament_export_dependencies(ament_cmake
   rclpy
 )
 ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME})
+ament_export_libraries(utm_odometry_component utm_odometry_to_navsatfix_component)
 
 ament_package()

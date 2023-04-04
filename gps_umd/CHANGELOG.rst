@@ -2,6 +2,12 @@
 Changelog for package gps_umd
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fixing Exports (`#73 <https://github.com/swri-robotics/gps_umd/issues/73>`_)
+  * Fixing exported libraries
+* Contributors: David Anthony
+
 1.0.6 (2022-09-23)
 ------------------
 

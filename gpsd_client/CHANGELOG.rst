@@ -18,6 +18,32 @@ Changelog for package gpsd_client
  * Add demo launch file
 * Fix ros2 component topics (`#46 <https://github.com/swri-robotics/gps_umd/issues/46>`_)
 * Contributors: Dave Mohamad, David Anthony, Philip Cheney
+* Updating changelogs
+* Ros2 devel for GPSD 3.21 and 3.22 (`#65 <https://github.com/danthony06/gps_umd/issues/65>`_)
+  * Better defaults
+  * cleaner shutdown after unload
+  * fix build issues with gpsd 3.21 and 3.23
+  * Revert "fix build issues with gpsd 3.21 and 3.23"
+  This reverts commit eaa7c7870696757d33224a2b969544560552583c.
+  * fix build issues with gpsd 3.21 and 3.23
+  * Revert "Better defaults"
+  This reverts commit c0b66d610128cdcd9855585d8b67055d06e015c8.
+* Fixing build warnings about deprecated API. DISTRIBUTION A. Approved for public release; distribution unlimited. OPSEC `#4584 <https://github.com/danthony06/gps_umd/issues/4584>`_ (`#61 <https://github.com/danthony06/gps_umd/issues/61>`_)
+* Adding debug message to help diagnose failures (`#60 <https://github.com/danthony06/gps_umd/issues/60>`_)
+* ros2-devel: user configurable publish rate (`#58 <https://github.com/danthony06/gps_umd/issues/58>`_)
+  * Add user configurable publish rate
+  * Add demo launch file
+  * declare parameters
+  * Update gpsd_client-launch.py
+  Remove license, use project license
+* Fix ros2 component topics (`#46 <https://github.com/danthony06/gps_umd/issues/46>`_)
+  * Fix ros2 component topics
+  Emit gps/navsat fix messages on timer tick.
+  * Update gpsd_client/src/client.cpp
+  Co-authored-by: Sivert Havso <sivert@havso.net>
+  Co-authored-by: David Anthony <djanthony@gmail.com>
+  Co-authored-by: Sivert Havso <sivert@havso.net>
+* Contributors: Dave Mohamad, David Anthony, Philip Cheney
 
 1.0.4 (2020-08-14)
 ------------------

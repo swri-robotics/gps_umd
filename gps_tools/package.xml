@@ -4,7 +4,8 @@
   <version>1.0.7</version>
   <description>GPS routines for use in GPS drivers</description>
 
-  <maintainer email="preed@swri.org">P. J. Reed</maintainer>
+  <maintainer email="swri-robotics@swri.org">Southwest Research Institute</maintainer>
+  <author email="preed@swri.org">P. J. Reed</author>
   <license>BSD</license>
   <url type="website">http://ros.org/wiki/gps_common</url>
   <url type="repository">https://github.com/swri-robotics/gms_umd</url>

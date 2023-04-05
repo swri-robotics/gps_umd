@@ -8,6 +8,9 @@ Changelog for package gps_msgs
   * Fixing exported libraries
 * Contributors: David Anthony
 
+Forthcoming
+-----------
+
 1.0.6 (2022-09-23)
 ------------------
 * Updating changelogs

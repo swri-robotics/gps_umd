@@ -8,6 +8,9 @@ Changelog for package gps_tools
   * Fixing exported libraries
 * Contributors: David Anthony
 
+Forthcoming
+-----------
+
 1.0.6 (2022-09-23)
 ------------------
 

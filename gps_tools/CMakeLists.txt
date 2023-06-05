@@ -48,11 +48,6 @@ ament_target_dependencies(utm_odometry_to_navsatfix_component
   "sensor_msgs"
 )
 
-if(NOT WIN32)
-  ament_environment_hooks(
-    "${ament_cmake_package_templates_ENVIRONMENT_HOOK_LIBRARY_PATH}")
-endif()
-
 install(TARGETS
     utm_odometry_component
     utm_odometry_to_navsatfix_component

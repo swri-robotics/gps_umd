@@ -2,6 +2,11 @@
 Changelog for package gps_tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fixed Iron Build Error (`#76 <https://github.com/swri-robotics/gps_umd/issues/76>`_)
+* Contributors: RoboTech Vision
+
 1.0.7 (2023-04-04)
 ------------------
 * Specifying correct libraries to export (`#71 <https://github.com/swri-robotics/gps_umd/issues/71>`_)

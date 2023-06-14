@@ -148,7 +148,9 @@ class GPSDClient {
 #endif
       }
 
-#if GPSD_API_MAJOR_VERSION >= 10
+#if GPSD_API_MAJOR_VERSION >= 12
+      if ((p->fix.status & STATUS_GPS) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+#elif GPSD_API_MAJOR_VERSION >= 10
       if ((p->fix.status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
 #else
       if ((p->status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
@@ -157,9 +159,11 @@ class GPSDClient {
         status.status = 0; // FIXME: gpsmm puts its constants in the global
                            // namespace, so `GPSStatus::STATUS_FIX' is illegal.
 
-// STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
+// STATUS_DGPS_FIX was removed in API version 6 but re-added afterward and next renamed since the version 12
 #if GPSD_API_MAJOR_VERSION != 6
-#if GPSD_API_MAJOR_VERSION >= 10
+#if GPSD_API_MAJOR_VERSION >= 12
+        if (p->fix.status & STATUS_DGPS)
+#elif GPSD_API_MAJOR_VERSION >= 10
         if (p->fix.status & STATUS_DGPS_FIX)
 #else
         if (p->status & STATUS_DGPS_FIX)
@@ -206,7 +210,7 @@ class GPSDClient {
 
         /* TODO: attitude */
       } else {
-        status.status = -1; // STATUS_NO_FIX
+        status.status = -1; // STATUS_NO_FIX or STATUS_UNK
       }
 
       fix.status = status;
@@ -242,15 +246,20 @@ class GPSDClient {
 #else
       switch (p->status) {
 #endif
+#if GPSD_API_MAJOR_VERSION >= 12
+        case STATUS_GPS:
+#else
         case STATUS_NO_FIX:
-          fix->status.status = -1; // NavSatStatus::STATUS_NO_FIX;
+#endif
+          fix->status.status = 0; // NavSatStatus::STATUS_FIX or NavSatStatus::STATUS_GPS;
           break;
-        case STATUS_FIX:
-          fix->status.status = 0; // NavSatStatus::STATUS_FIX;
-          break;
-// STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
-#if GPSD_API_MAJOR_VERSION != 6 
+// STATUS_DGPS_FIX was removed in API version 6 but re-added afterward and next renamed since the version 12
+#if GPSD_API_MAJOR_VERSION != 6
+#if GPSD_API_MAJOR_VERSION >= 12
+        case STATUS_DGPS:
+#else
         case STATUS_DGPS_FIX:
+#endif
           fix->status.status = 2; // NavSatStatus::STATUS_GBAS_FIX;
           break;
 #endif

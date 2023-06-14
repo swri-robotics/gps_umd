@@ -2,8 +2,8 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.4 (2023-06-14)
+------------------
 * GPSD API v12 Compatibility (`#78 <https://github.com/swri-robotics/gps_umd/issues/78>`_)
 * Contributors: MariuszSzczepanikSpyrosoft
 

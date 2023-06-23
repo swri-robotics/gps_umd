@@ -2,6 +2,9 @@
 Changelog for package gps_umd
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.0.1 (2023-06-08)
 ------------------
 * Fixing build warning in colcon caused by unknown build system (`#75 <https://github.com/swri-robotics/gps_umd/issues/75>`_)

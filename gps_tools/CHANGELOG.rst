@@ -2,6 +2,9 @@
 Changelog for package gps_tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 2.0.1 (2023-06-08)
 ------------------
 * Fixed Iron Build Error (`#76 <https://github.com/swri-robotics/gps_umd/issues/76>`_)

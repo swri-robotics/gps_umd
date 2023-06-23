@@ -34,6 +34,8 @@ namespace gpsd_client
       this->declare_parameter<bool>("check_fix_by_variance");
       this->declare_parameter<std::string>("frame_id");
       this->declare_parameter<int>("publish_rate");
+      this->declare_parameter<std::string>("host");
+      this->declare_parameter<int>("port");
 
       gps_fix_pub_ = create_publisher<gps_msgs::msg::GPSFix>("extended_fix", 1);
       navsatfix_pub_ = create_publisher<sensor_msgs::msg::NavSatFix>("fix", 1);

@@ -294,7 +294,9 @@ class GPSDClient {
       fix.position_covariance[4] = p->fix.epy;
       fix.position_covariance[8] = p->fix.epv;
 
-      fix.position_covariance_type = NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+      fix.position_covariance_type = std::isnan(p->fix.epx) ?
+        NavSatFix::COVARIANCE_TYPE_UNKNOWN :
+        NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
       navsat_fix_pub.publish(fix);
     }

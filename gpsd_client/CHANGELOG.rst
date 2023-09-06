@@ -2,8 +2,8 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.3 (2023-09-06)
+------------------
 * Fix uninitialized parameter exception in gpsd_client (`#83 <https://github.com/swri-robotics/gps_umd/issues/83>`_)
 * Contributors: Erik Botö
 

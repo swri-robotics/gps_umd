@@ -2,6 +2,11 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix uninitialized parameter exception in gpsd_client (`#83 <https://github.com/swri-robotics/gps_umd/issues/83>`_)
+* Contributors: Erik Botö
+
 2.0.2 (2023-06-23)
 ------------------
 * declare host and port parameters (`#80 <https://github.com/swri-robotics/gps_umd/issues/80>`_)

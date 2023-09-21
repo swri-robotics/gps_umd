@@ -4,7 +4,8 @@
   <version>2.0.2</version>
   <description>gps_umd metapackage</description>
 
-  <maintainer email="preed@swri.org">P. J. Reed</maintainer>
+  <author>P. J. Reed</author>
+  <maintainer email="swri-robotics@swri.org">Southwest Research Institute</maintainer>
 
   <license>BSD</license>
 

@@ -5,9 +5,10 @@
   <description>connects to a GPSd server and broadcasts GPS fixes 
    using the NavSatFix message</description>
 
-  <maintainer email="preed@swri.org">P. J. Reed</maintainer>
+  <author>P. J. Reed</author>
   <author email="ken@tossell.net">Ken Tossell</author>
   <author email="rob@umd.edu">Rob Thomson</author>
+  <maintainer email="swri-robotics@swri.org">Southwest Research Institute</maintainer>
 
   <license>BSD</license>
   <url type="website">http://ros.org/wiki/gpsd_client</url>

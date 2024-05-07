@@ -2,6 +2,11 @@
 Changelog for package gps_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Updating CI process (`#85 <https://github.com/swri-robotics/gps_umd/issues/85>`_)
+* Contributors: David Anthony
+
 2.0.3 (2023-09-06)
 ------------------
 

@@ -2,6 +2,12 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix queue build up issue in gpsd_client (`#89 <https://github.com/swri-robotics/gps_umd/issues/89>`_)
+* Updating CI process (`#85 <https://github.com/swri-robotics/gps_umd/issues/85>`_)
+* Contributors: David Anthony, Erik Botö
+
 2.0.3 (2023-09-06)
 ------------------
 * Fix uninitialized parameter exception in gpsd_client (`#83 <https://github.com/swri-robotics/gps_umd/issues/83>`_)

@@ -2,8 +2,8 @@
 Changelog for package gps_tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.0.4 (2024-05-07)
+------------------
 * Updating CI process (`#85 <https://github.com/swri-robotics/gps_umd/issues/85>`_)
 * Contributors: David Anthony
 

@@ -11,7 +11,6 @@ find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
 # Try to find libgps, first with CMake's usual library search method, then by
-pkg_check_modules (libgps REQUIRED libgps)
 # querying pkg-config.
 find_library(libgps_LIBRARIES NAMES gps)
 find_path(libgps_INCLUDE_DIRS NAMES libgpsmm.h gps.h)

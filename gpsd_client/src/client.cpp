@@ -61,9 +61,9 @@ class GPSDClient {
 
       // Read out all queued data and only act on the latest
       gps_data_t* p = NULL;
-      while (gps_->waiting(0))
+      while (gps->waiting(0))
       {
-        p = gps_->read();
+        p = gps->read();
       }
 #else
       gps_data_t *p = gps->poll();

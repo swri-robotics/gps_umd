@@ -154,9 +154,9 @@ class GPSDClient {
       }
 
 #if GPSD_API_MAJOR_VERSION >= 12
-      if ((p->fix.status & STATUS_GPS) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+      if ((p->fix.status != STATUS_NO_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
 #elif GPSD_API_MAJOR_VERSION >= 10
-      if ((p->fix.status & STATUS_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
+      if ((p->fix.status != STATUS_NO_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
 #else
       if ((p->status != STATUS_NO_FIX) && !(check_fix_by_variance && std::isnan(p->fix.epx))) {
 #endif

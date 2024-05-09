@@ -28,6 +28,7 @@ catkin_python_setup()
 add_message_files(
   FILES
     GPSStatus.msg
+    GPSExtendedStatus.msg
     GPSFix.msg
 )
 

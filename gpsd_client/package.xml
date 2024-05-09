@@ -1,14 +1,15 @@
 <?xml version="1.0"?>
 <package>
   <name>gpsd_client</name>
-  <version>0.3.3</version>
+  <version>0.3.4</version>
   <description>connects to a GPSd server and broadcasts GPS fixes 
    using the NavSatFix message</description>
 
-  <maintainer email="timo.roehling@fkie.fraunhofer.de">Timo Roehling</maintainer>
-  <maintainer email="preed@swri.org">P. J. Reed</maintainer>
   <author email="ken@tossell.net">Ken Tossell</author>
   <author email="rob@umd.edu">Rob Thomson</author>
+  <author email="timo.roehling@fkie.fraunhofer.de">Timo Roehling</author>
+  <author email="preed@swri.org">P. J. Reed</author>
+  <maintainer email="swri-robotics@swri.org">Southwest Research Institute</maintainer>
 
   <license>BSD</license>
   <url type="website">http://ros.org/wiki/gpsd_client</url>

@@ -10,8 +10,25 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules (libgps REQUIRED libgps)
+# Try to find libgps, first with CMake's usual library search method, then by
+# querying pkg-config.
+find_library(libgps_LIBRARIES NAMES gps)
+find_path(libgps_INCLUDE_DIRS NAMES libgpsmm.h gps.h)
+
+if(NOT libgps_LIBRARIES)
+  message(STATUS "Checking pkg-config for libgps")
+  find_package(PkgConfig)
+  if(PkgConfig_FOUND)
+    pkg_check_modules(libgps libgps)
+  endif()
+endif()
+
+if(NOT libgps_LIBRARIES)
+  message(FATAL_ERROR "Could not find libgps "
+                      "(hint for Debian/Ubuntu: apt install libgps-dev)")
+else()
+  message(STATUS "Found libgps: ${libgps_LIBRARIES}")
+endif()
 
 add_library(${PROJECT_NAME} SHARED
   src/client.cpp

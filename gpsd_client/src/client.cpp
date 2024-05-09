@@ -208,7 +208,14 @@ namespace gpsd_client
 #endif
         fix.latitude = p->fix.latitude;
         fix.longitude = p->fix.longitude;
-        fix.altitude = p->fix.altitude;
+        if (p->fix.mode == MODE_3D)
+        {
+          fix.altitude = p->fix.altitude;
+        }
+        else
+        {
+          fix.altitude = std::nan("");
+        }
         fix.track = p->fix.track;
         fix.speed = p->fix.speed;
         fix.climb = p->fix.climb;

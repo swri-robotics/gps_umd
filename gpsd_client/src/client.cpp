@@ -48,12 +48,12 @@ namespace gpsd_client
       publish_period_ms = std::chrono::milliseconds{(int)(1000 / publish_rate_)};
 
       std::string host = "localhost";
-      int port = 2947;
+      int port = atoi(DEFAULT_GPSD_PORT);
       this->get_parameter_or("host", host, host);
       this->get_parameter_or("port", port, port);
 
       char port_s[12];
-      snprintf(port_s, 12, "%d", port);
+      snprintf(port_s, sizeof(port_s), "%d", port);
 
       gps_data_t* resp = nullptr;
 

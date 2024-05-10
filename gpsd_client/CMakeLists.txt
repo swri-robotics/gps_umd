@@ -11,8 +11,25 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
 )
 
-find_package(PkgConfig)
-pkg_check_modules (libgps REQUIRED libgps)
+# Try to find libgps, first with CMake's usual library search method, then by
+# querying pkg-config.
+find_library(libgps_LIBRARIES NAMES gps)
+find_path(libgps_INCLUDE_DIRS NAMES libgpsmm.h gps.h)
+
+if(NOT libgps_LIBRARIES)
+  message(STATUS "Checking pkg-config for libgps")
+  find_package(PkgConfig)
+  if(PkgConfig_FOUND)
+    pkg_check_modules(libgps libgps)
+  endif()
+endif()
+
+if(NOT libgps_LIBRARIES)
+  message(FATAL_ERROR "Could not find libgps "
+                      "(hint for Debian/Ubuntu: apt install libgps-dev)")
+else()
+  message(STATUS "Found libgps: ${libgps_LIBRARIES}")
+endif()
 
 ###################################################
 ## Declare things to be passed to other projects ##

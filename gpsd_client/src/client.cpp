@@ -12,7 +12,12 @@ using namespace sensor_msgs;
 
 class GPSDClient {
   public:
-    GPSDClient() : privnode("~"), gps(NULL), use_gps_time(true), check_fix_by_variance(true), frame_id("gps") {}
+    GPSDClient() :
+      privnode("~"),
+      gps(NULL),
+      use_gps_time(true),
+      check_fix_by_variance(true),
+      frame_id("gps") {}
 
     bool start() {
       gps_fix_pub = node.advertise<GPSFix>("extended_fix", 1);
@@ -73,6 +78,10 @@ class GPSDClient {
 
     void stop() {
       // gpsmm doesn't have a close method? OK ...
+      if (gps != NULL)
+      {
+        delete gps;
+      }
     }
 
   private:

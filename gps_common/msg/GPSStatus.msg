@@ -12,6 +12,7 @@ int32[] satellite_visible_azimuth # Azimuth of satellites
 int32[] satellite_visible_snr # Signal-to-noise ratios (dB)
 
 # Measurement status
+#   additional status enums can be found in the GPSExtendedStatus.msg
 int16 STATUS_NO_FIX=-1   # Unable to fix position
 int16 STATUS_FIX=0       # Normal fix
 int16 STATUS_SBAS_FIX=1  # Fixed using a satellite-based augmentation system

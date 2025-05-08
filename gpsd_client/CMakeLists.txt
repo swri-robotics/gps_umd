@@ -43,8 +43,7 @@ target_compile_definitions(${PROJECT_NAME}
 rclcpp_components_register_nodes(${PROJECT_NAME} "gpsd_client::GPSDClientComponent")
 target_link_libraries(${PROJECT_NAME}
   ${libgps_LIBRARIES}
-)
-target_link_libraries(${PROJECT_NAME} PUBLIC
+  PUBLIC
   "gps_msgs"
   "rclcpp"
   "rclcpp_components"

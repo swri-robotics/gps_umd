@@ -24,7 +24,7 @@ target_include_directories(utm_odometry_component
 target_compile_definitions(utm_odometry_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
 rclcpp_components_register_nodes(utm_odometry_component "gps_tools::UtmOdometryComponent")
-ament_target_dependencies(utm_odometry_component
+target_link_libraries(utm_odometry_component PUBLIC
   "nav_msgs"
   "rclcpp"
   "rclcpp_components"
@@ -41,7 +41,7 @@ target_include_directories(utm_odometry_to_navsatfix_component
 target_compile_definitions(utm_odometry_to_navsatfix_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
 rclcpp_components_register_nodes(utm_odometry_to_navsatfix_component "gps_tools::UtmOdometryToNavSatFixComponent")
-ament_target_dependencies(utm_odometry_to_navsatfix_component
+target_link_libraries(utm_odometry_to_navsatfix_component PUBLIC
   "nav_msgs"
   "rclcpp"
   "rclcpp_components"

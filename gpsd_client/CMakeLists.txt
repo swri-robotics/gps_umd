@@ -44,7 +44,7 @@ rclcpp_components_register_nodes(${PROJECT_NAME} "gpsd_client::GPSDClientCompone
 target_link_libraries(${PROJECT_NAME}
   ${libgps_LIBRARIES}
 )
-ament_target_dependencies(${PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME} PUBLIC
   "gps_msgs"
   "rclcpp"
   "rclcpp_components"

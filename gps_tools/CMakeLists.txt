@@ -25,10 +25,12 @@ target_compile_definitions(utm_odometry_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
 rclcpp_components_register_nodes(utm_odometry_component "gps_tools::UtmOdometryComponent")
 target_link_libraries(utm_odometry_component PUBLIC
-  "nav_msgs"
-  "rclcpp"
-  "rclcpp_components"
-  "sensor_msgs"
+  ${nav_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  rclcpp::rclcpp
+  rclcpp_components::component
+  rclcpp_components::component_manager
+  sensor_msgs::sensor_msgs_library
 )
 
 add_library(utm_odometry_to_navsatfix_component SHARED
@@ -42,10 +44,12 @@ target_compile_definitions(utm_odometry_to_navsatfix_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
 rclcpp_components_register_nodes(utm_odometry_to_navsatfix_component "gps_tools::UtmOdometryToNavSatFixComponent")
 target_link_libraries(utm_odometry_to_navsatfix_component PUBLIC
-  "nav_msgs"
-  "rclcpp"
-  "rclcpp_components"
-  "sensor_msgs"
+  ${nav_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  rclcpp::rclcpp
+  rclcpp_components::component
+  rclcpp_components::component_manager
+  sensor_msgs::sensor_msgs_library
 )
 
 install(TARGETS

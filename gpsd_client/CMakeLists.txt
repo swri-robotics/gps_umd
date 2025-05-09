@@ -41,13 +41,14 @@ target_compile_definitions(${PROJECT_NAME}
   PRIVATE "COMPOSITION_BUILDING_DLL"
 )
 rclcpp_components_register_nodes(${PROJECT_NAME} "gpsd_client::GPSDClientComponent")
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME} PUBLIC
   ${libgps_LIBRARIES}
-  PUBLIC
-  "gps_msgs"
-  "rclcpp"
-  "rclcpp_components"
-  "sensor_msgs"
+  ${gps_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  rclcpp::rclcpp
+  rclcpp_components::component
+  rclcpp_components::component_manager
+  sensor_msgs::sensor_msgs_library
 )
 
 #############

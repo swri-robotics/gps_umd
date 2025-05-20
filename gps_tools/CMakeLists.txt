@@ -18,35 +18,42 @@ add_library(utm_odometry_component SHARED
   src/utm_odometry_component.cpp)
 target_include_directories(utm_odometry_component
   PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    ${rclcpp_components_INCLUDE_DIRS}
+    ${sensor_msgs_INCLUDE_DIRS}
+    ${nav_msgs_INCLUDE_DIRS}
 )
 target_compile_definitions(utm_odometry_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
+
 rclcpp_components_register_nodes(utm_odometry_component "gps_tools::UtmOdometryComponent")
-ament_target_dependencies(utm_odometry_component
-  "nav_msgs"
-  "rclcpp"
-  "rclcpp_components"
-  "sensor_msgs"
-)
+target_link_libraries(utm_odometry_component PUBLIC
+  ${nav_msgs_LIBRARIES}
+  rclcpp::rclcpp
+  rclcpp_components::component
+  rclcpp_components::component_manager
+  ${sensor_msgs_LIBRARIES})
 
 add_library(utm_odometry_to_navsatfix_component SHARED
   src/utm_odometry_to_navsatfix_component.cpp)
+
 target_include_directories(utm_odometry_to_navsatfix_component
   PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    ${nav_msgs_INCLUDE_DIRS}
+    ${sensor_msgs_INCLUDE_DIRS}
 )
 target_compile_definitions(utm_odometry_to_navsatfix_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
 rclcpp_components_register_nodes(utm_odometry_to_navsatfix_component "gps_tools::UtmOdometryToNavSatFixComponent")
-ament_target_dependencies(utm_odometry_to_navsatfix_component
-  "nav_msgs"
-  "rclcpp"
-  "rclcpp_components"
-  "sensor_msgs"
-)
+target_link_libraries(utm_odometry_to_navsatfix_component PUBLIC
+  ${nav_msgs_LIBRARIES}
+  rclcpp::rclcpp
+  rclcpp_components::component
+  rclcpp_components::component_manager
+  ${sensor_msgs_LIBRARIES})
 
 install(TARGETS
     utm_odometry_component

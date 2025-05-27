@@ -2,6 +2,19 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+2.0.5 (2025-05-20)
+------------------
+* Removing all ament_target_dependencies() calls (`#111 <https://github.com/swri-robotics/gps_umd/issues/111>`_)
+* Changing hard coded default port value and improving string allocation (`#101 <https://github.com/swri-robotics/gps_umd/issues/101>`_)
+* Updating package search (`#99 <https://github.com/swri-robotics/gps_umd/issues/99>`_)
+  * Updating package search
+  * Removing pkg_check_modules call
+* Check mode Field (`#100 <https://github.com/swri-robotics/gps_umd/issues/100>`_)
+  * Switching to use mode of fix instead of status to be more robust to changes in API
+  * Making altitude NaN if in 2D fix mode
+* Port of https://github.com/swri-robotics/gps_umd/pull/74 (`#98 <https://github.com/swri-robotics/gps_umd/issues/98>`_)
+* Contributors: David Anthony
+
 2.0.4 (2024-05-07)
 ------------------
 * Fix queue build up issue in gpsd_client (`#89 <https://github.com/swri-robotics/gps_umd/issues/89>`_)

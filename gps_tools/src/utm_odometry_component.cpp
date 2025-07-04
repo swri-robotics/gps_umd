@@ -23,10 +23,10 @@ namespace gps_tools
     {
       odom_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom", 10);
 
-      get_parameter_or("rot_covariance", rot_cov_, rot_cov_);
-      get_parameter_or("child_frame_id", child_frame_id_, child_frame_id_);
-      get_parameter_or("frame_id", frame_id_, frame_id_);
-      get_parameter_or("append_zone", append_zone_, append_zone_);
+      rot_cov_ = declare_parameter("rot_covariance", rot_cov_);
+      child_frame_id_ = declare_parameter("child_frame_id", child_frame_id_);
+      frame_id_ = declare_parameter("frame_id", frame_id_);
+      append_zone_ = declare_parameter("append_zone", append_zone_);
 
       auto callback = [this](const typename sensor_msgs::msg::NavSatFix::SharedPtr fix) -> void
       {

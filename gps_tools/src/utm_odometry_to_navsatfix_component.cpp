@@ -9,6 +9,7 @@
 #include <sensor_msgs/msg/nav_sat_status.hpp>
 #include <gps_tools/conversions.h>
 #include <nav_msgs/msg/odometry.hpp>
+#include <optional>
 
 namespace gps_tools
 {
@@ -18,8 +19,16 @@ public:
   explicit UtmOdometryToNavSatFixComponent(const rclcpp::NodeOptions& options) :
       Node("utm_odometry_to_navsatfix_node", options)
   {
-    get_parameter_or("frame_id", frame_id_, std::string(""));
-    get_parameter_or("zone", zone_, std::string(""));
+
+    frame_id_ = declare_parameter("frame_id", std::string(""));
+    try
+    {
+        zone_ = declare_parameter<int>("zone");
+    }
+    catch (rclcpp::exceptions::UninitializedStaticallyTypedParameterException)
+    {
+        // If zone is not set, just leave it with its default value (std::nullopt).
+    }
 
     fix_pub_ = create_publisher<sensor_msgs::msg::NavSatFix>("fix", 10);
 
@@ -40,9 +49,9 @@ public:
       northing = odom->pose.pose.position.y;
       easting = odom->pose.pose.position.x;
 
-      if(zone_.length() > 0) {
+      if(zone_) {
         // utm zone was supplied as a ROS parameter
-        zone = zone_;
+        zone = std::to_string(zone_.value());
         fix.header.frame_id = odom->header.frame_id;
       } else {
         // look for the utm zone in the frame_id
@@ -86,7 +95,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr fix_pub_;
 
   std::string frame_id_;
-  std::string zone_;
+  std::optional<int> zone_;
 };
 }
 

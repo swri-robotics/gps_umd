@@ -202,7 +202,7 @@ namespace gpsd_client
 #endif
 
 #if GPSD_API_MAJOR_VERSION >= 9
-        fix.time = (double)(p->fix.time.tv_sec) + (double)(p->fix.time.tv_nsec) / 1000000.;
+        fix.time = (double)(p->fix.time.tv_sec) + ((double)(p->fix.time.tv_nsec)) / 1e9;
 #else
         fix.time = p->fix.time;
 #endif

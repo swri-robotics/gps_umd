@@ -2,8 +2,8 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.1.2 (2026-03-13)
+------------------
 * Fixing time conversion (`#117 <https://github.com/swri-robotics/gps_umd/issues/117>`_)
 * Contributors: David Anthony
 

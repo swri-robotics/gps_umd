@@ -23,7 +23,10 @@ namespace gpsd_client
       frame_id_("gps"),
       publish_rate_(1)
     {
-      start();
+      if (!start()) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to start gpsd_client; timer not created.");
+        return;
+      }
       timer_ = create_wall_timer(publish_period_ms, std::bind(&GPSDClientComponent::step, this));
       RCLCPP_INFO(this->get_logger(), "Instantiated.");
     }
@@ -44,6 +47,11 @@ namespace gpsd_client
       this->get_parameter_or("check_fix_by_variance", check_fix_by_variance_, check_fix_by_variance_);
       this->get_parameter_or("frame_id", frame_id_, frame_id_);
       this->get_parameter_or("publish_rate", publish_rate_, publish_rate_);
+
+      if (publish_rate_ <= 0) {
+        RCLCPP_WARN(this->get_logger(), "Invalid publish_rate %d; using 1 Hz", publish_rate_);
+        publish_rate_ = 1;
+      }
 
       publish_period_ms = std::chrono::milliseconds{(int)(1000 / publish_rate_)};
 
@@ -144,15 +152,23 @@ namespace gpsd_client
 
       status.satellites_used = p->satellites_used;
 
-      status.satellite_used_prn.resize(status.satellites_used);
-      for (int i = 0; i < status.satellites_used; ++i)
-      {
 #if GPSD_API_MAJOR_VERSION > 5
-        status.satellite_used_prn[i] = p->skyview[i].used;
-#else
-        status.satellite_used_prn[i] = p->used[i];
-#endif
+      status.satellite_used_prn.clear();
+      status.satellite_used_prn.reserve(p->satellites_used);
+      for (int i = 0; i < p->satellites_visible; ++i)
+      {
+        if (p->skyview[i].used)
+        {
+          status.satellite_used_prn.push_back(p->skyview[i].PRN);
+        }
       }
+#else
+      status.satellite_used_prn.resize(p->satellites_used);
+      for (int i = 0; i < p->satellites_used; ++i)
+      {
+        status.satellite_used_prn[i] = p->used[i];
+      }
+#endif
 
       status.satellites_visible = SATS_VISIBLE;
 
@@ -175,31 +191,62 @@ namespace gpsd_client
         status.satellite_visible_snr[i] = p->ss[i];
 #endif
       }
-#if GPSD_API_MAJOR_VERSION >= 10
-#ifdef STATUS_FIX
-      if (((p->fix.mode == MODE_2D) || (p->fix.mode == MODE_3D)) && !(check_fix_by_variance_ && std::isnan(p->fix.epx)))
-#else
-      if (((p->fix.mode == MODE_2D) || (p->fix.mode == MODE_3D)) && !(check_fix_by_variance_ && std::isnan(p->fix.epx)))
+      const bool valid_variance =
+        std::isfinite(p->fix.epx) &&
+        std::isfinite(p->fix.epy) &&
+        std::isfinite(p->fix.epv);
+      if (((p->fix.mode == MODE_2D) || (p->fix.mode == MODE_3D)) && !(check_fix_by_variance_ && !valid_variance))
+      {
+        status.motion_source = gps_msgs::msg::GPSStatus::SOURCE_POINTS;
+        status.orientation_source = gps_msgs::msg::GPSStatus::SOURCE_POINTS;
+        status.position_source = gps_msgs::msg::GPSStatus::SOURCE_GPS;
+
+        status.status = 0; //gps_msgs::msg::GPSStatus::STATUS_FIX;
+
+        bool sbas_used = false;
+
+#if GPSD_API_MAJOR_VERSION >= 9
+        for (int i = 0; i < p->satellites_visible; ++i)
+        {
+          if (p->skyview[i].used)
+          {
+            if (p->skyview[i].gnssid == GNSSID_SBAS)
+              sbas_used = true;
+          }
+        }
 #endif
+
+#if GPSD_API_MAJOR_VERSION >= 10
+      switch (p->fix.status)
 #else
-      if (((p->fix.mode == MODE_2D) || (p->fix.mode == MODE_3D)) && !(check_fix_by_variance_ && std::isnan(p->fix.epx)))
+      switch (p->status)
 #endif
       {
-        status.status = 0; // FIXME: gpsmm puts its constants in the global
-        // namespace, so `GPSStatus::STATUS_FIX' is illegal.
-
-// STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
-#if GPSD_API_MAJOR_VERSION != 6
-#if GPSD_API_MAJOR_VERSION >= 10
+#if defined(STATUS_DGPS_FIX) || defined(STATUS_DGPS)
 #ifdef STATUS_DGPS_FIX
-      if (p->fix.status & STATUS_DGPS_FIX)
+        case STATUS_DGPS_FIX:
 #else
-      if (p->fix.status & STATUS_DGPS)
+        case STATUS_DGPS:
 #endif
-#else
-      if (p->status & STATUS_DGPS_FIX)
+          if (sbas_used)
+            status.status = 1; //gps_msgs::msg::GPSStatus::STATUS_SBAS_FIX;
+          else
+            status.status = 18; //gps_msgs::msg::GPSStatus::STATUS_DGPS_FIX;
+          break;
 #endif
+#ifdef STATUS_RTK_FIX
+        case STATUS_RTK_FIX:
+          status.status = 19; //gps_msgs::msg::GPSStatus::STATUS_RTK_FIX;
+          break;
 #endif
+#ifdef STATUS_RTK_FLT
+        case STATUS_RTK_FLT:
+          status.status = 20; //gps_msgs::msg::GPSStatus::STATUS_RTK_FLOAT;
+          break;
+#endif
+        default:
+          break;
+      }
 
 #if GPSD_API_MAJOR_VERSION >= 9
         fix.time = (double)(p->fix.time.tv_sec) + ((double)(p->fix.time.tv_nsec)) / 1e9;
@@ -247,7 +294,7 @@ namespace gpsd_client
 
         /* TODO: attitude */
       } else {
-        status.status = -1; // STATUS_NO_FIX
+        status.status = -1; //gps_msgs::msg::GPSStatus::STATUS_NO_FIX;
       }
 
       fix.status = status;
@@ -266,7 +313,7 @@ namespace gpsd_client
       if (use_gps_time_ && (p->online.tv_sec || p->online.tv_nsec)) {
         fix->header.stamp = rclcpp::Time(p->fix.time.tv_sec, p->fix.time.tv_nsec);
 #else
-      if (use_gps_time_ && !std::isnan(p->fix.time)) {
+      if (use_gps_time_ && std::isfinite(p->fix.time)) {
         fix->header.stamp = rclcpp::Time(p->fix.time);
 #endif
       }
@@ -276,43 +323,73 @@ namespace gpsd_client
 
       fix->header.frame_id = frame_id_;
 
-      /* gpsmm pollutes the global namespace with STATUS_,
-       * so we need to use the ROS message's integer values
-       * for status.status
-       */
-#if GPSD_API_MAJOR_VERSION >= 10
-      switch (p->fix.status)
-#else
-      switch (p->status)
-#endif
-      {
-#ifdef STATUS_NO_FIX
-        case STATUS_NO_FIX:
-#else
-        case STATUS_UNK:
-#endif
-          fix->status.status = -1; // NavSatStatus::STATUS_NO_FIX;
-          break;
-#ifdef STATUS_FIX
-        case STATUS_FIX:
-#else
-        case STATUS_GPS:
-#endif
-          fix->status.status = 0; // NavSatStatus::STATUS_FIX;
-          break;
-// STATUS_DGPS_FIX was removed in API version 6 but re-added afterward
-#if GPSD_API_MAJOR_VERSION != 6
-#ifdef STATUS_DGPS_FIX
-        case STATUS_DGPS_FIX:
-#else
-        case STATUS_DGPS:
-#endif
-          fix->status.status = 2; // NavSatStatus::STATUS_GBAS_FIX;
-          break;
-#endif
-      }
+      bool sbas_used = false;
 
+#if GPSD_API_MAJOR_VERSION > 5
+      fix->status.service = sensor_msgs::msg::NavSatStatus::SERVICE_UNKNOWN;
+      for (int i = 0; i < p->satellites_visible; ++i)
+      {
+        if (p->skyview[i].used)
+        {
+          if (p->skyview[i].gnssid == GNSSID_GPS)
+            fix->status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_GPS;
+          else if (p->skyview[i].gnssid == GNSSID_GLO)
+            fix->status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS;
+          else if (p->skyview[i].gnssid == GNSSID_BD)
+            fix->status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_COMPASS;
+          else if (p->skyview[i].gnssid == GNSSID_GAL)
+            fix->status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_GALILEO;
+          if (p->skyview[i].gnssid == GNSSID_SBAS)
+            sbas_used = true;
+        }
+      }
+#else
       fix->status.service = sensor_msgs::msg::NavSatStatus::SERVICE_GPS;
+#endif
+
+      if (p->fix.mode == MODE_2D || p->fix.mode == MODE_3D)
+      {
+        fix->status.status = 0; //sensor_msgs::msg::NavSatStatus::STATUS_FIX;
+        /* gpsmm pollutes the global namespace with STATUS_,
+         * so we need to use the ROS message's integer values
+         * for status.status
+         */
+#if GPSD_API_MAJOR_VERSION >= 10
+        switch (p->fix.status)
+#else
+        switch (p->status)
+#endif
+        {
+#if defined(STATUS_DGPS_FIX) || defined(STATUS_DGPS)
+#ifdef STATUS_DGPS_FIX
+          case STATUS_DGPS_FIX:
+#else
+          case STATUS_DGPS:
+#endif
+            if (sbas_used)
+              fix->status.status = 1; //sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX;
+            else
+              fix->status.status = 2; //sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX;
+            break;
+#endif
+#ifdef STATUS_RTK_FIX
+          case STATUS_RTK_FIX:
+            fix->status.status = 2; //sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX;
+            break;
+#endif
+#ifdef STATUS_RTK_FLT
+          case STATUS_RTK_FLT:
+            fix->status.status = 2; //sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX;
+            break;
+#endif
+          default:
+            break;
+        }
+      }
+      else
+      {
+        fix->status.status = -1; //sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
+      }
 
       fix->latitude = p->fix.latitude;
       fix->longitude = p->fix.longitude;
@@ -322,7 +399,10 @@ namespace gpsd_client
        * as long as there has been a fix previously. Throw out these
        * fake results, which have NaN variance
        */
-      if (std::isnan(p->fix.epx) && check_fix_by_variance_)
+      if (check_fix_by_variance_ &&
+          (!std::isfinite(p->fix.epx) ||
+           !std::isfinite(p->fix.epy) ||
+           !std::isfinite(p->fix.epv)))
       {
         RCLCPP_DEBUG_THROTTLE(this->get_logger(),
           *this->get_clock(),

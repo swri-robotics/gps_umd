@@ -2,8 +2,8 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+2.2.0 (2026-07-08)
+------------------
 * gpsd_client: fix GPS status mapping and satellite PRN reporting (`#119 <https://github.com/swri-robotics/gps_umd/issues/119>`_)
   Restore corrected-fix status handling that was accidentally broken during
   the gpsd API 10 migration.  The DGPS/SBAS/RTK status checks now have real

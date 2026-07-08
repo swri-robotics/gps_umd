@@ -326,7 +326,8 @@ namespace gpsd_client
       bool sbas_used = false;
 
 #if GPSD_API_MAJOR_VERSION > 5
-      fix->status.service = sensor_msgs::msg::NavSatStatus::SERVICE_UNKNOWN;
+      // There is no "Unknown provider" type in Humble, so defaulting to 0
+      fix->status.service = 0;
       for (int i = 0; i < p->satellites_visible; ++i)
       {
         if (p->skyview[i].used)

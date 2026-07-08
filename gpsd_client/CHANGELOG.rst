@@ -2,6 +2,28 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* gpsd_client: fix GPS status mapping and satellite PRN reporting (`#119 <https://github.com/swri-robotics/gps_umd/issues/119>`_)
+  Restore corrected-fix status handling that was accidentally broken during
+  the gpsd API 10 migration.  The DGPS/SBAS/RTK status checks now have real
+  bodies again and update GPSFix.status.status instead of falling through to
+  the next statement.  This allows GPSFix to report SBAS, DGPS, RTK fixed,
+  and RTK float states instead of always publishing a plain fix.
+  Update NavSatFix status handling to use fix mode as the validity gate and
+  gpsd status as the correction-quality qualifier.  This prevents valid 2D/3D
+  fixes with unrecognized or newer gpsd status values from being reported as
+  NO_FIX, while still mapping SBAS/DGPS/RTK corrections to the closest
+  NavSatStatus values.
+  Fix satellite_used_prn population for newer gpsd APIs by collecting the PRN
+  from each used skyview entry.  The previous code stored the boolean "used"
+  flag instead of the satellite PRN and assumed the first satellites_used
+  skyview entries were the used satellites.
+  Also harden startup by avoiding timer creation when gpsd fails to open and
+  guarding against invalid publish_rate values before computing the timer
+  period.
+* Contributors: engnfrc
+
 2.1.2 (2026-03-13)
 ------------------
 * Fixing time conversion (`#117 <https://github.com/swri-robotics/gps_umd/issues/117>`_)

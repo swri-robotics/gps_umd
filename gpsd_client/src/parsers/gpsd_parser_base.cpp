@@ -10,7 +10,7 @@ namespace gpsd_client
 
 bool GpsdParserBase::isOnline(const gps_data_t& data) const
 {
-  return data.online.tv_sec || data.online.tv_nsec;
+  return ((data.online.tv_sec > 0) || (data.online.tv_nsec > 0));
 }
 
 bool GpsdParserBase::usedSbas(const gps_data_t& data)

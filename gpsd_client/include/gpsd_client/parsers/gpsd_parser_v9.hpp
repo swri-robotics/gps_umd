@@ -19,7 +19,7 @@ public:
   using GpsdParserBase::GpsdParserBase;
 
 protected:
-  int getFixStatus(const gps_data_t& data) const override
+  [[nodiscard]] int getFixStatus(const gps_data_t& data) const override
   {
     return data.status;
   }

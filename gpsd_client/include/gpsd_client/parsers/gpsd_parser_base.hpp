@@ -35,7 +35,7 @@ public:
 protected:
   /// Fix status (STATUS_*): gps_data_t::status in API 9, moved to
   /// gps_data_t::fix.status in API 10.
-  virtual int getFixStatus(const gps_data_t& data) const = 0;
+  [[nodiscard]] virtual int getFixStatus(const gps_data_t& data) const = 0;
 
 private:
   /// True if any satellite used in the solution is an SBAS satellite.

@@ -49,9 +49,13 @@ int16_t GpsdParserBase::mapGpsFixStatus(int gpsd_status, bool sbas_used)
     case STATUS_DGPS:
 #endif
       if (sbas_used)
+      {
         return 1;  // gps_msgs::msg::GPSStatus::STATUS_SBAS_FIX
+      }
       else
+      {
         return 18; // gps_msgs::msg::GPSStatus::STATUS_DGPS_FIX
+      }
 #endif
 #ifdef STATUS_RTK_FIX
     case STATUS_RTK_FIX:
@@ -77,9 +81,13 @@ int8_t GpsdParserBase::mapNavSatStatus(int gpsd_status, bool sbas_used)
     case STATUS_DGPS:
 #endif
       if (sbas_used)
+      {
         return 1;  // sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX
+      }
       else
+      {
         return 2;  // sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX
+      }
 #endif
 #ifdef STATUS_RTK_FIX
     case STATUS_RTK_FIX:
@@ -204,13 +212,21 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
     if (data.skyview[i].used)
     {
       if (data.skyview[i].gnssid == GNSSID_GPS)
+      {
         fix.status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_GPS;
+      }
       else if (data.skyview[i].gnssid == GNSSID_GLO)
+      {
         fix.status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS;
+      }
       else if (data.skyview[i].gnssid == GNSSID_BD)
+      {
         fix.status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_COMPASS;
+      }
       else if (data.skyview[i].gnssid == GNSSID_GAL)
+      {
         fix.status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_GALILEO;
+      }
     }
   }
 

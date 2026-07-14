@@ -19,8 +19,8 @@ namespace gpsd_client
 class GpsdParserBase : public GpsdParser
 {
 public:
-  explicit GpsdParserBase(const ParserContext& context)
-    : context_(context)
+  explicit GpsdParserBase(ParserContext context)
+    : context_(std::move(context))
   {
   }
 

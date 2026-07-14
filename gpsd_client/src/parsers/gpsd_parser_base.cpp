@@ -210,7 +210,7 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
   fix.header.frame_id = context_.frame_id;
 
 #ifdef NO_UNKNOWN_FIX
-  fix.status.service = 0;
+  fix.status.service = 0; // Initialize to 0 before setting bits
 #else
   fix.status.service = sensor_msgs::msg::NavSatStatus::SERVICE_UNKNOWN;
 #endif

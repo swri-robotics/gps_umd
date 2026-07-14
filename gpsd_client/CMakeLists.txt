@@ -31,10 +31,13 @@ else()
 endif()
 
 add_library(${PROJECT_NAME} SHARED
-  src/client.cpp)
+  src/client.cpp
+  src/gpsd_parser_factory.cpp
+  src/parsers/gpsd_parser_base.cpp)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
+    include
     ${rclcpp_components_INCLUDE_DIRS}
     ${libgps_INCLUDE_DIRS}
     ${gps_msgs_INCLUDE_DIRS}
@@ -53,6 +56,16 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   rclcpp_components::component_manager
   sensor_msgs::sensor_msgs_library
 )
+
+#############
+## Testing ##
+#############
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_gpsd_parser test/test_gpsd_parser.cpp)
+  target_link_libraries(test_gpsd_parser ${PROJECT_NAME})
+endif()
 
 #############
 ## Install ##

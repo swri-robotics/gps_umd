@@ -209,7 +209,11 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
 
   fix.header.frame_id = context_.frame_id;
 
+#ifdef NO_UNKNOWN_FIX
+  fix.status.service = 0;
+#else
   fix.status.service = sensor_msgs::msg::NavSatStatus::SERVICE_UNKNOWN;
+#endif
   for (int i = 0; i < data.satellites_visible; ++i)
   {
     if (data.skyview[i].used)

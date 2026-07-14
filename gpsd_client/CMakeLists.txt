@@ -35,6 +35,12 @@ add_library(${PROJECT_NAME} SHARED
   src/gpsd_parser_factory.cpp
   src/parsers/gpsd_parser_base.cpp)
 
+# Jazzy was the first distro to define an unknown fix, so this flag is used to correctly
+# initialize variables 
+if ("$ENV{ROS_DISTRO}" STRLESS "jazzy")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE "-DNO_UNKNOWN_FIX")
+endif()
+
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     include

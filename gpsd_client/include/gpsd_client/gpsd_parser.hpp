@@ -42,7 +42,7 @@ public:
   [[nodiscard]] virtual bool isOnline(const gps_data_t& data) const = 0;
 
   /// Convert a report into a GPSFix message stamped with @p stamp.
-  virtual gps_msgs::msg::GPSFix parseGpsFix(const gps_data_t& data,
+  [[nodiscard]] virtual gps_msgs::msg::GPSFix parseGpsFix(const gps_data_t& data,
                                             const rclcpp::Time& stamp) const = 0;
 
   /// Convert a report into a NavSatFix message.

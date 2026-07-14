@@ -24,7 +24,7 @@ public:
   {
   }
 
-  bool isOnline(const gps_data_t& data) const override;
+  [[nodiscard]] bool isOnline(const gps_data_t& data) const override;
 
   gps_msgs::msg::GPSFix parseGpsFix(const gps_data_t& data,
                                     const rclcpp::Time& stamp) const override;

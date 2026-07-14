@@ -255,6 +255,7 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
     return std::nullopt;
   }
 
+  // Covariance is a 3x3 matrix, and this sets the diagonal elements based on the reported variances.
   fix.position_covariance[0] = data.fix.epx;
   fix.position_covariance[4] = data.fix.epy;
   fix.position_covariance[8] = data.fix.epv;

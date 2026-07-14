@@ -39,7 +39,7 @@ public:
   virtual ~GpsdParser() = default;
 
   /// True if gpsd reports a device online for this report.
-  virtual bool isOnline(const gps_data_t& data) const = 0;
+  [[nodiscard]] virtual bool isOnline(const gps_data_t& data) const = 0;
 
   /// Convert a report into a GPSFix message stamped with @p stamp.
   virtual gps_msgs::msg::GPSFix parseGpsFix(const gps_data_t& data,

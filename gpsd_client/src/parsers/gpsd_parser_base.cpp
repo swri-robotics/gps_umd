@@ -195,7 +195,7 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
 
   /* TODO: Support SBAS and other GBAS. */
 
-  if (context_.use_gps_time && (data.online.tv_sec || data.online.tv_nsec))
+  if (context_.use_gps_time && ((data.online.tv_sec > 0) || (data.online.tv_nsec > 0)))
   {
     fix.header.stamp = rclcpp::Time(data.fix.time.tv_sec, data.fix.time.tv_nsec);
   }

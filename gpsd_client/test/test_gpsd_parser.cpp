@@ -28,6 +28,19 @@ constexpr int kStatusDgps = STATUS_DGPS_FIX;
 constexpr int kStatusDgps = STATUS_DGPS;
 #endif
 
+// A plain GPS fix: STATUS_FIX until gpsd renamed it to STATUS_GPS.
+#ifdef STATUS_GPS
+constexpr int kStatusGps = STATUS_GPS;
+#else
+constexpr int kStatusGps = STATUS_FIX;
+#endif
+
+/* gps.h defines STATUS_* macros whose names collide with the ROS message
+ * constants (e.g. STATUS_FIX in gpsd < 3.23), so the expectations below use
+ * the messages' integer values with the symbolic name in a comment -- the
+ * same convention the parser sources use.
+ */
+
 gpsd_client::ParserContext makeContext()
 {
   gpsd_client::ParserContext context;
@@ -44,7 +57,7 @@ gps_data_t makeThreeDFix()
 
   data.online.tv_sec = 100;
   data.fix.mode = MODE_3D;
-  setFixStatus(data, STATUS_GPS);
+  setFixStatus(data, kStatusGps);
 
   data.fix.time.tv_sec = 1700000000;
   data.fix.time.tv_nsec = 500000000;
@@ -136,7 +149,7 @@ TEST(GpsdParser, ThreeDFixPopulatesGpsFix)
   EXPECT_DOUBLE_EQ(fix.err_climb, 1.25);
   EXPECT_DOUBLE_EQ(fix.err_time, 0.005);
 
-  EXPECT_EQ(fix.status.status, gps_msgs::msg::GPSStatus::STATUS_FIX);
+  EXPECT_EQ(fix.status.status, 0 /* GPSStatus::STATUS_FIX */);
   EXPECT_EQ(fix.status.satellites_used, 2);
   ASSERT_EQ(fix.status.satellite_used_prn.size(), 2u);
   EXPECT_EQ(fix.status.satellite_used_prn[0], 10);
@@ -158,7 +171,7 @@ TEST(GpsdParser, ThreeDFixPopulatesNavSatFix)
 
   ASSERT_TRUE(fix.has_value());
   EXPECT_EQ(fix->header.frame_id, "gps");
-  EXPECT_EQ(fix->status.status, sensor_msgs::msg::NavSatStatus::STATUS_FIX);
+  EXPECT_EQ(fix->status.status, 0 /* NavSatStatus::STATUS_FIX */);
   EXPECT_EQ(fix->status.service, sensor_msgs::msg::NavSatStatus::SERVICE_GPS);
   EXPECT_DOUBLE_EQ(fix->latitude, 29.44);
   EXPECT_DOUBLE_EQ(fix->longitude, -98.61);
@@ -178,7 +191,7 @@ TEST(GpsdParser, TwoDFixHasNanAltitude)
 
   gps_msgs::msg::GPSFix fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
 
-  EXPECT_EQ(fix.status.status, gps_msgs::msg::GPSStatus::STATUS_FIX);
+  EXPECT_EQ(fix.status.status, 0 /* GPSStatus::STATUS_FIX */);
   EXPECT_DOUBLE_EQ(fix.latitude, 29.44);
   EXPECT_TRUE(std::isnan(fix.altitude));
 }
@@ -190,13 +203,13 @@ TEST(GpsdParser, NoFixSetsNoFixStatus)
   data.fix.mode = MODE_NO_FIX;
 
   gps_msgs::msg::GPSFix fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
-  EXPECT_EQ(fix.status.status, gps_msgs::msg::GPSStatus::STATUS_NO_FIX);
+  EXPECT_EQ(fix.status.status, -1 /* GPSStatus::STATUS_NO_FIX */);
   // Position fields are only filled in when there is a fix.
   EXPECT_DOUBLE_EQ(fix.latitude, 0.0);
 
   auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
   ASSERT_TRUE(navsat_fix.has_value());  // variance check is off
-  EXPECT_EQ(navsat_fix->status.status, sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX);
+  EXPECT_EQ(navsat_fix->status.status, -1 /* NavSatStatus::STATUS_NO_FIX */);
 }
 
 TEST(GpsdParser, InvalidVarianceRejectsNavSatFixOnly)
@@ -213,7 +226,7 @@ TEST(GpsdParser, InvalidVarianceRejectsNavSatFixOnly)
 
   // ... while the GPSFix is still produced, downgraded to NO_FIX.
   gps_msgs::msg::GPSFix fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
-  EXPECT_EQ(fix.status.status, gps_msgs::msg::GPSStatus::STATUS_NO_FIX);
+  EXPECT_EQ(fix.status.status, -1 /* GPSStatus::STATUS_NO_FIX */);
 }
 
 TEST(GpsdParser, ServiceBitmaskAndSbasStatus)
@@ -231,10 +244,10 @@ TEST(GpsdParser, ServiceBitmaskAndSbasStatus)
   EXPECT_EQ(navsat_fix->status.service,
             sensor_msgs::msg::NavSatStatus::SERVICE_GPS |
             sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS);
-  EXPECT_EQ(navsat_fix->status.status, sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX);
+  EXPECT_EQ(navsat_fix->status.status, 1 /* NavSatStatus::STATUS_SBAS_FIX */);
 
   gps_msgs::msg::GPSFix fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
-  EXPECT_EQ(fix.status.status, gps_msgs::msg::GPSStatus::STATUS_SBAS_FIX);
+  EXPECT_EQ(fix.status.status, 1 /* GPSStatus::STATUS_SBAS_FIX */);
 }
 
 TEST(GpsdParser, DgpsStatusWithoutSbas)
@@ -244,11 +257,11 @@ TEST(GpsdParser, DgpsStatusWithoutSbas)
   setFixStatus(data, kStatusDgps);
 
   gps_msgs::msg::GPSFix fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
-  EXPECT_EQ(fix.status.status, gps_msgs::msg::GPSStatus::STATUS_DGPS_FIX);
+  EXPECT_EQ(fix.status.status, 18 /* GPSStatus::STATUS_DGPS_FIX */);
 
   auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
   ASSERT_TRUE(navsat_fix.has_value());
-  EXPECT_EQ(navsat_fix->status.status, sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX);
+  EXPECT_EQ(navsat_fix->status.status, 2 /* NavSatStatus::STATUS_GBAS_FIX */);
 }
 
 TEST(GpsdParser, NavSatFixStampUsesGpsTimeWhenEnabled)

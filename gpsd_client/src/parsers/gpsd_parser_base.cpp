@@ -139,7 +139,7 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(const gps_data_t& data,
   }
 
   if (((data.fix.mode == MODE_2D) || (data.fix.mode == MODE_3D)) &&
-      !(context_.check_fix_by_variance && !hasValidVariance(data)))
+      (!context_.check_fix_by_variance || hasValidVariance(data)))
   {
     status.motion_source = gps_msgs::msg::GPSStatus::SOURCE_POINTS;
     status.orientation_source = gps_msgs::msg::GPSStatus::SOURCE_POINTS;

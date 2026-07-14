@@ -29,7 +29,7 @@ public:
   [[nodiscard]] gps_msgs::msg::GPSFix parseGpsFix(const gps_data_t& data,
                                     const rclcpp::Time& stamp) const override;
 
-  std::optional<sensor_msgs::msg::NavSatFix> parseNavSatFix(
+  [[nodiscard]] std::optional<sensor_msgs::msg::NavSatFix> parseNavSatFix(
       const gps_data_t& data, const rclcpp::Time& fallback_stamp) const override;
 
 protected:

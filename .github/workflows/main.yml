@@ -18,3 +18,47 @@ jobs:
       - uses: actions/checkout@v4
       - uses: 'ros-industrial/industrial_ci@master'
         env: ${{matrix.env}}
+
+  # Build gpsd_client against several real gpsd releases and run its parser
+  # unit tests linked against each, exercising both parser variants. Unlike
+  # industrial_ci above (which matrixes over ROS distros against the system
+  # libgps), this matrixes over the gpsd/libgps ABI the client is built on.
+  gpsd_versions:
+    name: gpsd ${{ matrix.gpsd }}
+    # Only run when the ros2-devel branch itself is updated, not on every
+    # push or pull request (this job builds several gpsd releases from source).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/ros2-devel'
+    runs-on: ubuntu-latest
+    container: ros:kilted-ros-base
+    strategy:
+      fail-fast: false
+      matrix:
+        # One release per parser variant plus the latest tracked release:
+        #   3.20   -> API  9, GpsdParserV9  (minimum supported, V9 boundary)
+        #   3.21   -> API 10, GpsdParserV16 (first V16 release)
+        #   3.27.5 -> API 16, GpsdParserV16 (latest tested)
+        gpsd: ['3.20', '3.21', '3.27.5']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # tools/test_against_gpsd.sh assumes a <workspace>/src/<repo> layout.
+          path: src/gps_umd
+      - name: Install build tools and workspace dependencies
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends scons pkg-config
+          rosdep update
+          # Skip the system gpsd/libgps: the script builds libgps from source
+          # at ${{ matrix.gpsd }} and pins gpsd_client to that exact install.
+          rosdep install --from-paths src --ignore-src -y \
+            --skip-keys "libgps-dev gpsd"
+      - name: Cache gpsd builds
+        uses: actions/cache@v4
+        with:
+          path: .gpsd_versions
+          key: gpsd-${{ runner.os }}-${{ matrix.gpsd }}
+      - name: Build gpsd_client against gpsd ${{ matrix.gpsd }} and run parser tests
+        shell: bash
+        run: |
+          source /opt/ros/kilted/setup.bash
+          src/gps_umd/tools/test_against_gpsd.sh ${{ matrix.gpsd }}

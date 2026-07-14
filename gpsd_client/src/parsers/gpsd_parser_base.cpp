@@ -7,6 +7,7 @@
 
 namespace gpsd_client
 {
+constexpr uint32_t NANOSECONDS_IN_SECOND = 1e9;
 
 bool GpsdParserBase::isOnline(const gps_data_t& data) const
 {
@@ -147,8 +148,8 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(const gps_data_t& data,
 
     status.status = mapGpsFixStatus(getFixStatus(data), usedSbas(data));
 
-    fix.time = (double)(data.fix.time.tv_sec) +
-               ((double)(data.fix.time.tv_nsec)) / 1e9;
+    fix.time = static_cast<double>(data.fix.time.tv_sec) +
+               (static_cast<double>(data.fix.time.tv_nsec) / NANOSECONDS_IN_SECOND);
     fix.latitude = data.fix.latitude;
     fix.longitude = data.fix.longitude;
     if (data.fix.mode == MODE_3D)

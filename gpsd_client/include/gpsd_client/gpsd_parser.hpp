@@ -50,7 +50,7 @@ public:
   /// The message is stamped with GPS time when the context enables
   /// use_gps_time, otherwise with @p fallback_stamp. Returns std::nullopt when
   /// the fix is rejected by the variance check and should not be published.
-  virtual std::optional<sensor_msgs::msg::NavSatFix> parseNavSatFix(
+  [[nodiscard]] virtual std::optional<sensor_msgs::msg::NavSatFix> parseNavSatFix(
       const gps_data_t& data, const rclcpp::Time& fallback_stamp) const = 0;
 };
 

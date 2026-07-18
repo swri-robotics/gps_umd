@@ -42,6 +42,19 @@ MIN_VERSION=3.20
 log() { printf '\n=== %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 
+# Echo a captured log so failures are diagnosable on CI, where the log files
+# themselves are thrown away with the runner.
+dump_log() {
+  local file=$1
+  printf -- '--- %s\n' "${file}"
+  if [ -f "${file}" ]; then
+    tail -n "${DUMP_LINES:-200}" "${file}"
+  else
+    printf '(no such file -- the step never got far enough to write it)\n'
+  fi
+  printf -- '--- end %s\n' "${file}"
+}
+
 # True if $1 >= $2 in version order.
 version_ge() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]; }
 
@@ -144,7 +157,7 @@ parser_for_api() {
 }
 
 # Returns 0 on pass; 1 = gpsd build failed, 2 = client build failed,
-# 3 = tests failed.
+# 3 = tests failed, 4 = the test binary was never produced.
 build_and_test_client() {
   local ver=$1
   local prefix=${CACHE}/install/${ver}
@@ -162,6 +175,10 @@ build_and_test_client() {
                   "-Dlibgps_LIBRARIES=${libdir}/libgps.so" \
      >"${LOGS}/client-${ver}.log" 2>&1) || return 2
 
+  # A missing binary would otherwise surface as an indistinguishable "tests
+  # failed" (exit 127), so call it out separately.
+  [ -x "${base}/build/gpsd_client/test_gpsd_parser" ] || return 4
+
   # Prepend the freshly built libgpsd_client and this version's libgps so
   # neither can be shadowed by copies from an underlay on LD_LIBRARY_PATH.
   LD_LIBRARY_PATH="${base}/build/gpsd_client:${libdir}:${LD_LIBRARY_PATH:-}" \
@@ -175,7 +192,8 @@ FAILED=0
 for ver in ${VERSIONS}; do
   log "gpsd ${ver}: building libgps"
   if ! build_gpsd "${ver}"; then
-    echo "gpsd ${ver}: libgps build FAILED (see ${LOGS}/gpsd-${ver}.log)"
+    echo "gpsd ${ver}: libgps build FAILED"
+    dump_log "${LOGS}/gpsd-${ver}.log"
     RESULTS="${RESULTS}${ver}|?|?|FAIL(gpsd build)\n"
     FAILED=1
     continue
@@ -191,10 +209,21 @@ for ver in ${VERSIONS}; do
     0) result="PASS" ;;
     2) result="FAIL(client build)"; FAILED=1 ;;
     3) result="FAIL(tests)"; FAILED=1 ;;
+    4) result="FAIL(no test binary)"; FAILED=1 ;;
     *) result="FAIL"; FAILED=1 ;;
   esac
   echo "gpsd ${ver}: ${result}"
-  [ "${result}" = "PASS" ] || echo "  logs: ${LOGS}/client-${ver}.log ${LOGS}/test-${ver}.log"
+  case "${result}" in
+    PASS) ;;
+    "FAIL(tests)")
+      dump_log "${LOGS}/test-${ver}.log"
+      ;;
+    *)
+      # Both the client build log and the test log are relevant: the build may
+      # have succeeded loudly and still not emitted the binary.
+      dump_log "${LOGS}/client-${ver}.log"
+      ;;
+  esac
   RESULTS="${RESULTS}${ver}|${api}|${parser}|${result}\n"
 done
 

@@ -52,8 +52,10 @@ jobs:
           rosdep update
           # Skip the system gpsd/libgps: the script builds libgps from source
           # at ${{ matrix.gpsd }} and pins gpsd_client to that exact install.
+          # The key is the rosdep name used in package.xml ("libgps"), not the
+          # Debian package it resolves to ("libgps-dev").
           rosdep install --from-paths src --ignore-src -y \
-            --skip-keys "libgps-dev gpsd"
+            --skip-keys "libgps gpsd"
       - name: Cache gpsd builds
         uses: actions/cache@v4
         with:

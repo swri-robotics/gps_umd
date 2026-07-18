@@ -179,9 +179,18 @@ build_and_test_client() {
   # failed" (exit 127), so call it out separately.
   [ -x "${base}/build/gpsd_client/test_gpsd_parser" ] || return 4
 
+  # colcon builds gps_msgs into this run's isolated install base, and nothing
+  # else puts that on the library path. On a machine that already has gps_msgs
+  # installed the loader quietly finds it in the underlay instead, so this is
+  # only fatal where gps_msgs is *not* installed -- e.g. ros:*-ros-base on CI.
+  local ws_libs=""
+  for d in "${base}"/install/*/lib; do
+    [ -d "${d}" ] && ws_libs="${ws_libs}${d}:"
+  done
+
   # Prepend the freshly built libgpsd_client and this version's libgps so
   # neither can be shadowed by copies from an underlay on LD_LIBRARY_PATH.
-  LD_LIBRARY_PATH="${base}/build/gpsd_client:${libdir}:${LD_LIBRARY_PATH:-}" \
+  LD_LIBRARY_PATH="${base}/build/gpsd_client:${libdir}:${ws_libs}${LD_LIBRARY_PATH:-}" \
     "${base}/build/gpsd_client/test_gpsd_parser" \
     >"${LOGS}/test-${ver}.log" 2>&1 || return 3
 }

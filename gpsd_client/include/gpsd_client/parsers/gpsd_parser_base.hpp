@@ -13,9 +13,13 @@ namespace gpsd_client
 ///
 /// Everything here uses only gps_data_t fields whose layout is identical
 /// across the supported API range (timespec online/fix.time, skyview[],
-/// gnssid, the dop struct, fix.eph). The only thing that moved between
+/// gnssid, the dop struct, fix.eph). The only field that moved between
 /// versions is where the fix status lives, which concrete parsers provide
 /// via getFixStatus().
+///
+/// Separately, gpsd renamed the STATUS_DGPS_FIX macro in 3.25; because it is
+/// used as a case label, that spelling is resolved by the preprocessor in
+/// gpsd_parser_base.cpp rather than through this class hierarchy.
 class GpsdParserBase : public GpsdParser
 {
 public:

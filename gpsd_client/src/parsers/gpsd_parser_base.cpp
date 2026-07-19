@@ -40,20 +40,25 @@ bool GpsdParserBase::hasValidVariance(const gps_data_t& data)
 
 /* gpsmm pollutes the global namespace with STATUS_, so we need to use the
  * ROS messages' integer values for status.status in the mapping helpers
- * below. The #ifdef blocks are feature detection: gpsd renamed these macros
- * over the years (e.g. STATUS_DGPS_FIX became STATUS_DGPS).
+ * below.
+ *
+ * gpsd renamed STATUS_DGPS_FIX to STATUS_DGPS in 3.25. The rename was clean
+ * -- no release defines both -- so the spelling has to be selected by the
+ * preprocessor here, since it is used as a case label. The other STATUS_
+ * macros are defined by every gpsd we support (API >= 9, enforced in
+ * gpsd_parser.hpp) and need no feature detection.
  */
+#ifdef STATUS_DGPS_FIX
+#define GPSD_STATUS_DGPS STATUS_DGPS_FIX
+#else
+#define GPSD_STATUS_DGPS STATUS_DGPS
+#endif
 
 int16_t GpsdParserBase::mapGpsFixStatus(int gpsd_status, bool sbas_used)
 {
   switch (gpsd_status)
   {
-#if defined(STATUS_DGPS_FIX) || defined(STATUS_DGPS)
-#ifdef STATUS_DGPS_FIX
-    case STATUS_DGPS_FIX:
-#else
-    case STATUS_DGPS:
-#endif
+    case GPSD_STATUS_DGPS:
       if (sbas_used)
       {
         return 1;  // gps_msgs::msg::GPSStatus::STATUS_SBAS_FIX
@@ -62,15 +67,10 @@ int16_t GpsdParserBase::mapGpsFixStatus(int gpsd_status, bool sbas_used)
       {
         return 18; // gps_msgs::msg::GPSStatus::STATUS_DGPS_FIX
       }
-#endif
-#ifdef STATUS_RTK_FIX
     case STATUS_RTK_FIX:
       return 19;   // gps_msgs::msg::GPSStatus::STATUS_RTK_FIX
-#endif
-#ifdef STATUS_RTK_FLT
     case STATUS_RTK_FLT:
       return 20;   // gps_msgs::msg::GPSStatus::STATUS_RTK_FLOAT
-#endif
     default:
       return 0;    // gps_msgs::msg::GPSStatus::STATUS_FIX
   }
@@ -80,12 +80,7 @@ int8_t GpsdParserBase::mapNavSatStatus(int gpsd_status, bool sbas_used)
 {
   switch (gpsd_status)
   {
-#if defined(STATUS_DGPS_FIX) || defined(STATUS_DGPS)
-#ifdef STATUS_DGPS_FIX
-    case STATUS_DGPS_FIX:
-#else
-    case STATUS_DGPS:
-#endif
+    case GPSD_STATUS_DGPS:
       if (sbas_used)
       {
         return 1;  // sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX
@@ -94,15 +89,9 @@ int8_t GpsdParserBase::mapNavSatStatus(int gpsd_status, bool sbas_used)
       {
         return 2;  // sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX
       }
-#endif
-#ifdef STATUS_RTK_FIX
     case STATUS_RTK_FIX:
-      return 2;    // sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX
-#endif
-#ifdef STATUS_RTK_FLT
     case STATUS_RTK_FLT:
       return 2;    // sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX
-#endif
     default:
       return 0;    // sensor_msgs::msg::NavSatStatus::STATUS_FIX
   }

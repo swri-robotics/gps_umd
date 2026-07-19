@@ -47,6 +47,7 @@ gpsd_client::ParserContext makeContext()
   context.frame_id = "gps";
   context.use_gps_time = false;
   context.check_fix_by_variance = false;
+  context.override_augmentation_source = false;
   return context;
 }
 
@@ -262,6 +263,34 @@ TEST(GpsdParser, DgpsStatusWithoutSbas)
   auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
   ASSERT_TRUE(navsat_fix.has_value());
   EXPECT_EQ(navsat_fix->status.status, 2 /* NavSatStatus::STATUS_GBAS_FIX */);
+}
+
+TEST(GpsdParser, OverrideAugmentationSourceReportsSbasWithoutSbasSatellites)
+{
+  auto context = makeContext();
+  context.override_augmentation_source = true;
+  auto parser = makeParser(context);
+
+  gps_data_t data = makeThreeDFix();
+  setFixStatus(data, kStatusDgps);
+
+  // No SBAS satellite in the skyview, but the override forces SBAS anyway,
+  // consistently across both messages.
+  auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
+  ASSERT_TRUE(navsat_fix.has_value());
+  EXPECT_EQ(navsat_fix->status.status, 1 /* NavSatStatus::STATUS_SBAS_FIX */);
+
+  gps_msgs::msg::GPSFix fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
+  EXPECT_EQ(fix.status.status, 1 /* GPSStatus::STATUS_SBAS_FIX */);
+
+  // The override only affects DGPS reports.
+  setFixStatus(data, kStatusGps);
+  navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
+  ASSERT_TRUE(navsat_fix.has_value());
+  EXPECT_EQ(navsat_fix->status.status, 0 /* NavSatStatus::STATUS_FIX */);
+
+  fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
+  EXPECT_EQ(fix.status.status, 0 /* GPSStatus::STATUS_FIX */);
 }
 
 TEST(GpsdParser, NavSatFixStampUsesGpsTimeWhenEnabled)

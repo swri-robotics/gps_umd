@@ -26,6 +26,11 @@ bool GpsdParserBase::usedSbas(const gps_data_t& data)
   return false;
 }
 
+bool GpsdParserBase::sbasAugmented(const gps_data_t& data) const
+{
+  return context_.override_augmentation_source || usedSbas(data);
+}
+
 bool GpsdParserBase::hasValidVariance(const gps_data_t& data)
 {
   return std::isfinite(data.fix.epx) &&
@@ -146,7 +151,7 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(const gps_data_t& data,
     status.orientation_source = gps_msgs::msg::GPSStatus::SOURCE_POINTS;
     status.position_source = gps_msgs::msg::GPSStatus::SOURCE_GPS;
 
-    status.status = mapGpsFixStatus(getFixStatus(data), usedSbas(data));
+    status.status = mapGpsFixStatus(getFixStatus(data), sbasAugmented(data));
 
     fix.time = static_cast<double>(data.fix.time.tv_sec) +
                (static_cast<double>(data.fix.time.tv_nsec) / NANOSECONDS_IN_SECOND);
@@ -239,7 +244,7 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
 
   if (data.fix.mode == MODE_2D || data.fix.mode == MODE_3D)
   {
-    fix.status.status = mapNavSatStatus(getFixStatus(data), usedSbas(data));
+    fix.status.status = mapNavSatStatus(getFixStatus(data), sbasAugmented(data));
   }
   else
   {

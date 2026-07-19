@@ -20,10 +20,10 @@ namespace gpsd_client
       Node("gpsd_client", options),
       gps_(nullptr),
       use_gps_time_(true),
-      check_fix_by_variance_(true),
+      check_fix_by_variance_(false),
       override_augmentation_source_(false),
       frame_id_("gps"),
-      publish_rate_(1)
+      publish_rate_(10)
     {
       if (!start()) {
         RCLCPP_ERROR(this->get_logger(), "Failed to start gpsd_client; timer not created.");

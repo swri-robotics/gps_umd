@@ -17,6 +17,26 @@ ROS2 Distro | Branch | Build status | Released packages
 **Lyrical** | [`lyrical`](https://github.com/swri-robotics/gps_umd/tree/ros2-devel) | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/main.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/main.yml?branch=ros2-devel) <br /> [![ROS2 Build Farm](http://build.ros2.org/buildStatus/icon?job=Ldev__gps_umd__ubuntu_resolute_amd64)](https://build.ros2.org/job/Ldev__gps_umd__ubuntu_resolute_amd64/) | [gps_msgs](https://index.ros.org/p/gps_msgs/#lyrical) <br /> [gps_tools](https://index.ros.org/p/gps_tools/#lyrical) <br /> [gpsd_client](https://index.ros.org/p/gpsd_client/#lyrical) 
 **Rolling** | [`rolling`](https://github.com/swri-robotics/gps_umd/tree/ros2-devel) | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/main.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/main.yml?branch=ros2-devel) <br /> [![ROS2 Build Farm](http://build.ros2.org/buildStatus/icon?job=Rdev__gps_umd__ubuntu_resolute_amd64)](https://build.ros2.org/job/Rdev__gps_umd__ubuntu_resolute_amd64/) | [gps_msgs](https://index.ros.org/p/gps_msgs/#rolling) <br /> [gps_tools](https://index.ros.org/p/gps_tools/#rolling) <br /> [gpsd_client](https://index.ros.org/p/gpsd_client/#rollingRevise build status for ROS2 distributions) 
 
+gpsd_client Parameters
+----------------------
+
+The `gpsd_client::GPSDClientComponent` node accepts the following parameters:
+
+Parameter | Type | Default | Description
+:-------- | :--- | :------ | :----------
+`host` | string | `localhost` | Hostname or address of the gpsd server to connect to.
+`port` | int | `2947` | TCP port of the gpsd server.
+`frame_id` | string | `gps` | `frame_id` set on the header of published `GPSFix` and `NavSatFix` messages.
+`publish_rate` | int | `10` | How often, in Hz, to poll gpsd and publish. Values `<= 0` are rejected with a warning and fall back to 1 Hz.
+`use_gps_time` | bool | `true` | Stamp `NavSatFix` messages with the time reported by the GPS receiver instead of the current ROS time.
+`check_fix_by_variance` | bool | `false` | Discard fixes whose reported variances (`epx`/`epy`/`epv`) are not finite. gpsd reports a status of OK even when there is no current fix, as long as there was one previously; this rejects those stale results.
+`override_augmentation_source` | bool | `false` | When gpsd reports a DGPS fix, always report it as an SBAS fix, whether or not a satellite with an SBAS ID was used in the solution. Useful for receivers that apply SBAS corrections without listing the SBAS satellite in their skyview. Affects both `NavSatFix` and `GPSFix` status.
+
+These are the node's built-in defaults, used when a parameter is not set.
+They match the config file shipped in `gpsd_client/config/gpsd_client.yaml`,
+which is what `gpsd_client-launch.py` loads, so launching from that file and
+instantiating the component directly behave the same.
+
 NavSatFix vs. GPSFix
 --------------------
 
@@ -44,8 +64,3 @@ The node `fix_translator` converts [sensor_msgs/NavSatFix](http://docs.ros.org/a
 ```
 
 Only adjust the topic names after "to=" in each remap line.
-
-Use with ros1_bridge
---------------------------------
-
-The [ros1_bridge](https://index.ros.org/p/ros1_bridge/) package must be built from source to enable playback of GPSFix and GPSStatus messages stored in ROS1 bags. This requires that the applicable ROS1 `gps_common` and ROS2 `gps_msgs` packages are first installed.

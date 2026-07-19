@@ -41,6 +41,10 @@ private:
   /// True if any satellite used in the solution is an SBAS satellite.
   static bool usedSbas(const gps_data_t& data);
 
+  /// True if a DGPS report should be attributed to SBAS: either an SBAS
+  /// satellite was used, or the context forces it.
+  [[nodiscard]] bool sbasAugmented(const gps_data_t& data) const;
+
   /// True if epx/epy/epv are all finite.
   static bool hasValidVariance(const gps_data_t& data);
 

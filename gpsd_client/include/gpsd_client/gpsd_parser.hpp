@@ -26,6 +26,10 @@ struct ParserContext
   std::string frame_id;
   bool use_gps_time;
   bool check_fix_by_variance;
+  /// Report a DGPS fix as SBAS regardless of whether an SBAS satellite was
+  /// used in the solution. Some receivers apply SBAS corrections without
+  /// listing the SBAS satellite in the skyview.
+  bool override_augmentation_source;
 };
 
 /// Converts gpsd's gps_data_t reports into ROS messages.

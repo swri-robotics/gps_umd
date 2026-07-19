@@ -20,9 +20,10 @@ namespace gpsd_client
       Node("gpsd_client", options),
       gps_(nullptr),
       use_gps_time_(true),
-      check_fix_by_variance_(true),
+      check_fix_by_variance_(false),
+      override_augmentation_source_(false),
       frame_id_("gps"),
-      publish_rate_(1)
+      publish_rate_(10)
     {
       if (!start()) {
         RCLCPP_ERROR(this->get_logger(), "Failed to start gpsd_client; timer not created.");
@@ -36,6 +37,7 @@ namespace gpsd_client
     {
       this->declare_parameter("use_gps_time", rclcpp::PARAMETER_BOOL);
       this->declare_parameter("check_fix_by_variance", rclcpp::PARAMETER_BOOL);
+      this->declare_parameter("override_augmentation_source", rclcpp::PARAMETER_BOOL);
       this->declare_parameter("frame_id", rclcpp::PARAMETER_STRING);
       this->declare_parameter("publish_rate", rclcpp::PARAMETER_INTEGER);
       this->declare_parameter("host", rclcpp::PARAMETER_STRING);
@@ -46,6 +48,8 @@ namespace gpsd_client
 
       this->get_parameter_or("use_gps_time", use_gps_time_, use_gps_time_);
       this->get_parameter_or("check_fix_by_variance", check_fix_by_variance_, check_fix_by_variance_);
+      this->get_parameter_or("override_augmentation_source", override_augmentation_source_,
+                             override_augmentation_source_);
       this->get_parameter_or("frame_id", frame_id_, frame_id_);
       this->get_parameter_or("publish_rate", publish_rate_, publish_rate_);
 
@@ -56,7 +60,8 @@ namespace gpsd_client
 
       publish_period_ms = std::chrono::milliseconds{(int)(1000 / publish_rate_)};
 
-      parser_ = GpsdParserFactory::create({frame_id_, use_gps_time_, check_fix_by_variance_});
+      parser_ = GpsdParserFactory::create({frame_id_, use_gps_time_, check_fix_by_variance_,
+                                           override_augmentation_source_});
 
       std::string host = "localhost";
       int port = atoi(DEFAULT_GPSD_PORT);
@@ -121,6 +126,7 @@ namespace gpsd_client
 
     bool use_gps_time_;
     bool check_fix_by_variance_;
+    bool override_augmentation_source_;
     std::string frame_id_;
     int publish_rate_;
     std::chrono::milliseconds publish_period_ms{};

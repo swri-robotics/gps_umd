@@ -1,6 +1,7 @@
 gpsd_client:
   ros__parameters:
-    use_gps_time: false
+    use_gps_time: true
     check_fix_by_variance: false
+    override_augmentation_source: false
     frame_id: gps
     publish_rate: 10

@@ -2,8 +2,8 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+3.1.0 (2026-07-22)
+------------------
 * Cleaning up unreachable code from include guards (`#125 <https://github.com/swri-robotics/gps_umd/issues/125>`_)
 * Added user ability to override correction source (`#124 <https://github.com/swri-robotics/gps_umd/issues/124>`_)
   * Adding flag to override augmentation source of corrections

@@ -2,6 +2,18 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Cleaning up unreachable code from include guards (`#125 <https://github.com/swri-robotics/gps_umd/issues/125>`_)
+* Added user ability to override correction source (`#124 <https://github.com/swri-robotics/gps_umd/issues/124>`_)
+  * Adding flag to override augmentation source of corrections
+  * Adding parameters to readme. Also making sure the default yaml and code defaults match each other
+* Implement Version Specific GPSd Parsers (`#120 <https://github.com/swri-robotics/gps_umd/issues/120>`_)
+  * Implementing parsing functionality as version specific parsers rather than conditionally compiling code.
+  ---------
+  Co-authored-by: DangitBen <30333928+DangitBen@users.noreply.github.com>
+* Contributors: David Anthony
+
 2.2.0 (2026-07-08)
 ------------------
 * gpsd_client: fix GPS status mapping and satellite PRN reporting (`#119 <https://github.com/swri-robotics/gps_umd/issues/119>`_)

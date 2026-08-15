@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(gpsd_client)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 find_package(ament_cmake REQUIRED)
 
@@ -35,9 +35,9 @@ add_library(${PROJECT_NAME} SHARED
   src/gpsd_parser_factory.cpp
   src/parsers/gpsd_parser_base.cpp)
 
-# Jazzy was the first distro to define an unknown fix, so this flag is used to correctly
-# initialize variables 
-if ("$ENV{ROS_DISTRO}" STRLESS "jazzy")
+# sensor_msgs 5.3.2 was the first version to define an unknown fix, so this flag is used to
+# correctly initialize variables
+if (sensor_msgs_VERSION VERSION_LESS "5.3.2")
   target_compile_definitions(${PROJECT_NAME} PRIVATE "-DNO_UNKNOWN_FIX")
 endif()
 

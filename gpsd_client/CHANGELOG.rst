@@ -2,6 +2,11 @@
 Changelog for package gpsd_client
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Improved check for constant definition, and adding dependency on pkg-config to find gpsd (`#128 <https://github.com/swri-robotics/gps_umd/issues/128>`_)
+* Contributors: David Anthony
+
 3.1.0 (2026-07-22)
 ------------------
 * Cleaning up unreachable code from include guards (`#125 <https://github.com/swri-robotics/gps_umd/issues/125>`_)

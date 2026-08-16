@@ -10,9 +10,14 @@ jobs:
   # client is built on.
   gpsd_versions:
     name: gpsd ${{ matrix.gpsd }}
-    # Only run when the ros2-devel branch itself is updated, not on every
-    # push or pull request (this job builds several gpsd releases from source).
-    if: github.event_name == 'push' && github.ref == 'refs/heads/ros2-devel'
+    # Only run when a tracked branch itself is updated, not on every push or
+    # pull request (this job builds several gpsd releases from source).
+    # TEMPORARY: more_gpsd_fix is here so the Python3 diagnostics below can be
+    # run from that branch; drop it once the FindPython3 failure is fixed.
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/ros2-devel' ||
+      github.ref == 'refs/heads/more_gpsd_fix')
     runs-on: ubuntu-latest
     container: ros:lyrical-ros-base
     strategy:
@@ -31,13 +36,6 @@ jobs:
       - name: Install build tools and workspace dependencies
         run: |
           apt-get update
-          # Sync the image's pre-baked python3 with the archive snapshot we
-          # just fetched: lyrical-ros-base tracks an active-development
-          # Ubuntu release, so the baked-in python3 interpreter can be ahead
-          # of the python3-dev/python3-numpy versions apt would otherwise
-          # install, and CMake's FindPython3 requires the interpreter and
-          # its Development/NumPy components to match exactly.
-          apt-get upgrade -y
           # python3-dev/python3-numpy: rosidl_generator_py's CMake needs
           # Python3's Development/NumPy components to build gps_msgs' Python
           # bindings; unlike under kilted-ros-base, lyrical-ros-base doesn't
@@ -51,6 +49,54 @@ jobs:
           # Debian package it resolves to ("libgps-dev").
           rosdep install --from-paths src --ignore-src -y \
             --skip-keys "libgps gpsd"
+      # TEMPORARY: diagnose why CMake's FindPython3 reports Development and
+      # NumPy missing for the 3.14.4 interpreter it locates. Remove once the
+      # cause is known and fixed.
+      - name: Diagnose Python3 discovery
+        shell: bash
+        run: |
+          set +e
+          echo "=== interpreters on PATH ==="
+          which -a python3 python3.14
+          python3 -VV
+          echo "=== python3-related packages ==="
+          dpkg -l | grep -E '^ii +python3(\.[0-9]+)?(-dev|-numpy)? ' || true
+          echo "=== ABI headers present? ==="
+          ls -d /usr/include/python3.* 2>&1
+          ls /usr/include/python3.*/Python.h 2>&1
+          echo "=== sysconfig paths (as seen by the found interpreter) ==="
+          python3 -c "import sys,sysconfig; print(sys.executable); print(sysconfig.get_paths())"
+          python3 -c "import sysconfig; print('INCLUDEPY =', sysconfig.get_config_var('INCLUDEPY'))"
+          python3 -c "import sysconfig; print('LIBDIR    =', sysconfig.get_config_var('LIBDIR'))"
+          echo "=== numpy ==="
+          python3 -c "import numpy; print(numpy.__version__, numpy.get_include())"
+          echo "=== what CMake itself resolves ==="
+          cmake --version
+          cd "$(mktemp -d)"
+          # Deliberately not REQUIRED: we want configure to succeed so the
+          # per-component FOUND flags below tell us which part actually failed.
+          cat > CMakeLists.txt <<'EOF'
+          cmake_minimum_required(VERSION 3.10)
+          project(pyprobe LANGUAGES C)
+          find_package(Python3 COMPONENTS Interpreter Development NumPy)
+          message(STATUS "Python3_FOUND             = ${Python3_FOUND}")
+          message(STATUS "Interpreter_FOUND         = ${Python3_Interpreter_FOUND}")
+          message(STATUS "Development_FOUND         = ${Python3_Development_FOUND}")
+          message(STATUS "Development.Module_FOUND  = ${Python3_Development.Module_FOUND}")
+          message(STATUS "Development.Embed_FOUND   = ${Python3_Development.Embed_FOUND}")
+          message(STATUS "NumPy_FOUND               = ${Python3_NumPy_FOUND}")
+          message(STATUS "Python3_EXECUTABLE        = ${Python3_EXECUTABLE}")
+          message(STATUS "Python3_VERSION           = ${Python3_VERSION}")
+          message(STATUS "Python3_INCLUDE_DIRS      = ${Python3_INCLUDE_DIRS}")
+          message(STATUS "Python3_LIBRARIES         = ${Python3_LIBRARIES}")
+          message(STATUS "Python3_NumPy_INCLUDE_DIRS = ${Python3_NumPy_INCLUDE_DIRS}")
+          EOF
+          cmake -S . -B build 2>&1 | tail -40
+          # --debug-find-pkg needs CMake >= 3.23; on older cmake it aborts
+          # before configuring, so keep it in a separate throwaway run.
+          echo "=== verbose find trace (CMake >= 3.23 only) ==="
+          cmake -S . -B build-debug --debug-find-pkg=Python3 2>&1 | tail -80
+          exit 0
       - name: Cache gpsd builds
         uses: actions/cache@v4
         with:

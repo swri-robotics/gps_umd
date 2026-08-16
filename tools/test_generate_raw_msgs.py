@@ -145,8 +145,21 @@ class MaskConstants(unittest.TestCase):
         # gps.h says, so consumers can detect an omitted AIS report.
         self.assertIn("SET_AIS", constants)
 
-    def test_high_bit_is_carried_through(self):
-        self.assertEqual(dict(gen.mask_constants(self.SRC))["SET_HIGH_BIT"], "46")
+    def test_high_bit_is_renamed_away_from_the_gps_h_macro(self):
+        # gps.h defines SET_HIGH_BIT itself, so emitting that name produced a
+        # message constant the preprocessor destroyed. Carried through under a
+        # name gps.h does not use.
+        constants = dict(gen.mask_constants(self.SRC))
+        self.assertEqual(constants["SET_HIGHEST_BIT"], "46")
+        self.assertNotIn("SET_HIGH_BIT", constants)
+
+    def test_macro_collisions_are_rejected(self):
+        with self.assertRaises(SystemExit):
+            gen.assert_no_macro_collisions(
+                [("SET_HIGH_BIT", "46")], "#define SET_HIGH_BIT 46\n", "test-rev")
+        # A name gps.h does not define is fine.
+        gen.assert_no_macro_collisions(
+            [("SET_HIGHEST_BIT", "46")], "#define SET_HIGH_BIT 46\n", "test-rev")
 
     def test_union_naming_an_unknown_bit_raises(self):
         with self.assertRaises(SystemExit):

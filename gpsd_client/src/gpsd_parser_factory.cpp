@@ -23,4 +23,13 @@ std::unique_ptr<GpsdParser> GpsdParserFactory::create(const ParserContext& conte
 #endif
 }
 
+std::unique_ptr<GpsdRawParser> GpsdParserFactory::createRaw(
+    const ParserContext& context)
+{
+  // No ladder here on purpose: gpsd_raw_message.hpp has already resolved
+  // GpsdRawMsg and pulled in the matching generated fill() for this build,
+  // including the API < 9 error and the newer-than-tested fallback.
+  return std::make_unique<GpsdRawParser>(context);
+}
+
 }  // namespace gpsd_client

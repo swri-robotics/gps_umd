@@ -18,7 +18,18 @@
 #include <cstring>
 #include <iterator>
 
-#if GPSD_API_MAJOR_VERSION == 14 && GPSD_API_MINOR_VERSION == 0
+// Which pair this build actually uses. gpsd_raw_message.hpp sets these
+// before including one fill header, so a libgps newer than anything
+// tested can still be pointed at the newest parser. Defaulted here so
+// the header stays usable on its own.
+#ifndef GPSD_RAW_FILL_MAJOR
+#define GPSD_RAW_FILL_MAJOR GPSD_API_MAJOR_VERSION
+#endif
+#ifndef GPSD_RAW_FILL_MINOR
+#define GPSD_RAW_FILL_MINOR GPSD_API_MINOR_VERSION
+#endif
+
+#if GPSD_RAW_FILL_MAJOR == 14 && GPSD_RAW_FILL_MINOR == 0
 
 namespace gpsd_client
 {
@@ -470,6 +481,6 @@ inline void fill(const T& in, gps_msgs::msg::GPSDSatellite14v0& out)
 }  // namespace generated
 }  // namespace gpsd_client
 
-#endif  // GPSD_API_MAJOR_VERSION == 14 ...
+#endif  // GPSD_RAW_FILL_MAJOR == 14 ...
 
 #endif  // GPSD_CLIENT__PARSERS__GENERATED__FILL_14V0_HPP_

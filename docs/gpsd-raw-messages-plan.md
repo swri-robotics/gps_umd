@@ -672,24 +672,35 @@ Two implementation notes worth carrying forward:
 
 ### Phase 2 — Messages (`gps_msgs`)
 
-- [ ] Generate Tier A for all ten messages
-- [ ] Add generated `.msg` files to `MSG_FILES` in [gps_msgs/CMakeLists.txt](../gps_msgs/CMakeLists.txt)
-- [ ] Add `builtin_interfaces` to `MSG_DEPS` and `package.xml` (needed for `timespec_t`)
-- [ ] Confirm `gps_msgs` builds standalone with no libgps present (D1)
-- [ ] Assert no generated constant name collides with a `gps.h` macro — grep the generated headers for `\b[A-Z0-9_]+_SET\b` and fail if any hit (D9 regression guard)
-- [ ] Compile-test the reverse include order (`gps.h` first, then a `GPSDRaw*` header) in a throwaway TU; it must build, proving D9 removed the ordering dependency for downstream users
+- [x] Generate Tier A for all ten messages
+- [x] Add generated `.msg` files to `MSG_FILES` in [gps_msgs/CMakeLists.txt](../gps_msgs/CMakeLists.txt) — globbed, so regenerating needs no CMake edit
+- [x] Add `builtin_interfaces` to `MSG_DEPS` and `package.xml` (needed for `timespec_t`)
+- [x] Confirm `gps_msgs` builds standalone with no libgps present (D1)
+- [x] Assert no generated constant collides with a `gps.h` macro — done in the generator against the full macro namespace, not a name pattern (see phase 3)
+- [x] Compile-test the reverse include order — `test_gpsd_raw_include_order.cpp`, its own target. This is what found the `SET_HIGH_BIT` collision
 - [ ] Extend to Tier B
 - [ ] Extend to Tier C
 - [ ] Decide whether `ros1_ros2_mapping.yaml` needs entries (probably not — no ROS 1 counterpart exists)
 
-### Phase 3 — Parsers (`gpsd_client`)
+### Phase 3 — Parsers (`gpsd_client`)  *(complete for Tier A)*
 
-- [ ] `gpsd_client/include/gpsd_client/gpsd_raw_message.hpp` — the `GpsdRawMsg` alias ladder (D7)
-- [ ] `GpsdRawParser` interface: `parseRaw(const gps_data_t&, const rclcpp::Time&) -> GpsdRawMsg`
-- [ ] Per-pair generated implementations `gpsd_raw_parser_<M>v<m>.{hpp,cpp}`, each guarded on its exact `(MAJOR, MINOR)`
-- [ ] Extend `GpsdParserFactory` with `createRaw()`; keep it as the *only* selection ladder (the existing file comment says so — honor it)
-- [ ] `#error` for API < 9; `#warning` + newest parser for API > 16, matching the existing fallback policy in `gpsd_parser_factory.cpp:17-23`
-- [ ] Verify header include order: message headers before `gps.h` everywhere (`gpsd_parser.hpp:7-9`)
+- [x] `gpsd_client/include/gpsd_client/gpsd_raw_message.hpp` — the `GpsdRawMsg` alias ladder (D7). **Generated**, not hand-written, so it cannot drift from `REFERENCE_REVS`
+- [x] `GpsdRawParser`: `parseRaw(const gps_data_t&, const rclcpp::Time&) -> GpsdRawMsg`
+- [x] Per-pair implementations — these *are* the generated `fill()` headers, so there is one hand-written parser class rather than ten. What it adds is the part a generator cannot do safely: the ROS header, and `skyview[]`, whose length lives in a sibling field
+- [x] `GpsdParserFactory::createRaw()`
+- [x] `#error` below API 9; `#warning` + newest above the newest known pair
+- [x] Header include order verified — see the finding below
+
+Two things surfaced that changed the design:
+
+**The fill guards had to become overridable.** They were `#if GPSD_API_MAJOR_VERSION == M && ... == m`, which makes the "newer than tested, fall back to the newest" policy impossible: on a future API 17 build every fill header would compile itself out. They now test `GPSD_RAW_FILL_MAJOR/MINOR`, which the ladder sets and which default to the build's own version so a header stays usable standalone.
+
+**`SET_HIGH_BIT` was a real bug, and D9's stated rule did not cover it.** The claim in D9 that "gps.h defines no `SET_*` macros" was wrong: it defines exactly one, `SET_HIGH_BIT`. Emitting a message constant of that name broke the build the moment `gpsd_client` included a generated message — and the D9 test had an explicit carve-out for that very name, so it passed. Fixed three ways: the constant is emitted as `SET_HIGHEST_BIT`; the generator now checks **every** emitted constant against the full `#define` namespace of that rev's `gps.h` and fails loudly; and the test compares against the real macro set instead of a name pattern with an exception.
+
+Two limits worth knowing, both now encoded in tests:
+
+- **The legacy messages remain include-order sensitive.** `GPSStatus` defines `STATUS_RTK_FIX = 19` and `gps.h` defines `STATUS_RTK_FIX = 3`. That is a pre-existing conflict in the released `gps_msgs`, unfixable without changing published constants, and it is why `gpsd_parser.hpp:7-9` mandates an include order. D9 makes the *generated* `GPSDRaw` family order-independent; it does not and cannot fix the neighbours. `test_gpsd_raw_include_order.cpp` is a separate translation unit precisely so it can prove the generated half without dragging in the legacy half.
+- **`SET_HIGHEST_BIT` may exceed the build's `SET_HIGH_BIT`.** It is a count, not a bit. `GPSDRaw14v0` is generated from gpsd 3.26.1 (45) but gpsd 3.24 reports the same API 14.0 with 44, since `EOF_SET` landed mid-pair. The test asserts `>=`, not `==` — caught by running against 3.24, where an `==` assertion failed.
 
 ### Phase 4 — Publishing (`client.cpp`)
 
@@ -791,6 +802,7 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-16 | 3 | Phase 3 complete for Tier A: generated selection ladder, `GpsdRawParser` (header + clamped `skyview[]` fill), `createRaw()`. Found and fixed a real D9 bug — `SET_HIGH_BIT` is a gps.h macro, so the emitted constant broke the build; generator now checks the whole macro namespace. Fill guards made overridable so the newer-than-tested fallback can work. `colcon test`: **92 tests, 0 failures** on gpsd 3.20/3.24/3.27.5. |
 | 2026-08-16 | 1/5 | Generated-output tests added (30) and all Python tests wired into `colcon test` via `gps_msgs` + `ament_add_pytest_test`; drift check now runs as an ordinary test. Fixed `colcon test` failing to find a source-built libgps by adding `APPEND_LIBRARY_DIRS` to both gtest targets. Whole workspace: 77 tests, 0 failures, 0 skipped on gpsd 3.20/3.24/3.27.5. Mutation-tested the suite: 12/12 injected generator bugs caught. |
 | 2026-08-16 | 1 | Generator implemented for Tier A: 70 messages + 10 parser headers + `gpsd_has_member.hpp`, 23 unit tests, `--check` verified both ways. `gps_msgs` builds all of them; generated fill code verified running against real libgps; D11 confirmed against gpsd 3.24. Corrected the emitted `#include` paths after checking them against rosidl's actual output. |
 | 2026-08-16 | 0 | Phase 0 complete. Upstream refetched (no new tags). Two corrections: `MAXCHANNELS` released values are 140/184, not 140/185/230; and API pairs span *ranges* of header states, not single states — `gps_fix_t` grows by six members within API 14.0, and 16.1 covers both 184 and 230. Added D11 (C++ member detection, validated on three installs) to handle it. Reference revs pinned and all ten verified in [tools/generate_raw_msgs.py](../tools/generate_raw_msgs.py). |

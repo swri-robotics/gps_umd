@@ -1,0 +1,176 @@
+/// Tests for the raw parser and the generated fill code behind it.
+///
+/// Normal include order here (gpsd_client headers first, which pull gps.h in
+/// behind the message headers). The gps.h-first case has its own translation
+/// unit in test_gpsd_raw_include_order.cpp, because it cannot include anything
+/// that reaches the legacy GPSFix/GPSStatus messages -- those still collide
+/// with gps.h and always have.
+
+#include <gtest/gtest.h>
+
+#include <cmath>
+#include <memory>
+
+#include <gpsd_client/gpsd_parser_factory.hpp>
+#include <gpsd_client/gpsd_raw_parser.hpp>
+
+#include "gpsd_json_fixture.hpp"
+
+namespace
+{
+
+// gpsd renamed STATUS_FIX to STATUS_GPS in 3.23; the value (1) never changed.
+#ifdef STATUS_GPS
+constexpr int kStatusGps = STATUS_GPS;
+#else
+constexpr int kStatusGps = STATUS_FIX;
+#endif
+
+gpsd_client::ParserContext makeContext()
+{
+  gpsd_client::ParserContext context;
+  context.frame_id = "gps";
+  context.use_gps_time = false;
+  context.check_fix_by_variance = false;
+  context.override_augmentation_source = false;
+  return context;
+}
+
+std::unique_ptr<gpsd_client::GpsdRawParser> makeParser()
+{
+  return gpsd_client::GpsdParserFactory::createRaw(makeContext());
+}
+
+}  // namespace
+
+TEST(GpsdRawParser, SelectedMessageMatchesTheBuildsApiVersion)
+{
+  // The whole point of the versioned messages: the type compiled in must be
+  // the one named after this libgps.
+  EXPECT_EQ(GPSD_RAW_FILL_MAJOR, GPSD_API_MAJOR_VERSION);
+  EXPECT_EQ(GPSD_RAW_FILL_MINOR, GPSD_API_MINOR_VERSION);
+  EXPECT_EQ(gpsd_client::GpsdRawMsg::SET_LATLON, LATLON_SET);
+  EXPECT_EQ(gpsd_client::GpsdRawMsg::SET_UNION & static_cast<uint64_t>(UNION_SET),
+            static_cast<uint64_t>(UNION_SET));
+  // Not EXPECT_EQ: the message is generated from the last rev of its API
+  // pair, which may know about more mask bits than this build's gps.h (see
+  // test_gpsd_raw_include_order.cpp for the full explanation).
+  EXPECT_GE(gpsd_client::GpsdRawMsg::SET_HIGHEST_BIT,
+            static_cast<uint64_t>(SET_HIGH_BIT));
+}
+
+TEST(GpsdRawParser, StampsAndFramesTheHeader)
+{
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(42, 7));
+
+  EXPECT_EQ(msg.header.frame_id, "gps");
+  EXPECT_EQ(msg.header.stamp.sec, 42);
+  EXPECT_EQ(msg.header.stamp.nanosec, 7u);
+}
+
+TEST(GpsdRawParser, CopiesScalarsAndNestedStructs)
+{
+  gps_data_t data = gpsd_client::test::makeThreeDFixFromJson();
+  gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(42, 0));
+
+  EXPECT_DOUBLE_EQ(msg.fix.latitude, 29.44);
+  EXPECT_DOUBLE_EQ(msg.fix.longitude, -98.61);
+  EXPECT_DOUBLE_EQ(msg.fix.altitude, 250.0);
+  EXPECT_DOUBLE_EQ(msg.fix.speed, 2.5);
+  EXPECT_EQ(msg.fix.mode, MODE_3D);
+
+  EXPECT_DOUBLE_EQ(msg.dop.hdop, 1.2);
+  EXPECT_DOUBLE_EQ(msg.dop.pdop, 1.1);
+  EXPECT_DOUBLE_EQ(msg.dop.gdop, 1.5);
+
+  // timespec_t -> builtin_interfaces/Time keeps the nanoseconds.
+  EXPECT_EQ(msg.fix.time.sec, 1700000000);
+  EXPECT_EQ(msg.fix.time.nanosec, 500000000u);
+  EXPECT_EQ(msg.online.sec, 100);
+}
+
+TEST(GpsdRawParser, SkyviewIsTruncatedToTheValidCount)
+{
+  // The array the generator deliberately leaves alone: its length lives in a
+  // sibling field, so publishing the whole fixed array would emit MAXCHANNELS
+  // entries of uninitialised satellites.
+  gps_data_t data = gpsd_client::test::makeThreeDFixFromJson();
+  gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(42, 0));
+
+  ASSERT_EQ(msg.skyview.size(), 3u);
+  EXPECT_LT(msg.skyview.size(), static_cast<std::size_t>(MAXCHANNELS));
+
+  EXPECT_EQ(msg.skyview[0].prn, 10);
+  EXPECT_DOUBLE_EQ(msg.skyview[0].elevation, 30.0);
+  EXPECT_DOUBLE_EQ(msg.skyview[0].azimuth, 100.0);
+  EXPECT_DOUBLE_EQ(msg.skyview[0].ss, 40.0);
+  EXPECT_TRUE(msg.skyview[0].used);
+  EXPECT_EQ(msg.skyview[2].prn, 12);
+  EXPECT_FALSE(msg.skyview[2].used);
+}
+
+TEST(GpsdRawParser, SkyviewCountIsClampedAgainstGarbage)
+{
+  // satellites_visible is a plain int; a truncated or stale report can leave
+  // it negative or past the end of the array, and neither may be trusted as a
+  // loop bound.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+
+  data.satellites_visible = -1;
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).skyview.size(), 0u);
+
+  data.satellites_visible = MAXCHANNELS + 500;
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).skyview.size(),
+            static_cast<std::size_t>(MAXCHANNELS));
+}
+
+TEST(GpsdRawParser, PreservesNanRatherThanZeroing)
+{
+  // gpsd uses NaN for "unknown" throughout. A raw message that reported 0.0
+  // instead would be asserting a measurement that was never made.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+
+  EXPECT_TRUE(std::isnan(msg.fix.latitude));
+  EXPECT_TRUE(std::isnan(msg.fix.longitude));
+  EXPECT_TRUE(std::isnan(msg.dop.hdop));
+}
+
+TEST(GpsdRawParser, CarriesTheSetMaskVerbatim)
+{
+  // D5/D10: the mask is copied undecoded, so a consumer can tell that gpsd
+  // reported something this message does not carry -- AIS above all.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  data.set = LATLON_SET | AIS_SET;
+
+  gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+  EXPECT_EQ(msg.set, static_cast<uint64_t>(LATLON_SET | AIS_SET));
+  EXPECT_TRUE(msg.set & gpsd_client::GpsdRawMsg::SET_AIS);
+}
+
+TEST(GpsdRawParser, FixStatusIsCarriedWhereverThisVersionKeepsIt)
+{
+  // API 9 keeps the fix status in gps_data_t, API 10+ in gps_fix_t. The raw
+  // message mirrors its own version's layout rather than normalising, so the
+  // field simply lives in a different sub-message either way.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+#if GPSD_API_MAJOR_VERSION >= 10
+  data.fix.status = kStatusGps;
+#else
+  data.status = kStatusGps;
+#endif
+
+  gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+#if GPSD_API_MAJOR_VERSION >= 10
+  EXPECT_EQ(msg.fix.status, kStatusGps);
+#else
+  EXPECT_EQ(msg.status, kStatusGps);
+#endif
+}
+
+int main(int argc, char** argv)
+{
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}

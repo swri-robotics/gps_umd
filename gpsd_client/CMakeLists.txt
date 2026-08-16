@@ -33,6 +33,7 @@ endif()
 add_library(${PROJECT_NAME} SHARED
   src/client.cpp
   src/gpsd_parser_factory.cpp
+  src/gpsd_raw_parser.cpp
   src/parsers/gpsd_parser_base.cpp)
 
 # sensor_msgs 5.3.2 was the first version to define an unknown fix, so this flag is used to
@@ -102,6 +103,29 @@ if(BUILD_TESTING)
     test/test_gpsd_json_fixture.cpp
     test/gpsd_json_fixture.cpp
     APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
+
+  # Covers the generated fill code and the raw parser. Its first include is
+  # <gps.h>, which also serves as the standing regression test that a
+  # generated message header survives being parsed after gps.h -- the
+  # collision D9's constant renaming exists to prevent.
+  ament_add_gtest(test_gpsd_raw_parser
+    test/test_gpsd_raw_parser.cpp
+    test/gpsd_json_fixture.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
+  target_link_libraries(test_gpsd_raw_parser ${PROJECT_NAME})
+
+  # Its own target because it must include <gps.h> before anything else, and
+  # so must not link anything that reaches the legacy GPSFix/GPSStatus headers.
+  ament_add_gtest(test_gpsd_raw_include_order
+    test/test_gpsd_raw_include_order.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
+  target_link_libraries(test_gpsd_raw_include_order ${PROJECT_NAME})
+  if(HAVE_GPS_CLEAR_GST)
+    target_compile_definitions(test_gpsd_raw_parser PRIVATE HAVE_GPS_CLEAR_GST)
+  endif()
+  if(HAVE_GPS_CLEAR_LOG)
+    target_compile_definitions(test_gpsd_raw_parser PRIVATE HAVE_GPS_CLEAR_LOG)
+  endif()
   target_link_libraries(test_gpsd_json_fixture ${PROJECT_NAME})
   if(HAVE_GPS_CLEAR_GST)
     target_compile_definitions(test_gpsd_json_fixture PRIVATE HAVE_GPS_CLEAR_GST)

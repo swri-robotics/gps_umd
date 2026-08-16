@@ -192,13 +192,27 @@ class ManualExpectations(unittest.TestCase):
             self.assertEqual("SET_IMU" in constants, pair >= (12, 0),
                              f"API {pair}: IMU_SET arrives with API 12")
 
+    def test_no_constant_collides_with_a_gps_h_macro(self):
+        # D9: rosidl emits constants as static constexpr members, so any name
+        # gps.h defines as a macro is destroyed by the preprocessor.
+        #
+        # This checks the whole macro namespace rather than the <NAME>_SET
+        # pattern. The earlier pattern-based version passed while emitting
+        # SET_HIGH_BIT -- which is gps.h's own macro, and broke the build the
+        # moment gpsd_client included a generated message. A carve-out for the
+        # one name that was actually broken is exactly the wrong shape of test.
+        for pair in ALL_PAIRS:
+            macros = gen.macro_names(read_gps_h(gen.REFERENCE_REVS[pair]))
+            for name in message_constants(pair):
+                self.assertNotIn(
+                    name, macros,
+                    f"API {pair[0]}.{pair[1]}: constant {name} is also a gps.h "
+                    f"macro; it cannot survive being parsed after gps.h")
+
     def test_set_constants_never_use_the_gps_h_spelling(self):
-        # D9: gps.h defines LATLON_SET etc. as global macros, and rosidl emits
-        # constants as static constexpr members. The gpsd spelling would be
-        # destroyed by the preprocessor in any TU that saw gps.h first.
         for pair in ALL_PAIRS:
             for name in message_constants(pair):
-                self.assertFalse(name.endswith("_SET") and name != "SET_HIGH_BIT",
+                self.assertFalse(name.endswith("_SET"),
                                  f"API {pair}: {name} uses the gps.h spelling")
 
     def test_no_message_for_api_15(self):
@@ -618,11 +632,35 @@ class GeneratedParserCode(unittest.TestCase):
 
     def test_guarded_on_the_exact_api_pair(self):
         for pair in ALL_PAIRS:
+            source = self.parser_source(pair)
             self.assertIn(
-                f"#if GPSD_API_MAJOR_VERSION == {pair[0]} && "
-                f"GPSD_API_MINOR_VERSION == {pair[1]}",
-                self.parser_source(pair),
+                f"#if GPSD_RAW_FILL_MAJOR == {pair[0]} && "
+                f"GPSD_RAW_FILL_MINOR == {pair[1]}", source,
                 "a parser must not compile against the wrong API pair")
+            # The guard is overridable so the ladder can point a
+            # newer-than-tested libgps at the newest parser, but it must still
+            # default to this build's own version when included standalone.
+            self.assertIn("#define GPSD_RAW_FILL_MAJOR GPSD_API_MAJOR_VERSION",
+                          source)
+            self.assertIn("#define GPSD_RAW_FILL_MINOR GPSD_API_MINOR_VERSION",
+                          source)
+
+    def test_selection_ladder_covers_every_pair_and_both_edges(self):
+        ladder = generated()["gpsd_client/include/gpsd_client/gpsd_raw_message.hpp"]
+        for pair in ALL_PAIRS:
+            self.assertIn(f"#define GPSD_RAW_FILL_MAJOR {pair[0]}", ladder)
+            self.assertIn(
+                f"#include <gpsd_client/parsers/generated/"
+                f"gpsd_raw_fill_{pair[0]}v{pair[1]}.hpp>", ladder)
+            self.assertIn(
+                f"using GpsdRawMsg = gps_msgs::msg::GPSDRaw{pair[0]}v{pair[1]};",
+                ladder)
+        # Matches the policy in gpsd_parser_factory.cpp: hard error below the
+        # minimum, warn and fall back to newest above the maximum.
+        self.assertIn("#error", ladder)
+        self.assertIn("#warning", ladder)
+        newest = ALL_PAIRS[-1]
+        self.assertIn(f"falling back to the API {newest[0]}.{newest[1]}", ladder)
 
     def test_timespec_members_fill_sec_and_nanosec(self):
         # gps.h timespec_t -> builtin_interfaces/Time is a two-field split; a

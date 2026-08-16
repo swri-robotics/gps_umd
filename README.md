@@ -31,11 +31,89 @@ Parameter | Type | Default | Description
 `use_gps_time` | bool | `true` | Stamp `NavSatFix` messages with the time reported by the GPS receiver instead of the current ROS time.
 `check_fix_by_variance` | bool | `false` | Discard fixes whose reported variances (`epx`/`epy`/`epv`) are not finite. gpsd reports a status of OK even when there is no current fix, as long as there was one previously; this rejects those stale results.
 `override_augmentation_source` | bool | `false` | When gpsd reports a DGPS fix, always report it as an SBAS fix, whether or not a satellite with an SBAS ID was used in the solution. Useful for receivers that apply SBAS corrections without listing the SBAS satellite in their skyview. Affects both `NavSatFix` and `GPSFix` status.
+`publish_gpsd_raw` | bool | `false` | Also publish a near-verbatim mirror of gpsd's `gps_data_t` on `gpsd_raw`, in a message named after the libgps API this package was built against (see below). Off by default: the message is much larger than `GPSFix`, and neither the publisher nor its parser is created unless this is set.
 
 These are the node's built-in defaults, used when a parameter is not set.
 They match the config file shipped in `gpsd_client/config/gpsd_client.yaml`,
 which is what `gpsd_client-launch.py` loads, so launching from that file and
 instantiating the component directly behave the same.
+
+Raw gpsd messages
+-----------------
+
+With `publish_gpsd_raw` set, `gpsd_client` also publishes everything gpsd
+reports, as close to verbatim as a ROS message can be, on `gpsd_raw`.
+
+The message type is named after the gpsd C API version the package was compiled
+against: `gps_msgs/GPSDRaw<MAJOR>v<MINOR>`, from `GPSD_API_MAJOR_VERSION` and
+`GPSD_API_MINOR_VERSION` in `gps.h`. Building against gpsd 3.27.5 gives
+`GPSDRaw16v1`; against gpsd 3.20, `GPSDRaw9v0`. The node logs which one it
+selected at startup. All of the message types are always built, so `gps_msgs`
+has no dependency on gpsd; only `gpsd_client` cares which libgps is present.
+
+The messages and their parsers are generated from gpsd's own `gps.h` by
+`tools/generate_raw_msgs.py`; see `docs/gpsd-raw-messages-plan.md` for the
+design and the reasoning behind the version handling.
+
+Points worth knowing before subscribing:
+
+* **Fields move between versions.** The fix status lives in `status` on API 9
+  and in `fix.status` from API 10 on, because that is where gpsd moved it. The
+  raw message mirrors its own version rather than normalising, which is the
+  point of having one type per version.
+* **`NaN` means "unknown", not zero.** gpsd uses `NaN` as its no-value sentinel
+  throughout, and it is preserved rather than replaced with `0.0`.
+* **`set` is the report mask, copied undecoded.** Test it with the `SET_*`
+  constants on the message, e.g. `msg.set & GPSDRaw16v1::SET_LATLON`. The
+  constants are gpsd's own bit values with the name reversed (`LATLON_SET`
+  becomes `SET_LATLON`) because `gps.h` defines the gpsd spellings as
+  preprocessor macros. Bit positions have never been renumbered, so mask tests
+  are portable across versions even though the message types are not.
+* **AIS is not carried.** `struct ais_t` is out of scope. `SET_AIS` is still
+  defined and `set` still carries the bit, so `msg.set & SET_AIS` tells you
+  gpsd reported AIS data this message does not include.
+* **`skyview` is trimmed to `satellites_visible`.** gpsd's array is a fixed
+  140 or 184 entries depending on version; only the valid prefix is published.
+
+### An empty `skyview` alongside a non-zero `satellites_used`
+
+This combination looks like a bug in this package and is not, so it is worth
+recognising before you go looking for one.
+
+Some receivers emit dilution-of-precision updates without a satellite list. gpsd
+forwards those as a `SKY` report containing only `hdop`/`uSat` and friends — no
+`satellites` array, and no `nSat` field. On receiving one, libgps clears its
+skyview and drops `SATELLITE_SET` from the report mask. The result, faithfully
+mirrored into the message:
+
+```
+satellites_visible : 0
+satellites_used    : 12
+skyview            : []
+set & SET_SATELLITE: false
+```
+
+The `satellites_used` count is real, not left over: gpsd parses the report's
+`uSat` field straight into it (gpsd 3.26.1 and newer). The receiver is saying it
+used 12 satellites for the solution without listing which ones. On older gpsd,
+which has no `uSat`, the same report leaves `satellites_used` at whatever the
+last full `SKY` set, because libgps returns before resetting it — so there the
+value genuinely can be stale.
+
+Either way, `satellites_visible` and `skyview` agree with each other and are
+simply empty. The reliable test for "does this message actually carry a
+skyview" is the mask:
+
+```cpp
+if (msg.set & gps_msgs::msg::GPSDRaw16v1::SET_SATELLITE) {
+  // skyview and satellites_visible are meaningful for this report
+}
+```
+
+This is gpsd's behaviour rather than a translation artifact — `gpsd_client` does
+not second-guess it, because a topic called "raw" that quietly repaired its
+input would be worse. It also is not specific to a gpsd version; it depends on
+what the receiver sends.
 
 NavSatFix vs. GPSFix
 --------------------

@@ -878,6 +878,9 @@ def emit_selection_ladder() -> str:
         "#ifndef GPSD_CLIENT__GPSD_RAW_MESSAGE_HPP_",
         "#define GPSD_CLIENT__GPSD_RAW_MESSAGE_HPP_",
         "",
+        "// GPSD_RAW_MESSAGE_NAME names the selected message for log output, so",
+        "// an operator can see which version was compiled in without guessing.",
+        "//",
         "// gps.h defines STATUS_* macros that collide with the ROS message",
         "// constants, so a message header must never be parsed after it. Every",
         "// branch below includes its messages before gps.h is reached.",
@@ -916,6 +919,7 @@ def emit_selection_ladder() -> str:
         out.append(f"#{'if' if index == 0 else 'elif'} {guard}")
         out.append(f"#include <gpsd_client/parsers/generated/"
                    f"gpsd_raw_fill_{major}v{minor}.hpp>")
+        out.append(f'#define GPSD_RAW_MESSAGE_NAME "{name}"')
         out.append("namespace gpsd_client")
         out.append("{")
         out.append(f"using GpsdRawMsg = gps_msgs::msg::{name};")

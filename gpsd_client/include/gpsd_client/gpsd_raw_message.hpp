@@ -2,6 +2,9 @@
 #ifndef GPSD_CLIENT__GPSD_RAW_MESSAGE_HPP_
 #define GPSD_CLIENT__GPSD_RAW_MESSAGE_HPP_
 
+// GPSD_RAW_MESSAGE_NAME names the selected message for log output, so
+// an operator can see which version was compiled in without guessing.
+//
 // gps.h defines STATUS_* macros that collide with the ROS message
 // constants, so a message header must never be parsed after it. Every
 // branch below includes its messages before gps.h is reached.
@@ -53,60 +56,70 @@
 
 #if GPSD_RAW_FILL_MAJOR == 9 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_9v0.hpp>
+#define GPSD_RAW_MESSAGE_NAME "GPSDRaw9v0"
 namespace gpsd_client
 {
 using GpsdRawMsg = gps_msgs::msg::GPSDRaw9v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 9 && GPSD_RAW_FILL_MINOR == 1
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_9v1.hpp>
+#define GPSD_RAW_MESSAGE_NAME "GPSDRaw9v1"
 namespace gpsd_client
 {
 using GpsdRawMsg = gps_msgs::msg::GPSDRaw9v1;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 10 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_10v0.hpp>
+#define GPSD_RAW_MESSAGE_NAME "GPSDRaw10v0"
 namespace gpsd_client
 {
 using GpsdRawMsg = gps_msgs::msg::GPSDRaw10v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 10 && GPSD_RAW_FILL_MINOR == 1
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_10v1.hpp>
+#define GPSD_RAW_MESSAGE_NAME "GPSDRaw10v1"
 namespace gpsd_client
 {
 using GpsdRawMsg = gps_msgs::msg::GPSDRaw10v1;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 11 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_11v0.hpp>
+#define GPSD_RAW_MESSAGE_NAME "GPSDRaw11v0"
 namespace gpsd_client
 {
 using GpsdRawMsg = gps_msgs::msg::GPSDRaw11v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 12 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_12v0.hpp>
+#define GPSD_RAW_MESSAGE_NAME "GPSDRaw12v0"
 namespace gpsd_client
 {
 using GpsdRawMsg = gps_msgs::msg::GPSDRaw12v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 13 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_13v0.hpp>
+#define GPSD_RAW_MESSAGE_NAME "GPSDRaw13v0"
 namespace gpsd_client
 {
 using GpsdRawMsg = gps_msgs::msg::GPSDRaw13v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 14 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_14v0.hpp>
+#define GPSD_RAW_MESSAGE_NAME "GPSDRaw14v0"
 namespace gpsd_client
 {
 using GpsdRawMsg = gps_msgs::msg::GPSDRaw14v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 16 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_16v0.hpp>
+#define GPSD_RAW_MESSAGE_NAME "GPSDRaw16v0"
 namespace gpsd_client
 {
 using GpsdRawMsg = gps_msgs::msg::GPSDRaw16v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 16 && GPSD_RAW_FILL_MINOR == 1
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_16v1.hpp>
+#define GPSD_RAW_MESSAGE_NAME "GPSDRaw16v1"
 namespace gpsd_client
 {
 using GpsdRawMsg = gps_msgs::msg::GPSDRaw16v1;

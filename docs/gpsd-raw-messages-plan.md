@@ -702,13 +702,49 @@ Two limits worth knowing, both now encoded in tests:
 - **The legacy messages remain include-order sensitive.** `GPSStatus` defines `STATUS_RTK_FIX = 19` and `gps.h` defines `STATUS_RTK_FIX = 3`. That is a pre-existing conflict in the released `gps_msgs`, unfixable without changing published constants, and it is why `gpsd_parser.hpp:7-9` mandates an include order. D9 makes the *generated* `GPSDRaw` family order-independent; it does not and cannot fix the neighbours. `test_gpsd_raw_include_order.cpp` is a separate translation unit precisely so it can prove the generated half without dragging in the legacy half.
 - **`SET_HIGHEST_BIT` may exceed the build's `SET_HIGH_BIT`.** It is a count, not a bit. `GPSDRaw14v0` is generated from gpsd 3.26.1 (45) but gpsd 3.24 reports the same API 14.0 with 44, since `EOF_SET` landed mid-pair. The test asserts `>=`, not `==` — caught by running against 3.24, where an `==` assertion failed.
 
-### Phase 4 — Publishing (`client.cpp`)
+### Phase 4 — Publishing (`client.cpp`)  *(complete for Tier A)*
 
-- [ ] Declare `publish_gpsd_raw` parameter (default `false`)
-- [ ] Create the `gpsd_raw` publisher only when enabled
-- [ ] Populate and publish in `step()` alongside the existing `GPSFix` / `NavSatFix` publishes
-- [ ] Add `publish_gpsd_raw` to [gpsd_client/config/gpsd_client.yaml](../gpsd_client/config/gpsd_client.yaml)
-- [ ] Confirm the built-in default matches the config file — the README explicitly promises these agree
+- [x] Declare `publish_gpsd_raw` parameter (default `false`)
+- [x] Create the `gpsd_raw` publisher **and** the raw parser only when enabled; the publisher handle doubles as the enabled flag
+- [x] Populate and publish in `step()` alongside the existing publishes, from the same report so subscribers can align by timestamp
+- [x] Add `publish_gpsd_raw` to [gpsd_client/config/gpsd_client.yaml](../gpsd_client/config/gpsd_client.yaml)
+- [x] Confirm the built-in default matches the config file
+- [x] Node logs which message it selected at startup (`GPSD_RAW_MESSAGE_NAME`), so an operator does not have to infer it
+- [x] README: parameter row plus a "Raw gpsd messages" section
+
+Deliberately *not* gated on `check_fix_by_variance`: that filter exists to hide
+gpsd's stale-fix behaviour from `NavSatFix` consumers, and applying it here
+would make a topic called "raw" a filtered one.
+
+**Verified against a live daemon**, not just compiled. A real gpsd 3.27.5 was
+built (`gpsd=True`), fed a recorded receiver log over TCP the way gpsfake's
+`FakeTCP` does, and the component loaded into a real container with
+`publish_gpsd_raw:=true`:
+
+```
+[INFO] [gpsd_client]: Publishing raw gpsd reports on ~/gpsd_raw as GPSDRaw16v1 (libgps API 16.1)
+
+skyview entries            : 10
+satellites_visible / used  : 10 / 5
+len(skyview)==visible      : True      # trimmed, never MAXCHANNELS(184)
+lat/lon  mode              : 37.293628 / -121.918752  mode=3
+fix.time (timespec->Time)  : 1639082573.800000000
+set mask                   : 0x1700205bffc  LATLON=True SATELLITE=True AIS=False
+sat prn=  9 el= 46.0 az= 310.5 ss= 44.4 gnssid=0 used=True
+```
+
+One thing that looked like a bug and was not: with `ublox-zed-f9p_hpg1.11.log`
+every message had an empty `skyview` while `satellites_used` sat at 12. That
+log's SKY reports are DOP-only — `{class, device, hdop, uSat}`, no `satellites`
+array and **no `nSat`** — and libgps responds by clearing `skyview` and
+`SATELLITE_SET`. The 12 is not stale: gpsd parses the report's `uSat` field
+directly into `satellites_used`, and that log never sends a full `SKY` at all.
+(On gpsd older than 3.26.1, which has no `uSat`, the same report *would* leave a
+stale value, because libgps returns before resetting it.) The raw message was
+faithfully mirroring gpsd. It is also a live confirmation of the
+`nSat` behaviour found while building the tier-1 harness (1.7). Switching to
+`sirf2.log`, whose SKY carries `nSat` and a satellites array, produced the
+output above.
 
 ### Phase 5 — Tests
 
@@ -802,6 +838,7 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-16 | 4 | Phase 4 complete for Tier A: `publish_gpsd_raw` (default false), opt-in publisher + parser, config and README. Verified end to end against a real gpsd daemon fed a recorded receiver log — 10 satellites published, `skyview` trimmed to `satellites_visible`, mask and NaN semantics intact. |
 | 2026-08-16 | 3 | Phase 3 complete for Tier A: generated selection ladder, `GpsdRawParser` (header + clamped `skyview[]` fill), `createRaw()`. Found and fixed a real D9 bug — `SET_HIGH_BIT` is a gps.h macro, so the emitted constant broke the build; generator now checks the whole macro namespace. Fill guards made overridable so the newer-than-tested fallback can work. `colcon test`: **92 tests, 0 failures** on gpsd 3.20/3.24/3.27.5. |
 | 2026-08-16 | 1/5 | Generated-output tests added (30) and all Python tests wired into `colcon test` via `gps_msgs` + `ament_add_pytest_test`; drift check now runs as an ordinary test. Fixed `colcon test` failing to find a source-built libgps by adding `APPEND_LIBRARY_DIRS` to both gtest targets. Whole workspace: 77 tests, 0 failures, 0 skipped on gpsd 3.20/3.24/3.27.5. Mutation-tested the suite: 12/12 injected generator bugs caught. |
 | 2026-08-16 | 1 | Generator implemented for Tier A: 70 messages + 10 parser headers + `gpsd_has_member.hpp`, 23 unit tests, `--check` verified both ways. `gps_msgs` builds all of them; generated fill code verified running against real libgps; D11 confirmed against gpsd 3.24. Corrected the emitted `#include` paths after checking them against rosidl's actual output. |

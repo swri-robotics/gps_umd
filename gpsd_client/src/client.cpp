@@ -4,6 +4,7 @@
 #include <libgpsmm.h>
 
 #include <gpsd_client/gpsd_parser_factory.hpp>
+#include <gpsd_client/gpsd_raw_message.hpp>
 
 #include <chrono>
 #include <memory>
@@ -22,6 +23,7 @@ namespace gpsd_client
       use_gps_time_(true),
       check_fix_by_variance_(false),
       override_augmentation_source_(false),
+      publish_gpsd_raw_(false),
       frame_id_("gps"),
       publish_rate_(10)
     {
@@ -38,6 +40,7 @@ namespace gpsd_client
       this->declare_parameter("use_gps_time", rclcpp::PARAMETER_BOOL);
       this->declare_parameter("check_fix_by_variance", rclcpp::PARAMETER_BOOL);
       this->declare_parameter("override_augmentation_source", rclcpp::PARAMETER_BOOL);
+      this->declare_parameter("publish_gpsd_raw", rclcpp::PARAMETER_BOOL);
       this->declare_parameter("frame_id", rclcpp::PARAMETER_STRING);
       this->declare_parameter("publish_rate", rclcpp::PARAMETER_INTEGER);
       this->declare_parameter("host", rclcpp::PARAMETER_STRING);
@@ -50,6 +53,7 @@ namespace gpsd_client
       this->get_parameter_or("check_fix_by_variance", check_fix_by_variance_, check_fix_by_variance_);
       this->get_parameter_or("override_augmentation_source", override_augmentation_source_,
                              override_augmentation_source_);
+      this->get_parameter_or("publish_gpsd_raw", publish_gpsd_raw_, publish_gpsd_raw_);
       this->get_parameter_or("frame_id", frame_id_, frame_id_);
       this->get_parameter_or("publish_rate", publish_rate_, publish_rate_);
 
@@ -60,8 +64,26 @@ namespace gpsd_client
 
       publish_period_ms = std::chrono::milliseconds{(int)(1000 / publish_rate_)};
 
-      parser_ = GpsdParserFactory::create({frame_id_, use_gps_time_, check_fix_by_variance_,
-                                           override_augmentation_source_});
+      ParserContext context{frame_id_, use_gps_time_, check_fix_by_variance_,
+                            override_augmentation_source_};
+      parser_ = GpsdParserFactory::create(context);
+
+      /* The raw topic is opt-in, and both the publisher and the parser are
+       * created only when it is enabled. A full gps_data_t is far larger than
+       * a GPSFix -- the skyview alone can run to a couple of hundred
+       * satellites -- so nothing is serialized or advertised for the vast
+       * majority of users who never ask for it.
+       */
+      if (publish_gpsd_raw_)
+      {
+        raw_parser_ = GpsdParserFactory::createRaw(context);
+        gpsd_raw_pub_ = create_publisher<GpsdRawMsg>("gpsd_raw", 1);
+        RCLCPP_INFO(this->get_logger(),
+                    "Publishing raw gpsd reports on ~/gpsd_raw as %s "
+                    "(libgps API %d.%d)",
+                    GPSD_RAW_MESSAGE_NAME, GPSD_API_MAJOR_VERSION,
+                    GPSD_API_MINOR_VERSION);
+      }
 
       std::string host = "localhost";
       int port = atoi(DEFAULT_GPSD_PORT);
@@ -102,6 +124,18 @@ namespace gpsd_client
       RCLCPP_DEBUG(this->get_logger(), "Publishing gps fix...");
       gps_fix_pub_->publish(parser_->parseGpsFix(*p, now));
 
+      /* Published from the same report as the other two, so a subscriber can
+       * line them up by timestamp. Deliberately not gated on
+       * check_fix_by_variance: that filter exists to hide gpsd's stale-fix
+       * behaviour from consumers of NavSatFix, and suppressing a report here
+       * would make the "raw" topic a filtered one.
+       */
+      if (gpsd_raw_pub_)
+      {
+        RCLCPP_DEBUG(this->get_logger(), "Publishing raw gpsd report...");
+        gpsd_raw_pub_->publish(raw_parser_->parseRaw(*p, now));
+      }
+
       std::optional<sensor_msgs::msg::NavSatFix> navsat_fix = parser_->parseNavSatFix(*p, now);
       if (navsat_fix.has_value())
       {
@@ -120,13 +154,17 @@ namespace gpsd_client
   private:
     rclcpp::Publisher<gps_msgs::msg::GPSFix>::SharedPtr gps_fix_pub_;
     rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr navsatfix_pub_;
+    /// Null unless publish_gpsd_raw is set; doubles as the enabled flag.
+    rclcpp::Publisher<GpsdRawMsg>::SharedPtr gpsd_raw_pub_;
 
     std::unique_ptr<gpsmm> gps_;
     std::unique_ptr<GpsdParser> parser_;
+    std::unique_ptr<GpsdRawParser> raw_parser_;
 
     bool use_gps_time_;
     bool check_fix_by_variance_;
     bool override_augmentation_source_;
+    bool publish_gpsd_raw_;
     std::string frame_id_;
     int publish_rate_;
     std::chrono::milliseconds publish_period_ms{};

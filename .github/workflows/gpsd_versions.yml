@@ -12,8 +12,8 @@ jobs:
     name: gpsd ${{ matrix.gpsd }}
     # Only run when a tracked branch itself is updated, not on every push or
     # pull request (this job builds several gpsd releases from source).
-    # TEMPORARY: more_gpsd_fix is here so the Python3 diagnostics below can be
-    # run from that branch; drop it once the FindPython3 failure is fixed.
+    # TEMPORARY: more_gpsd_fix is here so the cache fix below can be verified
+    # from that branch; drop it once the change lands on ros2-devel.
     if: >-
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/ros2-devel' ||
@@ -49,59 +49,23 @@ jobs:
           # Debian package it resolves to ("libgps-dev").
           rosdep install --from-paths src --ignore-src -y \
             --skip-keys "libgps gpsd"
-      # TEMPORARY: diagnose why CMake's FindPython3 reports Development and
-      # NumPy missing for the 3.14.4 interpreter it locates. Remove once the
-      # cause is known and fixed.
-      - name: Diagnose Python3 discovery
-        shell: bash
-        run: |
-          set +e
-          echo "=== interpreters on PATH ==="
-          which -a python3 python3.14
-          python3 -VV
-          echo "=== python3-related packages ==="
-          dpkg -l | grep -E '^ii +python3(\.[0-9]+)?(-dev|-numpy)? ' || true
-          echo "=== ABI headers present? ==="
-          ls -d /usr/include/python3.* 2>&1
-          ls /usr/include/python3.*/Python.h 2>&1
-          echo "=== sysconfig paths (as seen by the found interpreter) ==="
-          python3 -c "import sys,sysconfig; print(sys.executable); print(sysconfig.get_paths())"
-          python3 -c "import sysconfig; print('INCLUDEPY =', sysconfig.get_config_var('INCLUDEPY'))"
-          python3 -c "import sysconfig; print('LIBDIR    =', sysconfig.get_config_var('LIBDIR'))"
-          echo "=== numpy ==="
-          python3 -c "import numpy; print(numpy.__version__, numpy.get_include())"
-          echo "=== what CMake itself resolves ==="
-          cmake --version
-          cd "$(mktemp -d)"
-          # Deliberately not REQUIRED: we want configure to succeed so the
-          # per-component FOUND flags below tell us which part actually failed.
-          cat > CMakeLists.txt <<'EOF'
-          cmake_minimum_required(VERSION 3.10)
-          project(pyprobe LANGUAGES C)
-          find_package(Python3 COMPONENTS Interpreter Development NumPy)
-          message(STATUS "Python3_FOUND             = ${Python3_FOUND}")
-          message(STATUS "Interpreter_FOUND         = ${Python3_Interpreter_FOUND}")
-          message(STATUS "Development_FOUND         = ${Python3_Development_FOUND}")
-          message(STATUS "Development.Module_FOUND  = ${Python3_Development.Module_FOUND}")
-          message(STATUS "Development.Embed_FOUND   = ${Python3_Development.Embed_FOUND}")
-          message(STATUS "NumPy_FOUND               = ${Python3_NumPy_FOUND}")
-          message(STATUS "Python3_EXECUTABLE        = ${Python3_EXECUTABLE}")
-          message(STATUS "Python3_VERSION           = ${Python3_VERSION}")
-          message(STATUS "Python3_INCLUDE_DIRS      = ${Python3_INCLUDE_DIRS}")
-          message(STATUS "Python3_LIBRARIES         = ${Python3_LIBRARIES}")
-          message(STATUS "Python3_NumPy_INCLUDE_DIRS = ${Python3_NumPy_INCLUDE_DIRS}")
-          EOF
-          cmake -S . -B build 2>&1 | tail -40
-          # --debug-find-pkg needs CMake >= 3.23; on older cmake it aborts
-          # before configuring, so keep it in a separate throwaway run.
-          echo "=== verbose find trace (CMake >= 3.23 only) ==="
-          cmake -S . -B build-debug --debug-find-pkg=Python3 2>&1 | tail -80
-          exit 0
       - name: Cache gpsd builds
         uses: actions/cache@v4
         with:
-          path: .gpsd_versions
-          key: gpsd-${{ runner.os }}-${{ matrix.gpsd }}
+          # Cache only the expensive, image-independent artifacts: the gpsd
+          # clone and the libgps installs scons builds from it.
+          #
+          # Deliberately NOT .gpsd_versions/colcon -- those are CMake build
+          # trees, and their CMakeCache.txt pins absolute paths to the base
+          # image's Python. Restoring them after the image bumps its Python
+          # makes CMake reuse the stale _Python3_* cache entries and fail with
+          # "Could NOT find Python3 (missing: Development NumPy ...)", even
+          # though a fresh configure in the same container succeeds.
+          path: |
+            .gpsd_versions/gpsd
+            .gpsd_versions/install
+          # -v2 retires the existing caches, which still hold those build trees.
+          key: gpsd-${{ runner.os }}-${{ matrix.gpsd }}-v2
       - name: Build gpsd_client against gpsd ${{ matrix.gpsd }} and run parser tests
         shell: bash
         run: |

@@ -71,6 +71,28 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(test_gpsd_parser test/test_gpsd_parser.cpp)
   target_link_libraries(test_gpsd_parser ${PROJECT_NAME})
+
+  # The JSON fixture harness mirrors gps_open()'s initialization, which calls
+  # gps_clear_gst()/gps_clear_log(). Neither is available in every supported
+  # libgps, and their availability does not track GPSD_API_MAJOR_VERSION --
+  # gpsd 3.24 and 3.26.1 are both API 14.0, but only 3.26.1 declares
+  # gps_clear_gst() -- so they have to be probed rather than version-guarded.
+  include(CheckCXXSymbolExists)
+  set(CMAKE_REQUIRED_INCLUDES ${libgps_INCLUDE_DIRS})
+  check_cxx_symbol_exists(gps_clear_gst "gps.h" HAVE_GPS_CLEAR_GST)
+  check_cxx_symbol_exists(gps_clear_log "gps.h" HAVE_GPS_CLEAR_LOG)
+  unset(CMAKE_REQUIRED_INCLUDES)
+
+  ament_add_gtest(test_gpsd_json_fixture
+    test/test_gpsd_json_fixture.cpp
+    test/gpsd_json_fixture.cpp)
+  target_link_libraries(test_gpsd_json_fixture ${PROJECT_NAME})
+  if(HAVE_GPS_CLEAR_GST)
+    target_compile_definitions(test_gpsd_json_fixture PRIVATE HAVE_GPS_CLEAR_GST)
+  endif()
+  if(HAVE_GPS_CLEAR_LOG)
+    target_compile_definitions(test_gpsd_json_fixture PRIVATE HAVE_GPS_CLEAR_LOG)
+  endif()
 endif()
 
 #############

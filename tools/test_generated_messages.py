@@ -614,6 +614,29 @@ class CheckedInFilesAreUpToDate(unittest.TestCase):
                                  f"{path} would not be picked up by the glob "
                                  f"in gps_msgs/CMakeLists.txt")
 
+    def test_one_ci_workflow_per_api_pair(self):
+        # Each API pair gets its own workflow so a failure names the version.
+        # Generated from the same manifest as the messages, so adding a pair
+        # cannot leave it untested.
+        for pair in ALL_PAIRS:
+            path = f".github/workflows/gpsd_api_{pair[0]}v{pair[1]}.yml"
+            self.assertIn(path, generated(), f"API {pair} has no CI workflow")
+            body = generated()[path]
+            self.assertIn(f"name: gpsd API {pair[0]}.{pair[1]}", body)
+            self.assertIn(f"msg: 'GPSDRaw{pair[0]}v{pair[1]}'", body)
+            # Must call the shared workflow, not carry its own copy of the logic.
+            self.assertIn("uses: ./.github/workflows/gpsd_api_shared.yml", body)
+            # The revision must be the one the message was generated from.
+            rev = gen.REFERENCE_REVS[pair].replace("release-", "")
+            self.assertIn(f"gpsd: '{rev}'", body)
+
+    def test_no_workflow_for_an_api_pair_that_does_not_exist(self):
+        workflows = [p for p in generated()
+                     if p.startswith(".github/workflows/gpsd_api_")]
+        self.assertEqual(len(workflows), len(ALL_PAIRS))
+        for path in workflows:
+            self.assertNotRegex(path, r"gpsd_api_15v", "API 15 never existed")
+
 
 @unittest.skipUnless(_HAVE_REPO, f"no gpsd clone at {GPSD_REPO}")
 class GeneratedParserCode(unittest.TestCase):

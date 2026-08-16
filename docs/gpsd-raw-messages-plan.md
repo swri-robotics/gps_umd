@@ -782,14 +782,19 @@ See section 5 for the data-generation strategy behind these.
 - [ ] Cover one log per report class from the 5.2 table (`ac12`, `hemi`, `gr8013-w`, `ublox-zed-f9r`, `skytraq-bin`, `ublox-neo-m8t`, `ericsson-gru04`, `ublox-neo-m8u`, `ublox-zoe-m8b-logbatch`)
 - [ ] Confirm `gps.__version__` matches the built daemon, or the test aborts unhelpfully (5.3)
 
-### Phase 6 — CI  *(matrix and script done; awaiting a real CI run)*
+### Phase 6 — CI  *(workflows done; awaiting a real CI run)*
 
 - [x] Teach `tools/test_against_gpsd.sh` to accept a commit SHA as well as a release tag — `resolve_rev()` maps a bare version to `release-<v>` and passes anything else through as a commit-ish, which is what 9.1, 10.1 and 13.0 need
 - [x] Read `GPSD_API_MINOR_VERSION` too — `api_version()` now returns the full pair, which matters because 9.0 and 9.1 select *different* message types
 - [x] Report the selected raw message in the summary (`raw_message_for_api()`)
 - [x] Run the tests via `colcon test` instead of invoking binaries by hand. The `APPEND_LIBRARY_DIRS` added in phase 5 makes this work, and running them the way a user would is the point — the old hand-rolled `LD_LIBRARY_PATH` was masking a real failure
 - [x] Expand the matrix to one entry per API pair, keyed on the same reference revision the generator uses
-- [x] Add a fast `generator` job — drift check plus the generator test suites, needing only a `--filter=blob:none` clone and no gpsd build
+- [x] **One workflow per API pair**, not a matrix. `gpsd_api_9v0.yml` … `gpsd_api_16v1.yml` each call the reusable [gpsd_api_shared.yml](../.github/workflows/gpsd_api_shared.yml), so the logic exists once while each pair gets its own name, badge, run history, re-run button and failure notification. A failure names the API version everywhere it appears, with no matrix row to decode
+- [x] The per-version files are **generated** from `REFERENCE_REVS`, like the messages — adding an API pair creates its workflow, and `--check` fails if the tree drifts. Two tests assert one workflow per pair, calling the shared workflow, pinned to the same revision the message came from
+- [x] Fast checks split into [gpsd_generator.yml](../.github/workflows/gpsd_generator.yml) — drift plus generator tests, needing only a `--filter=blob:none` clone and no gpsd build, so it runs on every push and PR
+- [x] Build/test logs uploaded as `logs-api-<version>` on failure only
+- [x] Each per-version workflow takes `workflow_dispatch`, so one pair can be re-run after a fix without rebuilding ten copies of gpsd; PR triggers are path-filtered so a docs-only change does not rebuild gpsd from source
+- [x] README carries a badge table, one row per API pair
 - [x] Add a per-job assertion that the built libgps reports the API pair the matrix claims, and that it maps to the expected `GPSDRaw<M>v<m>`
 - [x] Cache key bumped to `-v3` (the matrix now keys on API pairs and includes SHAs)
 - [x] **Build and test against all ten pairs locally** — libgps built at every reference revision and the full suite run against each. This is what the matrix will do on CI, and it is how the API-13 `nSat` bug below was found
@@ -821,18 +826,18 @@ present for every version that does. That rule holds across both halves of API
 Worth stating plainly: seven of these ten pairs had never been compiled before
 this sweep. Testing three of them and extrapolating would have shipped that bug.
 
-| Entry | API pair | Message |
-|---|---|---|
-| `3.20` | 9.0 | `GPSDRaw9v0` |
-| `e5279ef52` | 9.1 | `GPSDRaw9v1` |
-| `3.21` | 10.0 | `GPSDRaw10v0` |
-| `42f816d59` | 10.1 | `GPSDRaw10v1` |
-| `3.22` | 11.0 | `GPSDRaw11v0` |
-| `3.23.1` | 12.0 | `GPSDRaw12v0` |
-| `264e808c6` | 13.0 | `GPSDRaw13v0` |
-| `3.26.1` | 14.0 | `GPSDRaw14v0` |
-| `3.27.3` | 16.0 | `GPSDRaw16v0` |
-| `3.27.5` | 16.1 | `GPSDRaw16v1` |
+| Workflow | API pair | gpsd revision | Message |
+|---|---|---|---|
+| `gpsd_api_9v0.yml` | 9.0 | `3.20` | `GPSDRaw9v0` |
+| `gpsd_api_9v1.yml` | 9.1 | `e5279ef52` | `GPSDRaw9v1` |
+| `gpsd_api_10v0.yml` | 10.0 | `3.21` | `GPSDRaw10v0` |
+| `gpsd_api_10v1.yml` | 10.1 | `42f816d59` | `GPSDRaw10v1` |
+| `gpsd_api_11v0.yml` | 11.0 | `3.22` | `GPSDRaw11v0` |
+| `gpsd_api_12v0.yml` | 12.0 | `3.23.1` | `GPSDRaw12v0` |
+| `gpsd_api_13v0.yml` | 13.0 | `264e808c6` | `GPSDRaw13v0` |
+| `gpsd_api_14v0.yml` | 14.0 | `3.26.1` | `GPSDRaw14v0` |
+| `gpsd_api_16v0.yml` | 16.0 | `3.27.3` | `GPSDRaw16v0` |
+| `gpsd_api_16v1.yml` | 16.1 | `3.27.5` | `GPSDRaw16v1` |
 
 ### Phase 7 — Docs
 
@@ -870,6 +875,7 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-16 | 6 | Replaced the matrix with one generated workflow per API pair calling a shared reusable workflow, so each version has its own name, badge and re-run. Generated from `REFERENCE_REVS` and covered by two new drift tests; README gained a per-version badge table. |
 | 2026-08-16 | 6 | Phase 6: CI matrix expanded to all ten API pairs plus a fast generator-only job; `test_against_gpsd.sh` now accepts commit SHAs, reports the full API pair, and runs via `colcon test`. Built libgps at all ten reference revs and ran the suite against each — **92 tests, 0 failures on every pair**. Found and fixed a real bug doing so: the `nSat` threshold was wrong for API 13 (see 1.7). |
 | 2026-08-16 | 4 | Phase 4 complete for Tier A: `publish_gpsd_raw` (default false), opt-in publisher + parser, config and README. Verified end to end against a real gpsd daemon fed a recorded receiver log — 10 satellites published, `skyview` trimmed to `satellites_visible`, mask and NaN semantics intact. |
 | 2026-08-16 | 3 | Phase 3 complete for Tier A: generated selection ladder, `GpsdRawParser` (header + clamped `skyview[]` fill), `createRaw()`. Found and fixed a real D9 bug — `SET_HIGH_BIT` is a gps.h macro, so the emitted constant broke the build; generator now checks the whole macro namespace. Fill guards made overridable so the newer-than-tested fallback can work. `colcon test`: **92 tests, 0 failures** on gpsd 3.20/3.24/3.27.5. |

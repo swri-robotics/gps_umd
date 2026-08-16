@@ -69,7 +69,22 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(test_gpsd_parser test/test_gpsd_parser.cpp)
+
+  # Where libgps lives at runtime. When gpsd_client is pinned to a
+  # source-built libgps (as tools/test_against_gpsd.sh does for each API
+  # version), that directory is on no default search path, and `colcon test`
+  # runs the test binaries with its own environment rather than the shell's --
+  # so a test that passes when run by hand fails under colcon with
+  # "libgps.so.NN: cannot open shared object file".
+  #
+  # APPEND_LIBRARY_DIRS is the ament-supported way to say this; it beats
+  # relying on RUNPATH or on the caller exporting LD_LIBRARY_PATH.
+  if(IS_ABSOLUTE "${libgps_LIBRARIES}")
+    get_filename_component(libgps_LIBRARY_DIRS "${libgps_LIBRARIES}" DIRECTORY)
+  endif()
+
+  ament_add_gtest(test_gpsd_parser test/test_gpsd_parser.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
   target_link_libraries(test_gpsd_parser ${PROJECT_NAME})
 
   # The JSON fixture harness mirrors gps_open()'s initialization, which calls
@@ -85,7 +100,8 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_gpsd_json_fixture
     test/test_gpsd_json_fixture.cpp
-    test/gpsd_json_fixture.cpp)
+    test/gpsd_json_fixture.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
   target_link_libraries(test_gpsd_json_fixture ${PROJECT_NAME})
   if(HAVE_GPS_CLEAR_GST)
     target_compile_definitions(test_gpsd_json_fixture PRIVATE HAVE_GPS_CLEAR_GST)

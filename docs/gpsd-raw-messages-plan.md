@@ -619,17 +619,56 @@ publish" is a single reviewable place rather than an emergent property.
 - [x] Record the type-mapping table (section 4) as the generator's docstring — [tools/generate_raw_msgs.py](../tools/generate_raw_msgs.py), which also carries the pinned reference-rev manifest
 - [x] *(unplanned)* Established that API pairs span ranges of header states, not single states (1.7), and validated the C++ member-detection idiom that handles it (D11)
 
-### Phase 1 — Generator
+### Phase 1 — Generator  *(complete for Tier A)*
 
-- [ ] `tools/generate_raw_msgs.py`: parse `gps.h` at a given rev → structured field model
-  - [ ] Handle preprocessor conditionals in `gps.h` (evaluate for the target API pair, do not emit both arms)
-  - [ ] Handle anonymous structs/unions (`gps_data_t::devices`, the big union)
-  - [ ] Handle nested unions inside `subframe_t` (Tier C; `ais_t` is skipped entirely per D10)
-- [ ] Parse the `#define <NAME>_SET (1llu<<N)` block into `SET_<NAME>` constants (D9), including `UNION_SET` → `SET_UNION` and `SET_HIGH_BIT`
-- [ ] Emit `.msg` files into `gps_msgs/msg/`
-- [ ] Emit parser fill code into `gpsd_client/src/parsers/generated/`
-- [ ] `--check` mode: regenerate to a temp dir and diff, non-zero exit on drift
-- [ ] Unit tests for the parser (feed a known `gps.h` fragment, assert output)
+- [x] `tools/generate_raw_msgs.py`: parse `gps.h` at a given rev → structured field model
+  - [x] Handle preprocessor conditionals — only `#ifndef USE_QT` (around the already-excluded `gps_fd`) exists in the whole range; anything else raises rather than emitting both arms. Line-continued `#define`s (`UNION_SET`) are joined before parsing
+  - [x] Handle anonymous structs/unions — inline `struct { … } ecef;` becomes its own message; a *declarator-less* anonymous union has its members spliced into the parent per C11 6.7.2.1, which is what makes the tier filters and the AIS exclusion match by plain name
+  - [ ] Handle nested unions inside `subframe_t` (Tier C; `ais_t` skipped per D10)
+- [x] Parse the mask block into `SET_<NAME>` constants (D9), including the composite `UNION_SET` → `SET_UNION` (value cross-checked independently) and `SET_HIGH_BIT`
+- [x] Emit `.msg` files into `gps_msgs/msg/` — 70 messages (7 per pair x 10 pairs)
+- [x] Emit parser fill code — as headers under `gpsd_client/include/gpsd_client/parsers/generated/`, not `src/`, since the fill functions are templates (see below)
+- [x] `--check` mode — verified both directions: passes clean, exits 1 on an injected one-line drift
+- [x] Unit tests — [tools/test_generate_raw_msgs.py](../tools/test_generate_raw_msgs.py), 23 tests over fragments, no gpsd checkout needed
+- [x] Output tests — [tools/test_generated_messages.py](../tools/test_generated_messages.py), 30 tests asserting the generated messages match the real `gps.h` per API version (see below)
+- [x] All tests run under standard ROS tooling: plain `colcon test` reports **77 tests, 0 failures, 0 skipped** against gpsd 3.20, 3.24 and 3.27.5
+
+Verified end to end, not just generated:
+
+- `gps_msgs` builds all 70 generated messages (57s, no libgps present — D1 holds)
+- Generated `#include` paths match rosidl's real header names exactly, including the acronym split (`gpsd_baseline16v1`, not `gpsdbaseline16v1`) — the first attempt got this wrong and was corrected against the built output
+- The generated `fill()` for 16.1 compiles against real libgps 3.27.5 and produces correct values (lat/lon/leap/hdop/timespec to `builtin_interfaces/Time`)
+- **D11 confirmed under the exact condition it exists for:** `gpsd_raw_fill_14v0.hpp` (generated from 3.26.1) compiles against gpsd **3.24**, filling what exists and leaving `jam`/`temp`/`clockbias` at defaults; on a 3.27.5 build the `#if` pair guard compiles it out entirely
+- `gpsd_client` still builds and both test suites still pass against 3.20, 3.24 and 3.27.5
+
+Message correctness is checked two independent ways, because the fragment
+tests alone would pass while the generator emitted a message that had nothing
+to do with the gpsd version it names:
+
+- **Manual expectations** — hand-written per-version tables tied to specific
+  gpsd changes: `status` living in `gps_data_t` only on API 9, `leap_seconds`
+  arriving at 9.1, `baseline_t` at 13.0, the six mid-pair API-14 `gps_fix_t`
+  additions, the "API 15" members surfacing as 16. A failure names the gpsd
+  change it broke.
+- **Independent cross-checks** — struct members and their C types are
+  re-extracted from the real `gps.h` by a deliberately *separate* scanner, and
+  every non-excluded member must have a correctly typed field (and vice versa:
+  no field without a member). Reusing the generator's own parser here would be
+  circular. Both directions carry a guard-on-the-guard assertion so a scanner
+  that silently returned nothing cannot make the suite pass vacuously.
+
+The suite was **mutation-tested**: twelve deliberate generator bugs (dropped
+member, wrong reference rev, gpsd `_SET` spelling, removed AIS exclusion,
+`double`→`float32`, `int16_t`→`int32`, `timespec_t` filled as a scalar, missing
+version suffix, `char[N]`→`uint8[]`, dropped `if constexpr` guard, blind
+`skyview` fill, wrong API-pair `#if`) — all twelve are caught. The first pass
+caught only 8; the type-mapping and generated-C++ mutations survived and are
+why `FieldTypes` and `GeneratedParserCode` exist.
+
+Two implementation notes worth carrying forward:
+
+- Fill functions are **templated on the source type**. The anonymous structs (`gps_fix_t::ecef`, `::NED`) have no C type name to write down, and deducing `T` is what lets the `has_<member><T>` traits resolve against the build's real `gps.h`. They need forward declarations, since unqualified lookup in a template happens at definition time and ADL cannot reach `gpsd_client::generated`.
+- Arrays of structs (`skyview[]`) are deliberately *not* filled by generated code — only the hand-written parser knows the valid count, and a blind loop would publish `MAXCHANNELS` entries of garbage. Phase 3 wires that up.
 
 ### Phase 2 — Messages (`gps_msgs`)
 
@@ -752,6 +791,8 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-16 | 1/5 | Generated-output tests added (30) and all Python tests wired into `colcon test` via `gps_msgs` + `ament_add_pytest_test`; drift check now runs as an ordinary test. Fixed `colcon test` failing to find a source-built libgps by adding `APPEND_LIBRARY_DIRS` to both gtest targets. Whole workspace: 77 tests, 0 failures, 0 skipped on gpsd 3.20/3.24/3.27.5. Mutation-tested the suite: 12/12 injected generator bugs caught. |
+| 2026-08-16 | 1 | Generator implemented for Tier A: 70 messages + 10 parser headers + `gpsd_has_member.hpp`, 23 unit tests, `--check` verified both ways. `gps_msgs` builds all of them; generated fill code verified running against real libgps; D11 confirmed against gpsd 3.24. Corrected the emitted `#include` paths after checking them against rosidl's actual output. |
 | 2026-08-16 | 0 | Phase 0 complete. Upstream refetched (no new tags). Two corrections: `MAXCHANNELS` released values are 140/184, not 140/185/230; and API pairs span *ranges* of header states, not single states — `gps_fix_t` grows by six members within API 14.0, and 16.1 covers both 184 and 230. Added D11 (C++ member detection, validated on three installs) to handle it. Reference revs pinned and all ten verified in [tools/generate_raw_msgs.py](../tools/generate_raw_msgs.py). |
 | 2026-08-16 | 5 | Tier-1 harness landed and verified on API 9.0/14.0/16.1. Found three libgps changes that do *not* track the API version (new section 1.7) — `gps_unpack()`'s constness, `gps_clear_gst()`'s existence, and the SKY `nSat` requirement. Also confirmed no released gpsd propagates parse errors out of `gps_unpack()`, so fixture typos surface as value assertions, never as a parse failure. |
 | 2026-08-16 | 5 | Test data strategy added (new section 5; later sections renumbered). Two tiers: `gps_unpack()` for per-field coverage on all ten versions, gpsfake for end-to-end on the newest. Completeness is enforced by a generated header-audit test, not by hand-written cases. |

@@ -1,38 +1,20 @@
-name: CI
+name: gpsd versions
 
 on: [push, pull_request]
 
 jobs:
-  industrial_ci:
-    strategy:
-      matrix:
-        env:
-          - {ROS_DISTRO: humble, ROS_REPO: testing}
-          - {ROS_DISTRO: humble, ROS_REPO: main}
-          - {ROS_DISTRO: jazzy, ROS_REPO: testing, PIP_BREAK_SYSTEM_PACKAGES: True}
-          - {ROS_DISTRO: jazzy, ROS_REPO: main, PIP_BREAK_SYSTEM_PACKAGES: True}
-          - {ROS_DISTRO: kilted, ROS_REPO: testing, PIP_BREAK_SYSTEM_PACKAGES: True}
-          - {ROS_DISTRO: kilted, ROS_REPO: main, PIP_BREAK_SYSTEM_PACKAGES: True}
-          - {ROS_DISTRO: lyrical, ROS_REPO: testing, PIP_BREAK_SYSTEM_PACKAGES: True}
-          - {ROS_DISTRO: lyrical, ROS_REPO: main, PIP_BREAK_SYSTEM_PACKAGES: True}
-          - {ROS_DISTRO: rolling, ROS_REPO: testing, PIP_BREAK_SYSTEM_PACKAGES: True}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: 'ros-industrial/industrial_ci@master'
-        env: ${{matrix.env}}
-
   # Build gpsd_client against several real gpsd releases and run its parser
   # unit tests linked against each, exercising both parser variants. Unlike
-  # industrial_ci above (which matrixes over ROS distros against the system
-  # libgps), this matrixes over the gpsd/libgps ABI the client is built on.
+  # the per-distro industrial_ci workflows (which matrix over ROS distros
+  # against the system libgps), this matrixes over the gpsd/libgps ABI the
+  # client is built on.
   gpsd_versions:
     name: gpsd ${{ matrix.gpsd }}
     # Only run when the ros2-devel branch itself is updated, not on every
     # push or pull request (this job builds several gpsd releases from source).
     if: github.event_name == 'push' && github.ref == 'refs/heads/ros2-devel'
     runs-on: ubuntu-latest
-    container: ros:kilted-ros-base
+    container: ros:lyrical-ros-base
     strategy:
       fail-fast: false
       matrix:
@@ -65,5 +47,5 @@ jobs:
       - name: Build gpsd_client against gpsd ${{ matrix.gpsd }} and run parser tests
         shell: bash
         run: |
-          source /opt/ros/kilted/setup.bash
+          source /opt/ros/lyrical/setup.bash
           src/gps_umd/tools/test_against_gpsd.sh ${{ matrix.gpsd }}

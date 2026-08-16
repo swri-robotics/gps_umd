@@ -117,8 +117,23 @@ std::string skyJson(const std::vector<Satellite>& satellites,
   appendReal(out, "pdop", dop.pdop);
   appendReal(out, "gdop", dop.gdop);
 
-  // See the header: required from API 14 on, unparseable before API 11.
-#if GPSD_API_MAJOR_VERSION >= 14
+  /* Emitted from API 11 on. The threshold is about what libgps *tolerates*,
+   * not when nSat became meaningful, because the two do not line up with
+   * version bumps:
+   *
+   *   - gpsd 3.20/3.21 (API 9, 10) have no catch-all t_ignore in their SKY
+   *     attribute table and reject the unknown key outright, losing the whole
+   *     report. So nSat must be omitted there -- those versions count the
+   *     satellites array themselves.
+   *   - gpsd 3.22 (API 11) added t_ignore, so from there on an unrecognised
+   *     nSat is harmlessly skipped.
+   *   - nSat itself landed mid-API-13, one day before the bump to 14, and
+   *     from then on its absence makes libgps discard every satellite.
+   *
+   * Keying on API >= 11 therefore covers both halves of API 13 and every
+   * other in-between state, which a threshold at 14 did not.
+   */
+#if GPSD_API_MAJOR_VERSION >= 11
   out << ",\"nSat\":" << satellites.size();
 #endif
 

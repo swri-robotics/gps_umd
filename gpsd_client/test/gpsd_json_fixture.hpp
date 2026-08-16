@@ -139,12 +139,15 @@ std::string tpvJson(const Tpv& tpv);
 
 /// Render a gpsd SKY report.
 ///
-/// Emits the "nSat" key only when the libgps being built against needs it.
-/// This is not cosmetic. From gpsd 3.24 (API 14) libgps_json.c reads nSat and,
-/// when it is absent, takes an early return that clears SATELLITE_SET and
-/// leaves satellites_visible at 0 -- every satellite in the report is silently
-/// discarded. Before 3.24 the key does not exist, and gpsd 3.20/3.21 reject
-/// unknown keys outright, so it cannot simply always be emitted.
+/// Emits the "nSat" key only when the libgps being built against tolerates it.
+/// This is not cosmetic, and the boundary is not where the version numbers
+/// suggest. Once libgps reads nSat, a SKY report without it takes an early
+/// return that clears SATELLITE_SET and leaves satellites_visible at 0 --
+/// every satellite in the report is silently discarded. But nSat landed
+/// *mid*-API-13, a day before the bump to 14, so keying on API >= 14 loses
+/// every satellite when building against the end of API 13. Meanwhile gpsd
+/// 3.20/3.21 reject unknown keys outright, so it cannot simply always be
+/// emitted either. See the implementation for the resulting rule.
 ///
 /// uSat is deliberately never emitted: libgps recalculates the used and visible
 /// counts from the satellite array and explicitly ignores nSat/uSat for them.

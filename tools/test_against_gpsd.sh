@@ -117,14 +117,26 @@ fi
 
 # Build libgps/libgpsmm only; the daemon, clients, python bindings, and man
 # pages are irrelevant to the parser tests and only add build fragility.
+# Resolve a selector to a git revision. A plain version number means the
+# release tag; anything else is passed through as a commit-ish, which is what
+# the API pairs that shipped in no release (9.1, 10.1, 13.0) need.
+resolve_rev() {
+  case "$1" in
+    [0-9]*.[0-9]*) echo "release-$1" ;;
+    *)             echo "$1" ;;
+  esac
+}
+
 build_gpsd() {
   local ver=$1
   local prefix=${CACHE}/install/${ver}
   local build_log=${LOGS}/gpsd-${ver}.log
+  local rev
+  rev=$(resolve_rev "${ver}")
   if [ -f "${prefix}/include/gps.h" ]; then
     return 0
   fi
-  git -C "${GPSD_SRC}" checkout --quiet "release-${ver}" || return 1
+  git -C "${GPSD_SRC}" checkout --quiet "${rev}" || return 1
   git -C "${GPSD_SRC}" clean -xdfq
   (cd "${GPSD_SRC}" &&
    PYTHONPATH="${PYSHIM}${PYTHONPATH:+:${PYTHONPATH}}" \
@@ -144,16 +156,26 @@ libgps_dir() {
   return 1
 }
 
+# The full API pair. The minor version matters now that the raw messages are
+# named GPSDRaw<MAJOR>v<MINOR> -- 9.0 and 9.1 select different message types.
 api_version() {
-  awk '$2 == "GPSD_API_MAJOR_VERSION" { print $3 }' "$1/include/gps.h"
+  awk '$2 == "GPSD_API_MAJOR_VERSION" { maj = $3 }
+       $2 == "GPSD_API_MINOR_VERSION" { min = $3 }
+       END { print maj "." min }' "$1/include/gps.h"
 }
 
 parser_for_api() {
-  if [ "$1" -le 9 ]; then
+  local major=${1%%.*}
+  if [ "${major}" -le 9 ]; then
     echo GpsdParserV9
   else
     echo GpsdParserV16
   fi
+}
+
+# The raw message this API pair selects, per gpsd_raw_message.hpp.
+raw_message_for_api() {
+  echo "GPSDRaw${1%%.*}v${1##*.}"
 }
 
 # Returns 0 on pass; 1 = gpsd build failed, 2 = client build failed,
@@ -179,20 +201,18 @@ build_and_test_client() {
   # failed" (exit 127), so call it out separately.
   [ -x "${base}/build/gpsd_client/test_gpsd_parser" ] || return 4
 
-  # colcon builds gps_msgs into this run's isolated install base, and nothing
-  # else puts that on the library path. On a machine that already has gps_msgs
-  # installed the loader quietly finds it in the underlay instead, so this is
-  # only fatal where gps_msgs is *not* installed -- e.g. ros:*-ros-base on CI.
-  local ws_libs=""
-  for d in "${base}"/install/*/lib; do
-    [ -d "${d}" ] && ws_libs="${ws_libs}${d}:"
-  done
+  # Run through colcon rather than invoking the binaries directly. The gtest
+  # targets pass APPEND_LIBRARY_DIRS for this version's libgps, so colcon can
+  # find it without the LD_LIBRARY_PATH juggling this script used to do -- and
+  # running them the same way a user would is the point.
+  (cd "${WORKSPACE}" &&
+   colcon test --packages-up-to gpsd_client \
+     --build-base "${base}/build" --install-base "${base}/install" \
+     >"${LOGS}/test-${ver}.log" 2>&1) || true
 
-  # Prepend the freshly built libgpsd_client and this version's libgps so
-  # neither can be shadowed by copies from an underlay on LD_LIBRARY_PATH.
-  LD_LIBRARY_PATH="${base}/build/gpsd_client:${libdir}:${ws_libs}${LD_LIBRARY_PATH:-}" \
-    "${base}/build/gpsd_client/test_gpsd_parser" \
-    >"${LOGS}/test-${ver}.log" 2>&1 || return 3
+  (cd "${WORKSPACE}" &&
+   colcon test-result --test-result-base "${base}/build" \
+     >>"${LOGS}/test-${ver}.log" 2>&1) || return 3
 }
 
 RESULTS=""
@@ -212,7 +232,8 @@ for ver in ${VERSIONS}; do
   api=$(api_version "${prefix}")
   parser=$(parser_for_api "${api}")
 
-  log "gpsd ${ver} (API ${api}, ${parser}): building gpsd_client and testing"
+  raw=$(raw_message_for_api "${api}")
+  log "gpsd ${ver} (API ${api}, ${parser}, ${raw}): building gpsd_client and testing"
   build_and_test_client "${ver}"
   case $? in
     0) result="PASS" ;;
@@ -233,13 +254,13 @@ for ver in ${VERSIONS}; do
       dump_log "${LOGS}/client-${ver}.log"
       ;;
   esac
-  RESULTS="${RESULTS}${ver}|${api}|${parser}|${result}\n"
+  RESULTS="${RESULTS}${ver}|${api}|${raw}|${result}\n"
 done
 
 log "Summary"
-printf '%-10s %-5s %-15s %s\n' "GPSD" "API" "PARSER" "RESULT"
+printf '%-12s %-6s %-16s %s\n' "GPSD" "API" "RAW MESSAGE" "RESULT"
 printf '%b' "${RESULTS}" | while IFS='|' read -r ver api parser result; do
-  [ -n "${ver}" ] && printf '%-10s %-5s %-15s %s\n' "${ver}" "${api}" "${parser}" "${result}"
+  [ -n "${ver}" ] && printf '%-12s %-6s %-16s %s\n' "${ver}" "${api}" "${parser}" "${result}"
 done
 
 exit "${FAILED}"

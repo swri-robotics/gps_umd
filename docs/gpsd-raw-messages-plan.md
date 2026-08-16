@@ -128,7 +128,7 @@ complete description of libgps' source interface.** Three confirmed cases, all
 |---|---|---|---|
 | `gps_unpack()` argument | `char *` (≤ 3.24) | `const char *` (3.25+) | 14.0 **both sides** |
 | `gps_clear_gst()` declared | absent (≤ 3.24) | present (3.26.1+) | 14.0 **both sides** |
-| SKY `nSat` key required | absent (≤ 3.23.1) | required (3.24+) | 12.0 → 14.0 |
+| SKY `nSat` key required | absent (2021-11-23) | required (2022-04-06) | 13.0 **both sides** |
 | **`gps_fix_t` gains 6 members** | 3.24 | 3.26.1 | 14.0 **both sides** |
 | **`MAXCHANNELS`** | 140 (≤ 3.25) | 184 (3.26+) | 14.0 **both sides** |
 | **`MAXCHANNELS`** | 184 (3.27.5) | 230 (master) | 16.1 **both sides** |
@@ -150,6 +150,10 @@ API pair names a **range** of header states, not one state:
   listed in the gps.h API-14 changelog stanza — they simply landed after 3.24
   had already shipped as 14.0.)
 - API 16.1 covers both 3.27.5 (`MAXCHANNELS` 184) and master (230).
+- The SKY `nSat` key landed **mid-API-13**, one day before the bump to 14
+  (absent at `81115741`, present at `264e808c6`, bump at `0df348fe`). A
+  threshold keyed on "API >= 14" is therefore wrong for the second half of API
+  13 — which is exactly the reference revision this plan pins for `GPSDRaw13v0`.
 
 Two consequences:
 
@@ -778,29 +782,57 @@ See section 5 for the data-generation strategy behind these.
 - [ ] Cover one log per report class from the 5.2 table (`ac12`, `hemi`, `gr8013-w`, `ublox-zed-f9r`, `skytraq-bin`, `ublox-neo-m8t`, `ericsson-gru04`, `ublox-neo-m8u`, `ublox-zoe-m8b-logbatch`)
 - [ ] Confirm `gps.__version__` matches the built daemon, or the test aborts unhelpfully (5.3)
 
-### Phase 6 — CI
+### Phase 6 — CI  *(matrix and script done; awaiting a real CI run)*
 
-- [ ] Teach `tools/test_against_gpsd.sh` to accept a commit SHA as well as a release tag (needed for 9.1, 10.1, 13.0 — `build_gpsd()` currently hardcodes `git checkout release-${ver}`)
-- [ ] Read `GPSD_API_MINOR_VERSION` too — `api_version()` currently reads only the major
-- [ ] Update `parser_for_api()` to also report the selected *raw* parser
-- [ ] Expand the matrix in [.github/workflows/gpsd_versions.yml](../.github/workflows/gpsd_versions.yml) from `['3.20','3.21','3.27.5']` to one entry per API pair:
+- [x] Teach `tools/test_against_gpsd.sh` to accept a commit SHA as well as a release tag — `resolve_rev()` maps a bare version to `release-<v>` and passes anything else through as a commit-ish, which is what 9.1, 10.1 and 13.0 need
+- [x] Read `GPSD_API_MINOR_VERSION` too — `api_version()` now returns the full pair, which matters because 9.0 and 9.1 select *different* message types
+- [x] Report the selected raw message in the summary (`raw_message_for_api()`)
+- [x] Run the tests via `colcon test` instead of invoking binaries by hand. The `APPEND_LIBRARY_DIRS` added in phase 5 makes this work, and running them the way a user would is the point — the old hand-rolled `LD_LIBRARY_PATH` was masking a real failure
+- [x] Expand the matrix to one entry per API pair, keyed on the same reference revision the generator uses
+- [x] Add a fast `generator` job — drift check plus the generator test suites, needing only a `--filter=blob:none` clone and no gpsd build
+- [x] Add a per-job assertion that the built libgps reports the API pair the matrix claims, and that it maps to the expected `GPSDRaw<M>v<m>`
+- [x] Cache key bumped to `-v3` (the matrix now keys on API pairs and includes SHAs)
+- [x] **Build and test against all ten pairs locally** — libgps built at every reference revision and the full suite run against each. This is what the matrix will do on CI, and it is how the API-13 `nSat` bug below was found
+- [ ] **Verify on real CI** — the workflow itself has not run on GitHub
+- [ ] Watch job count/time: ten source builds of gpsd. The heavy job is already gated to `ros2-devel` pushes; the new `generator` job runs on every push and PR, which is the fast feedback path
 
-  | Matrix entry | API pair |
-  |---|---|
-  | `3.20` | 9.0 |
-  | `8da63ed3` | 9.1 |
-  | `3.21` | 10.0 |
-  | `7c7de250` | 10.1 |
-  | `3.22` | 11.0 |
-  | `3.23.1` | 12.0 |
-  | `81115741` | 13.0 |
-  | `3.26.1` | 14.0 |
-  | `3.27.3` | 16.0 |
-  | `3.27.5` | 16.1 |
+Matrix:
 
-- [ ] Add a `generate --check` job so checked-in generated files cannot drift (D2)
-- [ ] Verify the cache key still discriminates (`gpsd-${{ runner.os }}-${{ matrix.gpsd }}-v2` works for SHAs, but bump to `-v3` when the matrix changes shape)
-- [ ] Watch job count/time: 10 source builds of gpsd. If wall-clock becomes a problem, keep the full matrix on `ros2-devel` pushes (the workflow is already gated that way at `gpsd_versions.yml:15`) and run a 3-entry subset on PRs
+All ten verified locally, each selecting the message it should:
+
+```
+9.0    GPSDRaw9v0     92 tests, 0 failures      12.0   GPSDRaw12v0    92 tests, 0 failures
+9.1    GPSDRaw9v1     92 tests, 0 failures      13.0   GPSDRaw13v0    92 tests, 0 failures
+10.0   GPSDRaw10v0    92 tests, 0 failures      14.0   GPSDRaw14v0    92 tests, 0 failures
+10.1   GPSDRaw10v1    92 tests, 0 failures      16.0   GPSDRaw16v0    92 tests, 0 failures
+11.0   GPSDRaw11v0    92 tests, 0 failures      16.1   GPSDRaw16v1    92 tests, 0 failures
+```
+
+**API 13.0 failed on the first run**, with 8 failures — the only pair that did,
+and one of the three that ships in no release. The tier-1 harness emitted the
+SKY `nSat` key only for API >= 14, but `nSat` landed mid-API-13 (see 1.7), so
+against the end of API 13 libgps discarded every satellite in the fixture. The
+threshold now keys on what libgps *tolerates* rather than when the key became
+meaningful: emit `nSat` from API 11, where the catch-all `t_ignore` entry
+arrived, so it is harmlessly skipped by versions that do not know it and
+present for every version that does. That rule holds across both halves of API
+13 and every other in-between state.
+
+Worth stating plainly: seven of these ten pairs had never been compiled before
+this sweep. Testing three of them and extrapolating would have shipped that bug.
+
+| Entry | API pair | Message |
+|---|---|---|
+| `3.20` | 9.0 | `GPSDRaw9v0` |
+| `e5279ef52` | 9.1 | `GPSDRaw9v1` |
+| `3.21` | 10.0 | `GPSDRaw10v0` |
+| `42f816d59` | 10.1 | `GPSDRaw10v1` |
+| `3.22` | 11.0 | `GPSDRaw11v0` |
+| `3.23.1` | 12.0 | `GPSDRaw12v0` |
+| `264e808c6` | 13.0 | `GPSDRaw13v0` |
+| `3.26.1` | 14.0 | `GPSDRaw14v0` |
+| `3.27.3` | 16.0 | `GPSDRaw16v0` |
+| `3.27.5` | 16.1 | `GPSDRaw16v1` |
 
 ### Phase 7 — Docs
 
@@ -838,6 +870,7 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-16 | 6 | Phase 6: CI matrix expanded to all ten API pairs plus a fast generator-only job; `test_against_gpsd.sh` now accepts commit SHAs, reports the full API pair, and runs via `colcon test`. Built libgps at all ten reference revs and ran the suite against each — **92 tests, 0 failures on every pair**. Found and fixed a real bug doing so: the `nSat` threshold was wrong for API 13 (see 1.7). |
 | 2026-08-16 | 4 | Phase 4 complete for Tier A: `publish_gpsd_raw` (default false), opt-in publisher + parser, config and README. Verified end to end against a real gpsd daemon fed a recorded receiver log — 10 satellites published, `skyview` trimmed to `satellites_visible`, mask and NaN semantics intact. |
 | 2026-08-16 | 3 | Phase 3 complete for Tier A: generated selection ladder, `GpsdRawParser` (header + clamped `skyview[]` fill), `createRaw()`. Found and fixed a real D9 bug — `SET_HIGH_BIT` is a gps.h macro, so the emitted constant broke the build; generator now checks the whole macro namespace. Fill guards made overridable so the newer-than-tested fallback can work. `colcon test`: **92 tests, 0 failures** on gpsd 3.20/3.24/3.27.5. |
 | 2026-08-16 | 1/5 | Generated-output tests added (30) and all Python tests wired into `colcon test` via `gps_msgs` + `ament_add_pytest_test`; drift check now runs as an ordinary test. Fixed `colcon test` failing to find a source-built libgps by adding `APPEND_LIBRARY_DIRS` to both gtest targets. Whole workspace: 77 tests, 0 failures, 0 skipped on gpsd 3.20/3.24/3.27.5. Mutation-tested the suite: 12/12 injected generator bugs caught. |

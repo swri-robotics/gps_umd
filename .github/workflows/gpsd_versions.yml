@@ -31,7 +31,12 @@ jobs:
       - name: Install build tools and workspace dependencies
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends scons pkg-config
+          # python3-dev/python3-numpy: rosidl_generator_py's CMake needs
+          # Python3's Development/NumPy components to build gps_msgs' Python
+          # bindings; unlike under kilted-ros-base, lyrical-ros-base doesn't
+          # pull these in transitively.
+          apt-get install -y --no-install-recommends scons pkg-config \
+            python3-dev python3-numpy
           rosdep update
           # Skip the system gpsd/libgps: the script builds libgps from source
           # at ${{ matrix.gpsd }} and pins gpsd_client to that exact install.

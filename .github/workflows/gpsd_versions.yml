@@ -10,14 +10,9 @@ jobs:
   # client is built on.
   gpsd_versions:
     name: gpsd ${{ matrix.gpsd }}
-    # Only run when a tracked branch itself is updated, not on every push or
-    # pull request (this job builds several gpsd releases from source).
-    # TEMPORARY: more_gpsd_fix is here so the cache fix below can be verified
-    # from that branch; drop it once the change lands on ros2-devel.
-    if: >-
-      github.event_name == 'push' &&
-      (github.ref == 'refs/heads/ros2-devel' ||
-      github.ref == 'refs/heads/more_gpsd_fix')
+    # Only run when the ros2-devel branch itself is updated, not on every
+    # push or pull request (this job builds several gpsd releases from source).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/ros2-devel'
     runs-on: ubuntu-latest
     container: ros:lyrical-ros-base
     strategy:

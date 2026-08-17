@@ -213,6 +213,39 @@ The consequences for this feature:
 If a future libgps grows the missing readers, those tests fail — which is
 exactly when the dispatch should be revisited.
 
+### 1.10 libgps decodes `TOFF` into the wrong member on gpsd ≤ 3.24
+
+A companion to 1.9, and a nastier one: the class *is* decoded, just into the
+wrong place. `libgps_json.c`'s dispatch for `TOFF` calls **`json_pps_read()`**
+rather than `json_toff_read()`, so a TOFF report lands in `gps_data_t::pps`,
+`::toff` stays zeroed, and `TOFF_SET` is raised regardless.
+`json_toff_read()` is compiled in and simply never reached.
+
+| gpsd releases | `TOFF` dispatch calls |
+|---|---|
+| 3.20 – 3.24 | `json_pps_read` — decoded into `::pps` |
+| 3.25 – 3.27.5 | `json_toff_read` — correct |
+
+Three things follow, and the third is why this has its own section:
+
+* **`gps_data_t::toff` is unreachable through libgps on gpsd ≤ 3.24**, the same
+  way `subframe` and `log` are at every version. The generated `toff` field is
+  correct and will simply stay empty there.
+* **A PPS immediately followed by a TOFF silently overwrites the PPS values**,
+  because both land in `::pps`. Nothing in the mask reveals it: both `PPS_SET`
+  and `TOFF_SET` end up raised.
+* **The boundary is inexpressible by every mechanism this project uses.** 3.24
+  and 3.25 are *both* API 14.0, so no `GPSD_API_MAJOR/MINOR` comparison
+  separates them (1.7), and `CheckStructHasMember` has nothing to ask —
+  `toff` and `pps` exist in every supported version. What differs is runtime
+  routing, not the header. This is the strongest argument yet for keeping 3.24
+  and 3.25 in the sweep as non-reference revs: nothing else would have found it.
+
+Consequently the two TOFF tests populate `gps_data_t` directly rather than
+round-tripping through `unpack()`, and assert on the fill code, which is ours.
+The PPS test keeps the JSON path, since PPS routes correctly everywhere. See
+the comment above `ToffReportReachesTheMessage`.
+
 ---
 
 ## 2. Architecture decisions
@@ -874,7 +907,7 @@ publish" is a single reviewable place rather than an emergent property.
 - [x] `tools/generate_raw_msgs.py`: parse `gps.h` at a given rev → structured field model
   - [x] Handle preprocessor conditionals — only `#ifndef USE_QT` (around the already-excluded `gps_fd`) exists in the whole range; anything else raises rather than emitting both arms. Line-continued `#define`s (`UNION_SET`) are joined before parsing
   - [x] Handle anonymous structs/unions — inline `struct { … } ecef;` becomes its own message; a *declarator-less* anonymous union has its members spliced into the parent per C11 6.7.2.1, which is what makes the tier filters and the AIS exclusion match by plain name
-  - [ ] Handle nested unions inside `subframe_t` (Tier C; `ais_t` skipped per D10)
+  - [x] Handle nested unions inside `subframe_t` (Tier C; `ais_t` skipped per D10) — 11 message families per pair, including the second level (`sub4_13/17/18/25`, `sub5_25`); dispatch is two-level, `subframe_num` then `pageid` (D16)
 - [x] Parse the mask block into `SET_<NAME>` constants (D9), including the composite `UNION_SET` → `SET_UNION` (value cross-checked independently) and `SET_HIGH_BIT`
 - [x] Emit `.msg` files into `gps_msgs/msg/` — 70 messages (7 per pair x 10 pairs)
 - [x] Emit parser fill code — as headers under `gpsd_client/include/gpsd_client/parsers/generated/`, not `src/`, since the fill functions are templates (see below)
@@ -1150,6 +1183,8 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-17 | 5/6 | **Section 1.10: libgps decodes `TOFF` into `::pps` on gpsd 3.20–3.24.** The dispatch calls `json_pps_read()` instead of `json_toff_read()`, so `::toff` stays zeroed, `TOFF_SET` is raised anyway, and a PPS followed by a TOFF is silently overwritten — both land in `::pps`. Fixed upstream in 3.25. Found because the TOFF tests were written against 3.27.5 and had never been run below it. The boundary is inexpressible by every mechanism here: 3.24 and 3.25 are both API 14.0 so no version comparison separates them (1.7), and there is nothing for `CheckStructHasMember` to ask since `toff` and `pps` exist in all versions — it is runtime routing, not header shape. Keeping 3.24/3.25 in the sweep as non-reference revs is what caught it. The two TOFF tests now populate `gps_data_t` directly and assert on our fill; the PPS test keeps the JSON round-trip since PPS routes correctly everywhere. Mutation-verified: filling `toff` from `pps` fails both. |
+| 2026-08-17 | 6 | Last struct-shape version guard converted to a probe: `test_gpsd_parser.cpp`'s `GPSD_API_MAJOR_VERSION >= 10` became `#ifdef HAVE_GPS_FIX_STATUS`, and `GPSD_FEATURE_DEFINES` is now applied by loop over all three gtest targets rather than per-target calls — a missed target does not fail the build, it silently takes the `#else`. Verified in both directions: the unused branch cannot compile on either side, and the probe resolves off on 3.20 / on on 3.21. |
 | 2026-08-17 | 5 | **The ATT end-to-end test had never once asserted anything.** It replayed `hemi.log`, whose 4 ATT reports sit at report 350 of 370 in a 755-sentence log — the capture window reaches roughly the first tenth, so the reports were not unlikely to be sampled but *unreachable*, and its skip-on-no-data guard reported that as success every run since it was written. Repointed at `tnt-revolution` (a dedicated heading sensor: 60 of 120 reports are ATT, first at report 2, whole log inside one window), widened to five fields, and the skip removed — zero ATT is now a failure. Coverage is total and repeatable: every distinct value gpsd reports arrives, 45/45 headings and 13/13 pitch, identical across runs, because the log cycles and one cycle fits the window whatever phase collection starts on. Suite is **20 passed, 0 skipped** and now skips nothing at all. |
 | 2026-08-17 | 5 | Tier-1 `TOFF`/`PPS`/`qErr` cases and four more tier-2 report classes (RAW, OSC, IMU, and SUBFRAME reachability). Found a real data-loss bug doing it: **`rawdata_t::meas[]` was never filled** — deferred to the caller like `skyview`/`imu`, but nothing filled it, so every RAW report published an empty measurement list. Fixed with gpsd's own rule (skip `svid` 0 and 255; a filter, not a terminator). Also established §1.9: libgps has no reader for `SUBFRAME` or `LOG`, so those fields can never be populated in a client and the D16 subframe dispatch is unreachable through the socket API. The two tests now assert that emptiness instead of skipping. 18 passed, 1 skipped. |
 | 2026-08-17 | 6 | **First real CI run**, and it earned its keep. Ten API workflows plus `gpsd_generator` are green; `gpsd end to end` is the last red one and both its causes are fixed locally. Four bugs found that the local sweep structurally could not: the shared-message build never included `gps_msgs` (hidden by a stale underlay on `AMENT_PREFIX_PATH`); the `rtcm3_t` union arms had no D11 guard, which only fails against a mid-pair libgps such as a distro's; the tier-2 pytest was never registered because the CMake regex anchored `[0-9]+$` against a line ending in a `//` comment; and the CI guard counted lines on a single-line XML, so it would have failed on a healthy run. Added gpsd 3.24 and 3.25 to the sweep as *non-reference* revs, and converted every version-keyed guard in the tests to `check_struct_has_member` probes. |

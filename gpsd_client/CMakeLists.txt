@@ -134,8 +134,10 @@ if(BUILD_TESTING)
     HAVE_RTCM2_18 LANGUAGE CXX)
   unset(CMAKE_REQUIRED_INCLUDES)
 
-  # One list, applied to both gtest targets that need them, so a probe added
-  # later cannot be wired to one target and forgotten on the other.
+  # One list, applied to every gtest target that needs them, so a probe added
+  # later cannot be wired to one target and forgotten on the others. The
+  # application is a loop over a named list for the same reason -- see the
+  # bottom of this block.
   set(GPSD_FEATURE_DEFINES)
   foreach(feature GPS_CLEAR_GST GPS_CLEAR_LOG GPS_DATA_SOURCE GPS_DATA_IMU
                   GPS_FIX_STATUS RTCM3_MSM RTCM2_18)
@@ -166,8 +168,14 @@ if(BUILD_TESTING)
     APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
   target_link_libraries(test_gpsd_raw_include_order ${PROJECT_NAME})
   target_link_libraries(test_gpsd_json_fixture ${PROJECT_NAME})
-  target_compile_definitions(test_gpsd_raw_parser PRIVATE ${GPSD_FEATURE_DEFINES})
-  target_compile_definitions(test_gpsd_json_fixture PRIVATE ${GPSD_FEATURE_DEFINES})
+  # Applied by loop rather than one call per target: the probes are declared
+  # far above the targets that consume them, so a hand-maintained list of calls
+  # is exactly the kind of thing that silently misses one. A missed target does
+  # not fail to build -- it quietly takes the #else branch, which is how the
+  # version guard in test_gpsd_parser.cpp survived as long as it did.
+  foreach(target test_gpsd_parser test_gpsd_raw_parser test_gpsd_json_fixture)
+    target_compile_definitions(${target} PRIVATE ${GPSD_FEATURE_DEFINES})
+  endforeach()
 
   # Tier 2: gpsfake -> real gpsd -> this node -> ROS topics.
   #

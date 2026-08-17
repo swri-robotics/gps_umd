@@ -9,13 +9,22 @@ namespace
 {
 
 // The tests, like the parsers, can only compile against the single installed
-// libgps header, so they exercise whichever parser the factory selects for
-// GPSD_API_MAJOR_VERSION. The two version-dependent details below (where the
-// fix status lives and what the DGPS status macro is called) are isolated
-// here.
+// libgps header, so they exercise whichever parser the factory selects. The
+// two header-dependent details below (where the fix status lives and what the
+// DGPS status macro is called) are isolated here.
+//
+// HAVE_GPS_FIX_STATUS comes from CheckStructHasMember in CMakeLists.txt, and
+// asks the header directly rather than inferring from the version. A
+// `GPSD_API_MAJOR_VERSION >= 10` guard happens to be right -- the status moved
+// from gps_data_t to gps_fix_t on the bump commit itself -- but only by
+// coincidence of that one move: an API pair names a *range* of header states
+// (section 1.7), so version arithmetic is not a test for "has this member" in
+// general, and every other such guard in this package has already been
+// converted. This is the last one, kept in the same style as the STATUS_*
+// probes below.
 void setFixStatus(gps_data_t& data, int status)
 {
-#if GPSD_API_MAJOR_VERSION >= 10
+#ifdef HAVE_GPS_FIX_STATUS
   data.fix.status = status;
 #else
   data.status = status;

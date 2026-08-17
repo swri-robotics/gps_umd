@@ -300,19 +300,41 @@ TEST(GpsdRawParser, ATerminatedCharArrayStopsAtTheTerminator)
 // macro nonetheless lists TOFF_SET and PPS_SET, which is why the mask alone is
 // not a safe guide to what is a union arm -- the struct is.
 
+/* The TOFF tests populate gps_data_t directly instead of going through
+ * unpack(), which every other test here uses. That is deliberate, and the
+ * reason is an upstream defect rather than a preference.
+ *
+ * libgps's own dispatch for the TOFF class calls json_pps_read(), not
+ * json_toff_read(), on gpsd 3.20 through 3.24 -- so a TOFF report is decoded
+ * into gps_data_t::pps, ::toff is left zeroed, and TOFF_SET is raised anyway.
+ * json_toff_read() is compiled in and simply never reached. Fixed in 3.25.
+ *
+ * That boundary cannot be expressed the usual way. 3.24 and 3.25 are *both*
+ * API 14.0, so no GPSD_API_MAJOR/MINOR comparison separates them (section
+ * 1.7), and there is nothing to probe with CheckStructHasMember either --
+ * toff and pps are present in every supported version; it is the routing that
+ * differs, not the struct.
+ *
+ * So these assert on the fill code, which is ours, and skip the JSON decode,
+ * which is not. On 3.20-3.24 the JSON path cannot deliver a TOFF to ::toff no
+ * matter what this package does, and asserting otherwise would be testing
+ * gpsd's bug rather than our behaviour. The consequence for users is worth
+ * stating plainly: on gpsd <= 3.24 the toff field is unreachable through
+ * libgps, in the same way subframe and log are at every version (section 1.9).
+ *
+ * PpsReportReachesTheMessageIncludingQErr below deliberately keeps the JSON
+ * round-trip: PPS routes correctly on every supported version, so there the
+ * whole chain is worth exercising.
+ */
+
 TEST(GpsdRawParser, ToffReportReachesTheMessage)
 {
-  // Hand-written rather than built by a fixture helper: TOFF has no builder
-  // because nothing else needs one. The assertions are all on decoded values,
-  // per the note on unpack() -- a typo here would surface as a wrong number,
-  // not a parse failure.
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  gpsd_client::test::unpack(data,
-      R"({"class":"TOFF","device":"/dev/ttyS0",)"
-      R"("real_sec":1700000000,"real_nsec":250000000,)"
-      R"("clock_sec":1700000000,"clock_nsec":250000123})");
-
-  ASSERT_TRUE(data.set & TOFF_SET) << "libgps did not report a TOFF";
+  data.toff.real.tv_sec = 1700000000;
+  data.toff.real.tv_nsec = 250000000;
+  data.toff.clock.tv_sec = 1700000000;
+  data.toff.clock.tv_nsec = 250000123;
+  data.set |= TOFF_SET;
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
 
@@ -320,8 +342,9 @@ TEST(GpsdRawParser, ToffReportReachesTheMessage)
   EXPECT_EQ(msg.toff.real.sec, 1700000000);
   EXPECT_EQ(msg.toff.real.nanosec, 250000000u);
   EXPECT_EQ(msg.toff.clock.sec, 1700000000);
-  // The point of TOFF: the offset between the two clocks. Asserting both
-  // halves separately is what catches a real/clock mix-up.
+  // The point of TOFF: the offset between the two clocks. The two nsec values
+  // differ by 123 while the sec values match, so a real/clock mix-up shows up
+  // here and nowhere else.
   EXPECT_EQ(msg.toff.clock.nanosec, 250000123u);
 }
 
@@ -355,18 +378,21 @@ TEST(GpsdRawParser, PpsReportReachesTheMessageIncludingQErr)
 // that no field exists without a gps.h member behind it lives in
 // tools/test_generated_messages.py (Completeness).
 
-TEST(GpsdRawParser, AToffDoesNotDisturbThePpsMembers)
+TEST(GpsdRawParser, ToffAndPpsFillIndependently)
 {
-  // toff and pps are separate members, and each report memsets only its own.
-  // A TOFF arriving after a PPS must not blank the PPS values -- which is the
-  // sort of thing a copy-paste between the two fill paths would cause.
+  // toff and pps are separate members that our fill copies one after the
+  // other. A copy-paste between the two paths -- writing toff's values into
+  // pps, or blanking one while filling the other -- is the failure this
+  // catches, so all four values are distinct and none is zero.
+  //
+  // Set directly rather than unpacked, for the reason above the TOFF test.
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  gpsd_client::test::unpack(data,
-      R"({"class":"PPS","device":"/dev/ttyS0","real_sec":11,"real_nsec":0,)"
-      R"("clock_sec":22,"clock_nsec":0,"qErr":7})");
-  gpsd_client::test::unpack(data,
-      R"({"class":"TOFF","device":"/dev/ttyS0","real_sec":33,"real_nsec":0,)"
-      R"("clock_sec":44,"clock_nsec":0})");
+  data.pps.real.tv_sec = 11;
+  data.pps.clock.tv_sec = 22;
+  data.toff.real.tv_sec = 33;
+  data.toff.clock.tv_sec = 44;
+  data.qErr = 7;
+  data.set |= TOFF_SET | PPS_SET;
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
 
@@ -374,6 +400,7 @@ TEST(GpsdRawParser, AToffDoesNotDisturbThePpsMembers)
   EXPECT_EQ(msg.toff.clock.sec, 44);
   EXPECT_EQ(msg.pps.real.sec, 11);
   EXPECT_EQ(msg.pps.clock.sec, 22);
+  // qErr rides in on PPS but lives outside both timedelta_t members.
   EXPECT_EQ(msg.q_err, 7);
 }
 

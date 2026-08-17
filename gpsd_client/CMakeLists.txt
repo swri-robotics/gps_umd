@@ -184,25 +184,43 @@ if(BUILD_TESTING)
   # does not determine the API pair.
   find_file(GPSD_HEADER gps.h PATHS ${libgps_INCLUDE_DIRS} NO_DEFAULT_PATH)
   if(GPSD_HEADER)
+    # Capture the number after the macro name rather than anchoring to the end
+    # of the line: gpsd writes these with a trailing comment --
+    #
+    #     #define GPSD_API_MAJOR_VERSION  16      // bump on incompatible changes
+    #
+    # so a `[0-9]+$` anchor matches nothing, and the test below was silently
+    # never registered. `[^0-9]+` for the separator avoids relying on CMake's
+    # regex understanding `\t`, which it does not.
     file(STRINGS "${GPSD_HEADER}" _api_major_line
-      REGEX "^#define[ \t]+GPSD_API_MAJOR_VERSION[ \t]+[0-9]+")
+      REGEX "define[ \t]*GPSD_API_MAJOR_VERSION")
     file(STRINGS "${GPSD_HEADER}" _api_minor_line
-      REGEX "^#define[ \t]+GPSD_API_MINOR_VERSION[ \t]+[0-9]+")
-    string(REGEX MATCH "[0-9]+$" _api_major "${_api_major_line}")
-    string(REGEX MATCH "[0-9]+$" _api_minor "${_api_minor_line}")
+      REGEX "define[ \t]*GPSD_API_MINOR_VERSION")
+    if(_api_major_line MATCHES "GPSD_API_MAJOR_VERSION[^0-9]+([0-9]+)")
+      set(_api_major "${CMAKE_MATCH_1}")
+    endif()
+    if(_api_minor_line MATCHES "GPSD_API_MINOR_VERSION[^0-9]+([0-9]+)")
+      set(_api_minor "${CMAKE_MATCH_1}")
+    endif()
   endif()
 
-  if(_api_major AND NOT _api_minor STREQUAL "")
+  if(NOT GPSD_HEADER)
+    # No header to read: nothing to assert against, and the suite would skip
+    # itself anyway. Not an error.
+    message(STATUS "No gps.h found; skipping the gpsfake end-to-end test")
+  elseif(_api_major AND _api_minor MATCHES "^[0-9]+$")
     ament_add_pytest_test(test_gpsfake_end_to_end
       "${CMAKE_CURRENT_SOURCE_DIR}/test/test_gpsfake_end_to_end.py"
       TIMEOUT 900
       ENV "GPSD_EXPECTED_RAW_MSG=GPSDRaw${_api_major}v${_api_minor}")
   else()
-    # Not fatal: every other suite still runs. But say so, because a silently
-    # missing end-to-end test is worse than a noisy one.
-    message(WARNING
-      "Could not read GPSD_API_*_VERSION from '${GPSD_HEADER}'; "
-      "skipping the gpsfake end-to-end test")
+    # A header we can see but cannot parse is a bug here, not a property of
+    # the environment -- which is exactly how the anchored regex above hid
+    # itself behind a warning nobody read. Fail loudly instead.
+    message(FATAL_ERROR
+      "Could not read GPSD_API_*_VERSION from '${GPSD_HEADER}'. "
+      "Parsed major='${_api_major}' minor='${_api_minor}' from:\n"
+      "  ${_api_major_line}\n  ${_api_minor_line}")
   endif()
 endif()
 

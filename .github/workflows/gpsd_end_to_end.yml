@@ -86,16 +86,25 @@ jobs:
             echo "the gpsfake suite produced no results at all" >&2
             exit 1
           fi
-          # A skip is recorded as <skipped/> inside a <testcase>; if every case
-          # is skipped, the prerequisites were not met and the job proved
-          # nothing.
+          # If every case skipped, the prerequisites were not met and the job
+          # proved nothing.
+          #
+          # Read the counts off the <testsuite> attributes rather than counting
+          # tags. pytest writes the whole document on a single line, so
+          # `grep -c` counts lines, not matches -- it returns 1 and 1 for a
+          # perfectly good run and this check then fails on success.
           file=$(grep -l "test_gpsfake_end_to_end" ${results} | head -1)
-          total=$(grep -c "<testcase" "${file}" || true)
-          skipped=$(grep -c "<skipped" "${file}" || true)
-          echo "gpsfake suite: ${total} cases, ${skipped} skipped"
+          total=$(grep -o 'tests="[0-9]*"' "${file}" | head -1 | tr -dc '0-9')
+          skipped=$(grep -o 'skipped="[0-9]*"' "${file}" | head -1 | tr -dc '0-9')
+          echo "gpsfake suite: ${total:-0} cases, ${skipped:-0} skipped"
+          if [ -z "${total}" ] || [ "${total}" = "0" ]; then
+            echo "the gpsfake suite reported no test cases" >&2
+            head -c 2000 "${file}" >&2
+            exit 1
+          fi
           if [ "${total}" = "${skipped}" ]; then
             echo "every gpsfake test skipped -- the daemon or corpus was not found" >&2
-            sed -n '1,80p' "${file}" >&2
+            head -c 2000 "${file}" >&2
             exit 1
           fi
 

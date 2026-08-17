@@ -171,13 +171,11 @@ build_gpsd() {
   # all ten.
   local scons_flags="gpsd=False gpsdclients=False python=False"
   if [ -n "${GPSD_FULL_BUILD:-}" ]; then
-    # python_libdir puts the gps module *inside* prefix. Without it scons
-    # installs to the interpreter's site-packages, which is outside every
-    # directory a caller would think to cache -- so restoring a cached prefix
-    # gives you gpsfake and the daemon but no importable 'gps', and the
-    # end-to-end suite skips itself while the build reports success. That is
-    # not hypothetical: it is exactly how CI behaved on its second run, green
-    # on a cold cache and silently skipping every test on a warm one.
+    # python_libdir puts the gps module inside prefix. scons otherwise installs
+    # it to the interpreter's site-packages, outside anything a caller caches,
+    # so a restored prefix carries gpsfake and the daemon but no importable
+    # 'gps' -- and the end-to-end suite then skips itself while the build
+    # reports success.
     scons_flags="gpsd=True gpsdclients=True python=True"
     scons_flags="${scons_flags} python_libdir=${prefix}/lib/python"
   fi
@@ -250,10 +248,9 @@ build_and_test_client() {
     if [ -d "${py_mod}/gps" ]; then
       export PYTHONPATH="${py_mod}${PYTHONPATH:+:${PYTHONPATH}}"
     else
-      # A full build that produced no importable module is a broken build, not
-      # a reason to run the suite against whatever 'gps' happens to be on the
-      # system. Say so here rather than letting 20 tests skip with a message
-      # about the module being missing.
+      # A full build with no importable module is broken, not a reason to run
+      # the suite against whatever 'gps' sits on the system. Say so here rather
+      # than letting every test skip with a message about a missing module.
       echo "!! ${py_mod}/gps does not exist after a full build." >&2
       echo "!! The end-to-end suite will skip itself. If this prefix came" >&2
       echo "!! from a cache, the cache predates python_libdir -- bump the" >&2
@@ -310,10 +307,10 @@ build_and_test_client() {
   # failed" (exit 127), so call it out separately.
   [ -x "${base}/build/gpsd_client/test_gpsd_parser" ] || return 4
 
-  # Run through colcon rather than invoking the binaries directly. The gtest
-  # targets pass APPEND_LIBRARY_DIRS for this version's libgps, so colcon can
-  # find it without the LD_LIBRARY_PATH juggling this script used to do -- and
-  # running them the same way a user would is the point.
+  # Run through colcon rather than invoking the binaries directly, which
+  # exercises the same path a user takes. The gtest targets pass
+  # APPEND_LIBRARY_DIRS for this version's libgps, so colcon finds it without
+  # any LD_LIBRARY_PATH handling here.
   (cd "${WORKSPACE}" &&
    colcon test --packages-select gpsd_client \
      --build-base "${base}/build" --install-base "${base}/install" \

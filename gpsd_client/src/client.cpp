@@ -38,10 +38,9 @@ namespace gpsd_client
       RCLCPP_INFO(this->get_logger(), "Instantiated.");
     }
 
-    /* gpsmm used to close the connection for us. Reading through the C API
-     * means owning that: the socket and libgps's private buffer are leaked
-     * otherwise, which matters because components are loaded and unloaded
-     * within a running container.
+    /* libgps allocates a private buffer in gps_open() and frees it in
+     * gps_close(). Skipping the close leaks that buffer and the socket every
+     * time a container unloads this component.
      */
     ~GPSDClientComponent() override
     {
@@ -169,11 +168,9 @@ namespace gpsd_client
     /* The JSON class of the report gps_read() just parsed, empty if there is
      * none.
      *
-     * A view into the caller's buffer rather than a copy: it is only ever
-     * compared, and it is consumed before the next read overwrites the buffer.
-     * That also means there is no length limit to get wrong -- an earlier
-     * version copied into a fixed member array and had to decide what to do
-     * with a class name too long to fit.
+     * Returns a view into the caller's buffer. The caller compares it and
+     * discards it before the next read overwrites that buffer, so no copy and
+     * no length limit apply.
      */
     static std::string_view reportClass(const char * message)
     {
@@ -195,42 +192,23 @@ namespace gpsd_client
       return std::string_view(key, static_cast<std::size_t>(end - key));
     }
 
-    /* RTCM is published per report, not per publish cycle.
+    /* Publishes RTCM once per report rather than once per publish cycle.
      *
-     * Everything else on this node is a state topic: a fix has a current
-     * value, and publishing the latest one each cycle is the right thing.
-     * Differential corrections are not that. They are a stream of discrete
-     * messages, each meaningful once, so sampling them at publish_rate is
-     * wrong in both directions:
+     * A fix is state, so the fix topics publish the latest value every cycle.
+     * Differential corrections are a stream of discrete messages that each
+     * matter once, and gpsd's mask handling breaks both ways under sampling.
+     * libgps assigns gps_data_t::set only when a parse succeeds, so a cycle
+     * that reads nothing new republishes the previous correction; a cycle that
+     * reads several keeps only the last and overwrites the rest in the union.
      *
-     *   Duplicates. libgps never resets gps_data_t::set -- only a successful
-     *   parse assigns it, in gps_unpack()'s per-class handlers. A read that
-     *   yields no new report therefore leaves both the mask and the union arm
-     *   holding the *previous* report, and publishing on a timer republishes
-     *   it. Measured against gpsd's own ublox-zed-f9r log: 44 RTCM3 messages
-     *   published for 7 distinct payloads.
+     * The mask cannot identify the current report either. gpsd's TPV handler
+     * assigns `set` outright and clears RTCM3_SET, but its SKY handler only
+     * ORs SATELLITE_SET in and leaves UNION_SET alone, so RTCM3_SET and its
+     * union arm outlive every SKY report until something later clears them.
      *
-     *   Loss. When several reports arrive within one cycle the drain keeps
-     *   only the last, so every RTCM report but that one is discarded --
-     *   including by the arm being overwritten, not merely unpublished.
-     *
-     * Both are fixed by draining report by report and publishing only when
-     * the report just parsed *is* the RTCM one -- which the mask cannot tell
-     * us. The mask is not per-report for every class: gpsd's TPV handler
-     * assigns `set` outright and so clears RTCM3_SET, but its SKY handler
-     * only ORs SATELLITE_SET in and never touches UNION_SET. So RTCM3_SET,
-     * and the union arm behind it, survive every SKY report until some later
-     * report happens to clear them. Measured on ublox-zed-f9r, where SKY
-     * outnumbers TPV nine to one: 20 of 51 messages carrying RTCM3_SET also
-     * carried SATELLITE_SET, a combination no genuine RTCM3 report produces.
-     *
-     * The report's own JSON class is the only reliable discriminator, and
-     * gps_read() hands it back in its message argument. That is why this node
-     * reads through the C API rather than gpsmm::read(), which passes NULL
-     * there and throws the line away.
-     *
-     * Deliberately left alone: the fix topics still publish once per cycle at
-     * publish_rate, which is what that parameter has always meant.
+     * The report's JSON class identifies it reliably, and gps_read() returns
+     * that line in its message argument. Draining report by report and
+     * matching on the class publishes each correction exactly once.
      */
     void publishRtcm(const gps_data_t & data, std::string_view report_class)
     {
@@ -242,11 +220,9 @@ namespace gpsd_client
 
       rclcpp::Time now = this->get_clock()->now();
 
-      /* Each parse returns nullopt unless this report actually is one --
-       * gps_data_t packs the report arms into a union, so the set mask is
-       * what makes reading the arm defined at all. The class check above has
-       * already established which one this is; the mask check inside the
-       * parser is what makes reading the arm defined.
+      /* gps_data_t packs the report arms into a union, so only the set mask
+       * makes reading an arm defined. Each parse checks that mask and returns
+       * nullopt when the arm holds something else.
        */
       std::optional<GpsdRtcm2Msg> rtcm2 = raw_parser_->parseRtcm2(data, now);
       if (rtcm2.has_value())
@@ -268,11 +244,11 @@ namespace gpsd_client
       if (!gps_waiting(&gps_data_, 1000000))
         return;
 
-      /* Read out all queued data and only act on the latest -- except for
-       * RTCM, which is drained report by report. See publishRtcm().
-       */
-      /* Not a pointer: gps_read() fills our own gps_data_, so the only
-       * question left is whether this cycle parsed anything at all.
+      /* Drains every queued report and acts on the latest, except for RTCM,
+       * which publishes per report. See publishRtcm().
+       *
+       * gps_read() fills gps_data_ in place, so this only tracks whether the
+       * cycle parsed anything at all.
        */
       bool have_report = false;
       while (gps_waiting(&gps_data_, 0))
@@ -294,11 +270,10 @@ namespace gpsd_client
       RCLCPP_DEBUG(this->get_logger(), "Publishing gps fix...");
       gps_fix_pub_->publish(parser_->parseGpsFix(gps_data_, now));
 
-      /* Published from the same report as the other two, so a subscriber can
-       * line them up by timestamp. Deliberately not gated on
-       * check_fix_by_variance: that filter exists to hide gpsd's stale-fix
-       * behaviour from consumers of NavSatFix, and suppressing a report here
-       * would make the "raw" topic a filtered one.
+      /* Carries the same report and timestamp as the other two topics, so a
+       * subscriber can line all three up. check_fix_by_variance does not gate
+       * this one: that filter hides gpsd's stale-fix behaviour from NavSatFix
+       * consumers, and applying it here would make "raw" a filtered topic.
        */
       if (gpsd_raw_pub_)
       {
@@ -341,18 +316,16 @@ namespace gpsd_client
     bool gps_opened_{false};
 
     /* Scratch for the raw JSON line gps_read() copies back, sized to libgps's
-     * own buffer rather than to what a report "should" need.
+     * own buffer rather than to what a report should need.
      *
-     * That is not defensiveness, it is required. gpsd 3.24 and newer overwrite
-     * the caller's message_len with the actual line length before copying:
+     * gps_read() overwrites the caller's message_len with the line length it
+     * found, then copies that many bytes:
      *
      *     message_len = 1 + eol - PRIVATE(gpsdata)->buffer;
      *     memcpy(message, PRIVATE(gpsdata)->buffer, message_len);
      *
-     * so the size passed in is ignored and a short buffer is overrun. Older
-     * releases bound it properly with strlcpy, which is exactly the sort of
-     * within-a-version-range difference that makes "it worked on 3.20" no
-     * evidence at all. Sizing to the internal buffer is safe on both.
+     * The size passed in bounds nothing, so a short buffer overruns. Matching
+     * libgps's internal buffer is the only safe size.
      */
 #ifdef GPS_JSON_RESPONSE_MAX
     char message_[GPS_JSON_RESPONSE_MAX * 2] {};

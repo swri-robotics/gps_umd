@@ -300,31 +300,21 @@ TEST(GpsdRawParser, ATerminatedCharArrayStopsAtTheTerminator)
 // macro nonetheless lists TOFF_SET and PPS_SET, which is why the mask alone is
 // not a safe guide to what is a union arm -- the struct is.
 
-/* The TOFF tests populate gps_data_t directly instead of going through
- * unpack(), which every other test here uses. That is deliberate, and the
- * reason is an upstream defect rather than a preference.
+/* The TOFF tests populate gps_data_t directly rather than calling unpack(),
+ * which every other test here uses.
  *
- * libgps's own dispatch for the TOFF class calls json_pps_read(), not
- * json_toff_read(), on gpsd 3.20 through 3.24 -- so a TOFF report is decoded
- * into gps_data_t::pps, ::toff is left zeroed, and TOFF_SET is raised anyway.
- * json_toff_read() is compiled in and simply never reached. Fixed in 3.25.
+ * On gpsd 3.20 through 3.24, libgps dispatches the TOFF class to
+ * json_pps_read() instead of json_toff_read(). A TOFF report decodes into
+ * gps_data_t::pps, ::toff stays zeroed, and TOFF_SET goes up regardless.
+ * gpsd 3.25 fixes this. See docs/gpsd-quirks.md.
  *
- * That boundary cannot be expressed the usual way. 3.24 and 3.25 are *both*
- * API 14.0, so no GPSD_API_MAJOR/MINOR comparison separates them (section
- * 1.7), and there is nothing to probe with CheckStructHasMember either --
- * toff and pps are present in every supported version; it is the routing that
- * differs, not the struct.
+ * No guard expresses that boundary: 3.24 and 3.25 share API 14.0, and both
+ * toff and pps exist in every supported version, so only the runtime routing
+ * differs. These tests therefore assert on the fill code and skip the JSON
+ * decode, which on those releases cannot deliver a TOFF to ::toff at all.
  *
- * So these assert on the fill code, which is ours, and skip the JSON decode,
- * which is not. On 3.20-3.24 the JSON path cannot deliver a TOFF to ::toff no
- * matter what this package does, and asserting otherwise would be testing
- * gpsd's bug rather than our behaviour. The consequence for users is worth
- * stating plainly: on gpsd <= 3.24 the toff field is unreachable through
- * libgps, in the same way subframe and log are at every version (section 1.9).
- *
- * PpsReportReachesTheMessageIncludingQErr below deliberately keeps the JSON
- * round-trip: PPS routes correctly on every supported version, so there the
- * whole chain is worth exercising.
+ * PpsReportReachesTheMessageIncludingQErr below keeps the JSON round-trip,
+ * since PPS routes correctly on every supported version.
  */
 
 TEST(GpsdRawParser, ToffReportReachesTheMessage)

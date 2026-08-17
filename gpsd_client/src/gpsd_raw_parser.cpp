@@ -37,8 +37,8 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
   // Everything with a fixed shape, including the nested fix/dop sub-messages.
   generated::fill(data, msg);
 
-  // skyview is deliberately left alone by the generator: the count lives in a
-  // sibling field, not in the type.
+  // The generator skips skyview: its count lives in a sibling field rather
+  // than in the type.
   const std::size_t visible = skyviewCount(data);
   msg.skyview.resize(visible);
   for (std::size_t i = 0; i < visible; ++i)
@@ -80,17 +80,15 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
   }
 #endif
 
-  /* rawdata_t::meas[] is the third array the generator leaves to us, and the
-   * only one that is neither counted nor terminated: gpsd fills entries at
-   * arbitrary indices and marks the unused ones by leaving svid at 0. Its own
-   * dumper therefore walks all MAXCHANNELS and *skips* the empty ones rather
-   * than stopping at the first (gpsd/gpsd_json.c), and skips svid 255 as well,
-   * which GLONASS uses for "unknown". Copying that rule exactly is the only
-   * way to publish the same set of measurements gpsd would report.
+  /* rawdata_t::meas[] carries neither a count nor a terminator. gpsd fills
+   * entries at arbitrary indices and leaves svid at 0 on unused ones, so its
+   * own dumper walks all MAXCHANNELS and skips the empty entries rather than
+   * stopping at the first (gpsd/gpsd_json.c). It skips svid 255 too, which
+   * GLONASS uses for "unknown". Applying the same rule publishes the same
+   * measurements gpsd reports.
    *
-   * Only meaningful when this report actually is a RAW one -- meas lives in
-   * the report union, so msg.raw is empty otherwise and there is nothing to
-   * fill.
+   * meas lives in the report union, so msg.raw is empty unless this report is
+   * a RAW one.
    */
   if (!msg.raw.empty())
   {

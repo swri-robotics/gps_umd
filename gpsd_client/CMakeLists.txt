@@ -93,10 +93,10 @@ if(BUILD_TESTING)
   target_link_libraries(test_gpsd_parser ${PROJECT_NAME})
 
   # The JSON fixture harness mirrors gps_open()'s initialization, which calls
-  # gps_clear_gst()/gps_clear_log(). Neither is available in every supported
-  # libgps, and their availability does not track GPSD_API_MAJOR_VERSION --
-  # gpsd 3.24 and 3.26.1 are both API 14.0, but only 3.26.1 declares
-  # gps_clear_gst() -- so they have to be probed rather than version-guarded.
+  # gps_clear_gst()/gps_clear_log(). Not every supported libgps declares those,
+  # and availability does not track GPSD_API_MAJOR_VERSION: gpsd 3.24 and
+  # 3.26.1 are both API 14.0, yet only 3.26.1 declares gps_clear_gst(). Probe
+  # for them instead.
   include(CheckCXXSymbolExists)
   set(CMAKE_REQUIRED_INCLUDES ${libgps_INCLUDE_DIRS})
   check_cxx_symbol_exists(gps_clear_gst "gps.h" HAVE_GPS_CLEAR_GST)
@@ -104,17 +104,14 @@ if(BUILD_TESTING)
 
   # Struct members, probed rather than inferred from the API version.
   #
-  # An API pair spans a range of header states (plan section 1.7), so
-  # `#if GPSD_API_MAJOR_VERSION >= 14` is not a test for "has this member".
-  # Within API 14.0 alone: gpsd 3.24 has neither gps_data_t::source nor
-  # rtcm3_4076, 3.25 has source but not rtcm3_4076, and 3.26.1 has both. A
-  # version-keyed guard compiles against the reference rev the messages were
-  # generated from and breaks against a distro's libgps, which is what CI
-  # builds with -- and how this was found.
+  # One API pair spans a range of header states, so a version comparison does
+  # not answer "does this member exist". Within API 14.0 alone, gpsd 3.24 has
+  # neither gps_data_t::source nor rtcm3_4076, 3.25 has source only, and
+  # 3.26.1 has both. See docs/gpsd-quirks.md.
   #
-  # The library's own code uses the C++ has_<member> traits for this (D11);
-  # CMake is only needed where the answer must be known by the preprocessor,
-  # i.e. to compile a whole test out.
+  # The library code answers this in C++ with has_<member> traits. CMake
+  # probes only where the preprocessor needs the answer, to compile out a
+  # whole test.
   include(CheckStructHasMember)
   check_struct_has_member("struct gps_data_t" source gps.h
     HAVE_GPS_DATA_SOURCE LANGUAGE CXX)
@@ -134,10 +131,8 @@ if(BUILD_TESTING)
     HAVE_RTCM2_18 LANGUAGE CXX)
   unset(CMAKE_REQUIRED_INCLUDES)
 
-  # One list, applied to every gtest target that needs them, so a probe added
-  # later cannot be wired to one target and forgotten on the others. The
-  # application is a loop over a named list for the same reason -- see the
-  # bottom of this block.
+  # One list for every gtest target that needs these, so adding a probe later
+  # cannot wire it to one target and miss the others.
   set(GPSD_FEATURE_DEFINES)
   foreach(feature GPS_CLEAR_GST GPS_CLEAR_LOG GPS_DATA_SOURCE GPS_DATA_IMU
                   GPS_FIX_STATUS RTCM3_MSM RTCM2_18)
@@ -168,11 +163,9 @@ if(BUILD_TESTING)
     APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
   target_link_libraries(test_gpsd_raw_include_order ${PROJECT_NAME})
   target_link_libraries(test_gpsd_json_fixture ${PROJECT_NAME})
-  # Applied by loop rather than one call per target: the probes are declared
-  # far above the targets that consume them, so a hand-maintained list of calls
-  # is exactly the kind of thing that silently misses one. A missed target does
-  # not fail to build -- it quietly takes the #else branch, which is how the
-  # version guard in test_gpsd_parser.cpp survived as long as it did.
+  # A loop rather than one call per target. These probes sit far above the
+  # targets that consume them, and missing a target does not break the build --
+  # it silently takes the #else branch.
   foreach(target test_gpsd_parser test_gpsd_raw_parser test_gpsd_json_fixture)
     target_compile_definitions(${target} PRIVATE ${GPSD_FEATURE_DEFINES})
   endforeach()
@@ -184,22 +177,20 @@ if(BUILD_TESTING)
   # (GPSD_REPO), neither of which exists on the build farm. See the test's
   # docstring for how to run it.
   #
-  # GPSD_EXPECTED_RAW_MSG is computed here because this is the only place that
-  # knows which gps.h was compiled against; the test uses it to assert the
-  # node advertised the message for *this* API version rather than merely
-  # advertising something. Read from the header rather than from the installed
-  # library version: a pair spans a range of releases, so the release number
-  # does not determine the API pair.
+  # Only this scope knows which gps.h the build compiled against, so it
+  # computes GPSD_EXPECTED_RAW_MSG here. The test asserts the node advertised
+  # the message for that exact API pair, not merely some message. Read the
+  # pair from the header: one pair spans a range of releases, so the release
+  # number does not determine it.
   find_file(GPSD_HEADER gps.h PATHS ${libgps_INCLUDE_DIRS} NO_DEFAULT_PATH)
   if(GPSD_HEADER)
-    # Capture the number after the macro name rather than anchoring to the end
-    # of the line: gpsd writes these with a trailing comment --
+    # gpsd writes these with a trailing comment:
     #
     #     #define GPSD_API_MAJOR_VERSION  16      // bump on incompatible changes
     #
-    # so a `[0-9]+$` anchor matches nothing, and the test below was silently
-    # never registered. `[^0-9]+` for the separator avoids relying on CMake's
-    # regex understanding `\t`, which it does not.
+    # so capture the number after the macro name instead of anchoring to end of
+    # line. `[^0-9]+` for the separator avoids relying on CMake regex
+    # understanding `\t`, which it does not.
     file(STRINGS "${GPSD_HEADER}" _api_major_line
       REGEX "define[ \t]*GPSD_API_MAJOR_VERSION")
     file(STRINGS "${GPSD_HEADER}" _api_minor_line
@@ -213,8 +204,8 @@ if(BUILD_TESTING)
   endif()
 
   if(NOT GPSD_HEADER)
-    # No header to read: nothing to assert against, and the suite would skip
-    # itself anyway. Not an error.
+    # Without a header there is nothing to assert against, and the suite skips
+    # itself regardless. Not an error.
     message(STATUS "No gps.h found; skipping the gpsfake end-to-end test")
   elseif(_api_major AND _api_minor MATCHES "^[0-9]+$")
     ament_add_pytest_test(test_gpsfake_end_to_end
@@ -222,9 +213,8 @@ if(BUILD_TESTING)
       TIMEOUT 900
       ENV "GPSD_EXPECTED_RAW_MSG=GPSDRaw${_api_major}v${_api_minor}")
   else()
-    # A header we can see but cannot parse is a bug here, not a property of
-    # the environment -- which is exactly how the anchored regex above hid
-    # itself behind a warning nobody read. Fail loudly instead.
+    # A readable header that will not parse is a bug in the regex above, not a
+    # property of the environment. Fail loudly rather than warn.
     message(FATAL_ERROR
       "Could not read GPSD_API_*_VERSION from '${GPSD_HEADER}'. "
       "Parsed major='${_api_major}' minor='${_api_minor}' from:\n"

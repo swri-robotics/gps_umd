@@ -1,0 +1,184 @@
+# gpsd quirks and how `gpsd_client` handles them
+
+gpsd and its client library have behaviours that surprise callers. This
+document records the ones that shape code in this repository, so a reader
+meeting one of them does not mistake it for a defect here.
+
+Each entry states what gpsd does, then what this package does about it.
+
+For the resulting message shapes, see
+[gpsd-raw-message-structure.md](gpsd-raw-message-structure.md).
+
+---
+
+## An API version pair names a range of header states
+
+**gpsd:** `GPSD_API_MAJOR_VERSION` and `GPSD_API_MINOR_VERSION` change less
+often than `gps.h` does. Several releases share one pair while carrying
+different structs. gpsd 3.24, 3.25 and 3.26.1 all report API 14.0, yet 3.24 has
+neither `gps_data_t::source` nor the `rtcm3_4076` union arm, 3.25 has `source`
+only, and 3.26.1 has both. Function availability drifts the same way: only
+3.26.1 declares `gps_clear_gst()`.
+
+**Here:** nothing tests a version number to decide whether a member exists.
+The generated fill code asks C++ directly, through `if constexpr` over
+`GPSD_DEFINE_HAS_MEMBER` traits. Where the preprocessor needs the answer —
+compiling a whole test out — CMake probes the header with
+`check_struct_has_member` or `check_cxx_symbol_exists`.
+
+A version comparison compiles against the revision the messages came from and
+breaks against a distribution's libgps. The CI sweep therefore builds gpsd 3.24
+and 3.25 as well as the ten reference revisions, because those two bracket
+changes that no version comparison can express.
+
+## libgps decodes fewer report classes than gpsd emits
+
+**gpsd:** `libgps_json.c` decodes AIS, ATT, DEVICE, DEVICES, ERROR, GST, IMU,
+OSC, PPS, RAW, RTCM2, RTCM3, SKY, TOFF, TPV, VERSION and WATCH. It ignores every
+other class silently. The daemon emits more than that — a plain JSON watcher
+receives `SUBFRAME` reports that libgps drops.
+
+**Here:** `gps_data_t::subframe` and `::log` never populate in a socket client,
+so `GPSDRaw`'s `subframe` and `log` fields stay empty in production. The fields
+exist and the fill code handles them, because gpsd populates both inside the
+daemon. Tests assert the emptiness rather than leaving it to be rediscovered,
+and they fail if a future libgps grows the missing readers.
+
+An unparsed class raises no error — it simply never arrives — so only an
+end-to-end test distinguishes "libgps does not decode this" from "our fill code
+is broken".
+
+## libgps decodes TOFF into the wrong member on gpsd ≤ 3.24
+
+**gpsd:** through 3.24, the `TOFF` branch of `libgps_json_unpack()` calls
+`json_pps_read()` instead of `json_toff_read()`. A TOFF report lands in
+`gps_data_t::pps`, `::toff` stays zeroed, and `TOFF_SET` goes up regardless.
+`json_toff_read()` compiles in and never runs. gpsd 3.25 fixes this.
+
+**Consequences:** `toff` is unreachable through libgps on gpsd ≤ 3.24, and a
+PPS report immediately followed by a TOFF loses the PPS values, because both
+land in `::pps`. The mask hides it — both `PPS_SET` and `TOFF_SET` end up set.
+
+**Here:** the TOFF tests populate `gps_data_t` directly and assert on the fill
+code rather than round-tripping through libgps's JSON. The PPS tests keep the
+JSON path, since PPS routes correctly everywhere.
+
+3.24 and 3.25 share API 14.0, so no version comparison separates them, and
+`toff` and `pps` exist in every supported version, so no struct probe detects
+it either. Only the runtime routing differs.
+
+## `set` keeps union bits across later reports
+
+**gpsd:** the `TPV` handler assigns `set` outright, clearing stale bits. The
+`SKY` handler only ORs its own bits in. After an RTCM3 report, `SET_RTCM3` and
+the union arm behind it survive every following `SKY` report until some later
+report clears them. On a receiver emitting many `SKY` reports per `TPV`, that
+lasts a long time.
+
+The tell is a combination no single report produces, such as `SET_RTCM3` and
+`SET_SATELLITE` together.
+
+**Here:** `gpsd_client` publishes RTCM per report, keyed on the report's JSON
+class from `gps_read`'s message argument rather than on the mask, so each
+correction reaches `gpsd_rtcm2` or `gpsd_rtcm3` exactly once. `GPSDRaw` copies
+the mask verbatim — a topic named "raw" that quietly repaired its input would
+serve subscribers worse.
+
+Non-union bits — `SET_LATLON`, `SET_ALTITUDE`, `SET_SATELLITE` and friends —
+mean what you expect. The caveat applies only to the union.
+
+## `UNION_SET` lists members that sit outside the union
+
+**gpsd:** the `UNION_SET` macro includes `TOFF_SET` and `PPS_SET`, but `toff`
+and `pps` are plain members past the union's closing brace.
+
+**Here:** the generator decides which fields are union arms from the struct
+layout, never from the mask.
+
+## `gps_read()` ignores the caller's buffer length
+
+**gpsd:** `gps_read(gpsdata, message, message_len)` reassigns `message_len` to
+the length of the JSON line it found, then `memcpy`s that many bytes into
+`message`. The value the caller passed does not bound the copy.
+
+**Here:** `gpsd_client` sizes its buffer from `GPS_JSON_RESPONSE_MAX` with
+headroom, rather than trusting the length argument to protect it.
+
+## An empty `skyview` alongside a non-zero `satellites_used`
+
+**gpsd:** some receivers emit dilution-of-precision updates with no satellite
+list. gpsd forwards these as a `SKY` report carrying `hdop`/`uSat` and no
+`satellites` array. libgps then clears its skyview and drops `SATELLITE_SET`
+from the mask, while parsing `uSat` into `satellites_used` (gpsd 3.26.1 and
+newer). The receiver is reporting how many satellites it used without saying
+which.
+
+**Here:** the message mirrors that faithfully:
+
+```
+satellites_visible : 0
+satellites_used    : 12
+skyview            : []
+set & SET_SATELLITE: false
+```
+
+Test the mask to learn whether a message carries a skyview:
+
+```cpp
+if (msg.set & gps_extended_msgs::msg::GPSDRaw16v1::SET_SATELLITE) {
+  // skyview and satellites_visible describe this report
+}
+```
+
+This depends on what the receiver sends, not on the gpsd version. On gpsd
+without `uSat`, libgps returns before resetting `satellites_used`, so the count
+there can be stale.
+
+## Arrays without counts
+
+**gpsd:** `rawdata_t::meas[]` and `gps_data_t::imu[]` carry no length. gpsd's
+own code marks unused `meas[]` entries with an `svid` of 0 or 255, and
+terminates `imu[]` at the first entry with an empty `msg` string.
+
+**Here:** the parser applies gpsd's own rules — skipping `meas[]` entries by
+`svid`, which filters rather than terminates, and trimming `imu[]` at the first
+empty `msg`.
+
+## `gps.h` macros collide with ROS message constants
+
+**gpsd:** `gps.h` defines the report mask and status values as preprocessor
+macros — `LATLON_SET`, `STATUS_FIX`. The C preprocessor replaces any identifier
+of the same name, including generated ROS message constants, wherever both
+headers appear.
+
+**Here:** the generated constants reverse the name, so gpsd's `LATLON_SET`
+becomes `SET_LATLON`. A test includes `<gps.h>` before the generated headers to
+keep that guarantee standing.
+
+gpsd also renames these between releases: `STATUS_FIX` and `STATUS_DGPS_FIX`
+became `STATUS_GPS` and `STATUS_DGPS`. Code that needs them probes with `#ifdef`
+rather than comparing versions.
+
+## `NaN` means unknown
+
+**gpsd:** gpsd writes `NaN` into floating-point members it has no value for.
+
+**Here:** the fill code copies `NaN` through rather than substituting `0.0`, and
+tests pin that. A subscriber must treat `NaN` as "unknown" instead of assuming a
+number.
+
+## gpsd reports a fix status after the fix goes stale
+
+**gpsd:** gpsd keeps reporting status OK once it has seen a fix, even after the
+current solution goes away.
+
+**Here:** the `check_fix_by_variance` parameter discards fixes whose `epx`,
+`epy` or `epv` are not finite, which rejects those stale results. It stays off
+by default and never gates the raw topic — filtering there would make "raw"
+a misnomer.
+
+## `GPSD_API_MAJOR_VERSION` skips 15
+
+**gpsd:** the major version goes from 14 to 16. No release ever carried 15.
+
+**Here:** ten API pairs exist and no `GPSDRaw15v0` type does.

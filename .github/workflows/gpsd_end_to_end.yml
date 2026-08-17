@@ -54,10 +54,18 @@ jobs:
           # install, which contains the daemon and Python module they do not
           # build. See the note in gpsd_api_shared.yml for why the colcon
           # trees are deliberately not cached.
+          #
+          # v2: v1 predates python_libdir, so its .gpsd_versions/install holds
+          # the daemon and gpsfake but no gps module -- scons had put that in
+          # the interpreter's site-packages, outside every cached path. A v1
+          # hit therefore restored a prefix that skips the whole suite, which
+          # is why this job passed on the run that populated the cache and
+          # failed on the next one. Bump this key whenever the layout under
+          # prefix changes, not just when the gpsd revision does.
           path: |
             .gpsd_versions/gpsd
             .gpsd_versions/install
-          key: gpsd-full-${{ runner.os }}-3.27.5-v1
+          key: gpsd-full-${{ runner.os }}-3.27.5-v2
 
       - name: Build gpsd 3.27.5 with the daemon, then run the end-to-end tests
         id: run

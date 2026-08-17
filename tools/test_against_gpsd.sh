@@ -171,7 +171,15 @@ build_gpsd() {
   # all ten.
   local scons_flags="gpsd=False gpsdclients=False python=False"
   if [ -n "${GPSD_FULL_BUILD:-}" ]; then
+    # python_libdir puts the gps module *inside* prefix. Without it scons
+    # installs to the interpreter's site-packages, which is outside every
+    # directory a caller would think to cache -- so restoring a cached prefix
+    # gives you gpsfake and the daemon but no importable 'gps', and the
+    # end-to-end suite skips itself while the build reports success. That is
+    # not hypothetical: it is exactly how CI behaved on its second run, green
+    # on a cold cache and silently skipping every test on a warm one.
     scons_flags="gpsd=True gpsdclients=True python=True"
+    scons_flags="${scons_flags} python_libdir=${prefix}/lib/python"
   fi
   git -C "${GPSD_SRC}" checkout --quiet "${rev}" || return 1
   git -C "${GPSD_SRC}" clean -xdfq
@@ -233,14 +241,23 @@ build_and_test_client() {
   if [ -n "${GPSD_FULL_BUILD:-}" ]; then
     export GPSD_TIER2_PREFIX="${prefix}"
     export GPSD_REPO="${GPSD_SRC}"
-    # scons installs the gps module outside prefix, into the interpreter's
-    # site-packages. Put it ahead of anything else so a system-packaged gpsfake
-    # of a different version cannot win -- gpsfake aborts on a version mismatch
-    # with the daemon, and this is the likeliest way to cause one.
-    local py_site
-    py_site="/usr/local/lib/python$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')/dist-packages"
-    if [ -d "${py_site}" ]; then
-      export PYTHONPATH="${py_site}${PYTHONPATH:+:${PYTHONPATH}}"
+    # The gps module now lives under prefix (see python_libdir above), so this
+    # is the same tree the cache restores. Put it ahead of anything else so a
+    # system-packaged gpsfake of a different version cannot win -- gpsfake
+    # aborts on a version mismatch with the daemon, and that is the likeliest
+    # way to cause one.
+    local py_mod="${prefix}/lib/python"
+    if [ -d "${py_mod}/gps" ]; then
+      export PYTHONPATH="${py_mod}${PYTHONPATH:+:${PYTHONPATH}}"
+    else
+      # A full build that produced no importable module is a broken build, not
+      # a reason to run the suite against whatever 'gps' happens to be on the
+      # system. Say so here rather than letting 20 tests skip with a message
+      # about the module being missing.
+      echo "!! ${py_mod}/gps does not exist after a full build." >&2
+      echo "!! The end-to-end suite will skip itself. If this prefix came" >&2
+      echo "!! from a cache, the cache predates python_libdir -- bump the" >&2
+      echo "!! cache key or delete ${prefix} and rebuild." >&2
     fi
   fi
 

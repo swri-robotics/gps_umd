@@ -25,6 +25,7 @@ block at the top of that file documents what each bump added.
 
 | API pair | gpsd release(s) shipping it | Bump commit | Notes |
 |---|---|---|---|
+| 2026-08-17 | 5 | Tier-1 `TOFF`/`PPS`/`qErr` cases and four more tier-2 report classes (RAW, OSC, IMU, and SUBFRAME reachability). Found a real data-loss bug doing it: **`rawdata_t::meas[]` was never filled** — deferred to the caller like `skyview`/`imu`, but nothing filled it, so every RAW report published an empty measurement list. Fixed with gpsd's own rule (skip `svid` 0 and 255; a filter, not a terminator). Also established §1.9: libgps has no reader for `SUBFRAME` or `LOG`, so those fields can never be populated in a client and the D16 subframe dispatch is unreachable through the socket API. The two tests now assert that emptiness instead of skipping. 18 passed, 1 skipped. |
 | 2026-08-17 | 6 | **First real CI run**, and it earned its keep. Ten API workflows plus `gpsd_generator` are green; `gpsd end to end` is the last red one and both its causes are fixed locally. Four bugs found that the local sweep structurally could not: the shared-message build never included `gps_msgs` (hidden by a stale underlay on `AMENT_PREFIX_PATH`); the `rtcm3_t` union arms had no D11 guard, which only fails against a mid-pair libgps such as a distro's; the tier-2 pytest was never registered because the CMake regex anchored `[0-9]+$` against a line ending in a `//` comment; and the CI guard counted lines on a single-line XML, so it would have failed on a healthy run. Added gpsd 3.24 and 3.25 to the sweep as *non-reference* revs, and converted every version-keyed guard in the tests to `check_struct_has_member` probes. |
 | 9.0 | 3.20 | `e2c26993` (2019-07-05) | Oldest version `gpsd_client` supports |
 | 9.1 | **none** | `8da63ed3` (2020-01-11) | Adds `gps_data_t::leap_seconds` |
@@ -185,6 +186,34 @@ Note the header-ordering hazard documented in `gpsd_parser.hpp:7-9`: `gps.h`
 defines `STATUS_*` macros that collide with ROS message constants, so message
 headers must be included *before* `gps.h`. Every new generated header must
 respect this.
+
+### 1.9 libgps decodes fewer report classes than gpsd emits
+
+`libgps_json.c` has a reader for **AIS, ATT, DEVICE, DEVICES, ERROR, GST, IMU,
+OSC, PPS, RAW, RTCM2, RTCM3, SKY, TOFF, TPV, VERSION and WATCH** — and silently
+ignores every other class. The daemon emits more than that.
+
+The consequences for this feature:
+
+* **`gps_data_t::subframe` and `::log` are never populated in a client.** They
+  are filled inside gpsd itself, from the driver, and the JSON that carries
+  them to a socket client is dropped by the library. Verified end to end: for
+  `ublox-ned-m8t-sbfrx3`, a plain JSON watcher receives 69 `SUBFRAME` reports
+  in twelve seconds while **0 of 234** published messages carry `SET_SUBFRAME`.
+* So `GPSDRaw`'s `subframe` and `log` fields are correct, generated from real
+  `gps.h` members, and will always be empty in production.
+* **The Tier C subframe union dispatch (D16) is unreachable through libgps.**
+  The code is right and is unit-tested against a directly populated
+  `gps_data_t`, but no socket client will ever exercise it. That is a fact
+  about libgps, not a defect here, and it is pinned by tests asserting the
+  emptiness rather than left to be rediscovered.
+* Silence is the failure mode to watch for: an unparsed class is not an error,
+  it simply never arrives. Only an end-to-end test can tell "libgps does not
+  decode this" apart from "our fill code is broken", which is why those
+  assertions live in tier 2.
+
+If a future libgps grows the missing readers, those tests fail — which is
+exactly when the dispatch should be revisited.
 
 ---
 
@@ -987,7 +1016,7 @@ See section 5 for the data-generation strategy behind these.
 - [x] String truncation test (`char[N]` without a NUL) — both halves: an unterminated array stops at `sizeof`, a terminated one stops at the NUL rather than publishing the padding
 - [x] Test must compile under every API in the matrix — guard version-specific assertions
 - [ ] Generated round-trip coverage test per API pair: distinct sentinel per field, assert each arrives (5.4 #1). Still open; the header audit above is the stronger of the two guarantees and is in place
-- [ ] `TOFF`/`PPS`/`qErr` cases — reachable only here, never via gpsfake (5.2)
+- [x] `TOFF`/`PPS`/`qErr` cases — reachable only here, never via gpsfake (5.2). Three tests, mutation-verified (removing the `toff` fill fails six assertions). Confirmed genuinely tier-1-only: gpsd's 196-log corpus contains no TOFF or PPS report, because the daemon synthesises them from a PPS signal on a real serial line rather than from device output. Also recorded that `TOFF_SET`/`PPS_SET` appear in gpsd's `UNION_SET` macro even though `toff`/`pps`/`qErr` sit *outside* the union — the mask is not a reliable guide to what is a union arm; the struct is
 
 **Tier 2 — gpsfake end-to-end, newest version only:**  *(landed)*
 
@@ -999,7 +1028,10 @@ See section 5 for the data-generation strategy behind these.
 - [x] Confirm `gps.__version__` matches the built daemon, or the test aborts unhelpfully (5.3) — checked in `skip_reason()`, which names both versions and where each came from
 - [x] Assert the advertised raw topic type is the message for *this* API pair. CMake reads `GPSD_API_*_VERSION` from the header being compiled against and passes the expected name in; nothing else in the suite can catch a ladder that compiles but selects the wrong version
 - [x] CI: `.github/workflows/gpsd_end_to_end.yml`, with a step that fails if every test *skipped* — a suite that skips itself is indistinguishable from one that passed
-- [ ] Cover the remaining report classes from the 5.2 table (`skytraq-bin`, `ublox-neo-m8t`, `ericsson-gru04`, `ublox-neo-m8u`, `ublox-zoe-m8b-logbatch`). Four logs are covered: `ac12` (TPV/SKY), `gr8013-w` (GST), `hemi` (ATT), `ublox-zed-f9r` (RTCM3)
+- [x] Cover the remaining report classes. Eight classes now: `ac12` (TPV/SKY), `gr8013-w` (GST), `hemi` (ATT), `ublox-zed-f9r` (RTCM3), `ublox-neo-m8t` (RAW), `isync` (OSC), `ublox-neo-m8u` (IMU), `ublox-ned-m8t-sbfrx3` (SUBFRAME reachability).
+      Two corrections to the 5.2 table: **`ericsson-gru04` does not exist** in the corpus — `isync` is its only OSC log — and `skytraq-bin` has three SUBFRAME reports where `ublox-ned-m8t-sbfrx3` has 151.
+      This found a real data-loss bug: **`rawdata_t::meas[]` was never populated.** The generator defers it to the caller like `skyview` and `imu`, but the parser filled only those two, so every RAW report published an empty measurement list. Now filled using gpsd's own rule from `gpsd_json.c` — walk all `MAXCHANNELS` and *skip* entries whose `svid` is 0 or 255. Note that is a filter, not a terminator: `imu[]`'s stop-at-first-empty rule would have been wrong here.
+      It also established that **`SUBFRAME` and `LOG` are unreachable through libgps** — see 1.9
 
 ### Phase 6 — CI  *(workflows done; awaiting a real CI run)*
 
@@ -1093,9 +1125,21 @@ Not blocking; recorded so the choice is deliberate when each is reached.
    `subframe_t` (~104) and `rtcm2_t` (~93) are what remains of the bulk, and are
    still the least-used data. If Tier C lands late or partially, that should be
    an explicit, documented decision rather than a silent gap.
-3. **Serialization cost at rate.** Measure Tier C at 10 Hz before declaring the
-   feature done. If it's heavy, consider whether the union arms warrant a
-   separate topic — but only with measurements in hand.
+3. ~~**Serialization cost at rate.**~~ **Closed without measuring** (owner's
+   call, 2026-08-17). Recorded as a decision rather than an oversight: no
+   measurement was taken, so nothing here should be read as evidence that the
+   cost is low.
+
+   Two things have since reduced the exposure the question was about. RTCM --
+   about half of all generated message types -- moved to its own topics behind
+   `publish_gpsd_rtcm` (D17), and both it and `publish_gpsd_raw` default to
+   off, so nothing is serialized or even advertised unless asked for. What is
+   left unmeasured is a subscriber that enables the raw topic on a receiver
+   running at 10 Hz.
+
+   If that ever looks expensive, the measurement to take is serialization time
+   per report with Tier C enabled, and the lever is the same one D17 already
+   used: move the heavy union arms onto their own topic.
 
 ---
 

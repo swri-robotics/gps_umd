@@ -178,7 +178,7 @@ replaced:
 - [gpsd_client/src/gpsd_parser_factory.cpp](../gpsd_client/src/gpsd_parser_factory.cpp) — the single compile-time selection ladder
 - [gpsd_client/src/client.cpp](../gpsd_client/src/client.cpp) — the component and its publishers
 - [tools/test_against_gpsd.sh](../tools/test_against_gpsd.sh) — builds libgps from source per release and runs the parser tests against it
-- [.github/workflows/gpsd_versions.yml](../.github/workflows/gpsd_versions.yml) — the matrix job that drives the above
+- [.github/workflows/gpsd_api_shared.yml](../.github/workflows/gpsd_api_shared.yml) — the reusable job that drives the above, called by one generated `gpsd_api_<M>v<m>.yml` per API pair
 
 Note the header-ordering hazard documented in `gpsd_parser.hpp:7-9`: `gps.h`
 defines `STATUS_*` macros that collide with ROS message constants, so message
@@ -1060,6 +1060,7 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-17 | 6 | Per-API-version workflows now also run on pushes to `per_api_version_messages`, so the branch can be validated before it becomes a PR. Driven by a new `PUSH_BRANCHES` in the generator — **the feature-branch entry must be dropped when this merges**. This is the only way to exercise these workflows pre-merge: GitHub only offers `workflow_dispatch` for workflows already present on the default branch, so the "Run workflow" button does not exist for a file that has never been merged. |
 | 2026-08-17 | 7 | Phase 7 docs: `docs/adding-a-gpsd-api-version.md` (the maintenance procedure, written around the recurring hazards rather than the happy path), README note that API 15 never existed. No changelog entries: `CHANGELOG.rst` is generated from commit history by a separate release tool, so hand-editing it is wrong — write the detail into the commit messages instead. The revision-finding commands in the new doc are the fast forms: a per-tag blob read for released pairs, and a *tag-bounded* pickaxe for unreleased ones — unbounded `git log -G`/`-L` over gpsd's history runs for minutes. Verified the rule reproduces the manifest: `e5279ef52` is exactly the parent of `29991d6f`, the commit that moved `status` and bumped to 10.0. |
 | 2026-08-17 | 4 | D17: RTCM split onto its own topics (`gpsd_rtcm2`, `gpsd_rtcm3`) behind `publish_gpsd_rtcm`, each with its own Header; removed from `GPSDRaw`, whose mask still reports them. 53 tests locally. |
 | 2026-08-17 | 3 | All three Tier C unions now dispatch: `rtcm2_t` (curated type table) and `subframe_t` (two-level, subframe_num then pageid) join the mask and rtcm3 dispatches. Found dead arms — `rtcm2_18`..`rtcm2_24` and `sub4` are declared in gps.h and written by no gpsd code; filling them would have published uninitialised union bytes. 51 tests locally. |

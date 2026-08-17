@@ -1,11 +1,13 @@
 name: gpsd generator
 
 # The fast half of the gpsd tooling checks: everything that needs only gpsd's
-# git history, and no gpsd build at all. Split out from gpsd_versions.yml so it
+# git history, and no gpsd build at all. Kept separate from the heavy jobs so it
 # can run on every push and pull request, carry its own badge, and be re-run on
 # its own without dragging ten source builds of gpsd along with it.
 #
-# The heavy per-API-version matrix lives in gpsd_versions.yml.
+# The heavy half is one workflow per API version, gpsd_api_<M>v<m>.yml, all
+# calling the reusable gpsd_api_shared.yml. Unlike this workflow they do not run
+# on every push -- see PUSH_BRANCHES in tools/generate_raw_msgs.py.
 
 on:
   push:

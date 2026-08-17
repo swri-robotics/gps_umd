@@ -123,6 +123,28 @@ EXCLUDED_MEMBERS = (
 # gpsd 3.27, 3.27.1 and 3.27.2 are out of scope (they shipped
 # api_version_major = 0 in SConscript). Nothing is lost: all three are API 16.0,
 # represented here by 3.27.3.
+# Branches whose *pushes* run the heavy per-API-version jobs. A push to one of
+# these builds libgps from source ten times over, so the list is deliberately
+# short.
+#
+# ros2-devel is the permanent entry. Anything else is a feature branch being
+# validated before it becomes a pull request -- worth the CI time while the
+# branch is live, and worth deleting the moment it merges. Pull requests are
+# unaffected: they run on a path filter regardless of branch.
+#
+# A branch that is not listed still gets the fast checks (gpsd_generator.yml and
+# the per-distro workflows run on every push); it only skips the ten gpsd
+# source builds.
+#
+# Note this is the only way to exercise these before merging. GitHub only
+# offers workflow_dispatch for workflows that already exist on the default
+# branch, so the "Run workflow" button is not available for a workflow file
+# that has never been merged -- the push trigger has to do the work.
+PUSH_BRANCHES = (
+    "ros2-devel",
+    "per_api_version_messages",   # TODO: drop when this feature branch merges
+)
+
 REFERENCE_REVS = {
     (9, 0): "release-3.20",
     (9, 1): "e5279ef52",       # 2020-03-19, last commit at API 9.1
@@ -1516,7 +1538,7 @@ name: gpsd API {major}.{minor}
 
 on:
   push:
-    branches: [ros2-devel]
+    branches: [{", ".join(PUSH_BRANCHES)}]
   pull_request:
     paths:
       # Only the things that can change what this version builds or publishes.

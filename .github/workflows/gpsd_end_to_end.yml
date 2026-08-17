@@ -64,7 +64,8 @@ jobs:
         shell: bash
         run: |
           source /opt/ros/lyrical/setup.bash
-          GPSD_FULL_BUILD=1 src/gps_umd/tools/test_against_gpsd.sh 3.27.5
+          GPSD_MSGS_INSTALL=$PWD/.gpsd_versions/msgs/install \
+            GPSD_FULL_BUILD=1 src/gps_umd/tools/test_against_gpsd.sh 3.27.5
 
       - name: Confirm the end-to-end tests actually ran
         id: ran

@@ -60,6 +60,26 @@ jobs:
           rosdep install --from-paths src --ignore-src -y \
             --skip-keys "libgps gpsd"
 
+      - name: Cache the built message packages
+        uses: actions/cache@v4
+        with:
+          # gps_extended_msgs has no libgps dependency, so one build serves
+          # every API version -- and every one of these ten workflows. Keyed on
+          # the message sources rather than the commit, so it survives any
+          # change that does not touch them, which is most of them.
+          #
+          # On a cold cache all ten workflows still build it, since they run
+          # concurrently and cannot share a first build; the payoff is on every
+          # run after. Worth having anyway: roughly 900 messages is about eight
+          # minutes and the only place the compiler has ever crashed on us.
+          path: .gpsd_versions/msgs
+          key: >-
+            msgs-${{ runner.os }}-lyrical-${{
+              hashFiles('src/gps_umd/gps_extended_msgs/msg/*.msg',
+                        'src/gps_umd/gps_extended_msgs/CMakeLists.txt',
+                        'src/gps_umd/gps_extended_msgs/package.xml',
+                        'src/gps_umd/gps_msgs/msg/*.msg') }}
+
       - name: Cache gpsd build
         uses: actions/cache@v4
         with:
@@ -82,7 +102,8 @@ jobs:
         shell: bash
         run: |
           source /opt/ros/lyrical/setup.bash
-          src/gps_umd/tools/test_against_gpsd.sh ${{ inputs.gpsd }}
+          GPSD_MSGS_INSTALL=$PWD/.gpsd_versions/msgs/install \
+            src/gps_umd/tools/test_against_gpsd.sh ${{ inputs.gpsd }}
 
       - name: Confirm the expected raw message was selected
         id: selection

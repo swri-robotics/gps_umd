@@ -1292,35 +1292,50 @@ def emit_rtcm3_dispatch(model: Model, container: Field) -> List[str]:
     lines = [
         f"  if constexpr (has_{container.c_expr}<T>::value) {{",
         "    // Exactly one arm is valid, named by rtcm3_t::type (D16).",
+        "    //",
+        "    // Each arm is guarded the same way a plain member is (D11). An",
+        "    // API pair spans a range of header states, and rtcm3_t gains arms",
+        "    // within one: gpsd 3.24 and 3.26.1 both report API 14.0, but only",
+        "    // the later one has rtcm3_4076. Without this the generated code",
+        "    // names a union member the build's gps.h does not declare, which",
+        "    // is a compile error rather than a missing field.",
+        f"    using Arms = std::decay_t<decltype(in.{container.c_expr})>;",
         f"    switch (in.type) {{",
     ]
+
+    def arm_body(arm, indent="        "):
+        return [
+            f"{indent}if constexpr (has_{arm.c_expr}<Arms>::value) {{",
+            f"{indent}  out.{container.c_expr}.{arm.name}.resize(1);",
+            f"{indent}  fill(in.{container.c_expr}.{arm.c_expr}, "
+            f"out.{container.c_expr}.{arm.name}[0]);",
+            f"{indent}}}",
+            f"{indent}break;",
+        ]
+
     for arm in arms:
         match = re.fullmatch(r"rtcm3_(\d+)", arm.name)
         if not match:
             continue
         lines.append(f"      case {match.group(1)}:")
-        lines.append(f"        out.{container.c_expr}.{arm.name}.resize(1);")
-        lines.append(f"        fill(in.{container.c_expr}.{arm.c_expr}, "
-                     f"out.{container.c_expr}.{arm.name}[0]);")
-        lines.append("        break;")
+        lines += arm_body(arm)
 
     if "rtcm3_msm" in by_field:
         arm = by_field["rtcm3_msm"]
         for low, high in RTCM3_MSM_RANGES:
             for value in range(low, high + 1):
                 lines.append(f"      case {value}:")
-        lines.append(f"        out.{container.c_expr}.{arm.name}.resize(1);")
-        lines.append(f"        fill(in.{container.c_expr}.{arm.c_expr}, "
-                     f"out.{container.c_expr}.{arm.name}[0]);")
-        lines.append("        break;")
+        lines += arm_body(arm)
 
     if "data" in by_field:
         arm = by_field["data"]
         lines.append("      default:")
         lines.append("        // gpsd keeps the undecoded payload here.")
-        lines.append(f"        out.{container.c_expr}.{arm.name}.assign(")
-        lines.append(f"            std::begin(in.{container.c_expr}.{arm.c_expr}),")
-        lines.append(f"            std::end(in.{container.c_expr}.{arm.c_expr}));")
+        lines.append(f"        if constexpr (has_{arm.c_expr}<Arms>::value) {{")
+        lines.append(f"          out.{container.c_expr}.{arm.name}.assign(")
+        lines.append(f"              std::begin(in.{container.c_expr}.{arm.c_expr}),")
+        lines.append(f"              std::end(in.{container.c_expr}.{arm.c_expr}));")
+        lines.append("        }")
         lines.append("        break;")
     else:
         lines.append("      default:")

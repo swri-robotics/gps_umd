@@ -3230,102 +3230,158 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3V16v1& out)
   }
   if constexpr (has_rtcmtypes<T>::value) {
     // Exactly one arm is valid, named by rtcm3_t::type (D16).
+    //
+    // Each arm is guarded the same way a plain member is (D11). An
+    // API pair spans a range of header states, and rtcm3_t gains arms
+    // within one: gpsd 3.24 and 3.26.1 both report API 14.0, but only
+    // the later one has rtcm3_4076. Without this the generated code
+    // names a union member the build's gps.h does not declare, which
+    // is a compile error rather than a missing field.
+    using Arms = std::decay_t<decltype(in.rtcmtypes)>;
     switch (in.type) {
       case 1001:
-        out.rtcmtypes.rtcm3_1001.resize(1);
-        fill(in.rtcmtypes.rtcm3_1001, out.rtcmtypes.rtcm3_1001[0]);
+        if constexpr (has_rtcm3_1001<Arms>::value) {
+          out.rtcmtypes.rtcm3_1001.resize(1);
+          fill(in.rtcmtypes.rtcm3_1001, out.rtcmtypes.rtcm3_1001[0]);
+        }
         break;
       case 1002:
-        out.rtcmtypes.rtcm3_1002.resize(1);
-        fill(in.rtcmtypes.rtcm3_1002, out.rtcmtypes.rtcm3_1002[0]);
+        if constexpr (has_rtcm3_1002<Arms>::value) {
+          out.rtcmtypes.rtcm3_1002.resize(1);
+          fill(in.rtcmtypes.rtcm3_1002, out.rtcmtypes.rtcm3_1002[0]);
+        }
         break;
       case 1003:
-        out.rtcmtypes.rtcm3_1003.resize(1);
-        fill(in.rtcmtypes.rtcm3_1003, out.rtcmtypes.rtcm3_1003[0]);
+        if constexpr (has_rtcm3_1003<Arms>::value) {
+          out.rtcmtypes.rtcm3_1003.resize(1);
+          fill(in.rtcmtypes.rtcm3_1003, out.rtcmtypes.rtcm3_1003[0]);
+        }
         break;
       case 1004:
-        out.rtcmtypes.rtcm3_1004.resize(1);
-        fill(in.rtcmtypes.rtcm3_1004, out.rtcmtypes.rtcm3_1004[0]);
+        if constexpr (has_rtcm3_1004<Arms>::value) {
+          out.rtcmtypes.rtcm3_1004.resize(1);
+          fill(in.rtcmtypes.rtcm3_1004, out.rtcmtypes.rtcm3_1004[0]);
+        }
         break;
       case 1005:
-        out.rtcmtypes.rtcm3_1005.resize(1);
-        fill(in.rtcmtypes.rtcm3_1005, out.rtcmtypes.rtcm3_1005[0]);
+        if constexpr (has_rtcm3_1005<Arms>::value) {
+          out.rtcmtypes.rtcm3_1005.resize(1);
+          fill(in.rtcmtypes.rtcm3_1005, out.rtcmtypes.rtcm3_1005[0]);
+        }
         break;
       case 1006:
-        out.rtcmtypes.rtcm3_1006.resize(1);
-        fill(in.rtcmtypes.rtcm3_1006, out.rtcmtypes.rtcm3_1006[0]);
+        if constexpr (has_rtcm3_1006<Arms>::value) {
+          out.rtcmtypes.rtcm3_1006.resize(1);
+          fill(in.rtcmtypes.rtcm3_1006, out.rtcmtypes.rtcm3_1006[0]);
+        }
         break;
       case 1007:
-        out.rtcmtypes.rtcm3_1007.resize(1);
-        fill(in.rtcmtypes.rtcm3_1007, out.rtcmtypes.rtcm3_1007[0]);
+        if constexpr (has_rtcm3_1007<Arms>::value) {
+          out.rtcmtypes.rtcm3_1007.resize(1);
+          fill(in.rtcmtypes.rtcm3_1007, out.rtcmtypes.rtcm3_1007[0]);
+        }
         break;
       case 1008:
-        out.rtcmtypes.rtcm3_1008.resize(1);
-        fill(in.rtcmtypes.rtcm3_1008, out.rtcmtypes.rtcm3_1008[0]);
+        if constexpr (has_rtcm3_1008<Arms>::value) {
+          out.rtcmtypes.rtcm3_1008.resize(1);
+          fill(in.rtcmtypes.rtcm3_1008, out.rtcmtypes.rtcm3_1008[0]);
+        }
         break;
       case 1009:
-        out.rtcmtypes.rtcm3_1009.resize(1);
-        fill(in.rtcmtypes.rtcm3_1009, out.rtcmtypes.rtcm3_1009[0]);
+        if constexpr (has_rtcm3_1009<Arms>::value) {
+          out.rtcmtypes.rtcm3_1009.resize(1);
+          fill(in.rtcmtypes.rtcm3_1009, out.rtcmtypes.rtcm3_1009[0]);
+        }
         break;
       case 1010:
-        out.rtcmtypes.rtcm3_1010.resize(1);
-        fill(in.rtcmtypes.rtcm3_1010, out.rtcmtypes.rtcm3_1010[0]);
+        if constexpr (has_rtcm3_1010<Arms>::value) {
+          out.rtcmtypes.rtcm3_1010.resize(1);
+          fill(in.rtcmtypes.rtcm3_1010, out.rtcmtypes.rtcm3_1010[0]);
+        }
         break;
       case 1011:
-        out.rtcmtypes.rtcm3_1011.resize(1);
-        fill(in.rtcmtypes.rtcm3_1011, out.rtcmtypes.rtcm3_1011[0]);
+        if constexpr (has_rtcm3_1011<Arms>::value) {
+          out.rtcmtypes.rtcm3_1011.resize(1);
+          fill(in.rtcmtypes.rtcm3_1011, out.rtcmtypes.rtcm3_1011[0]);
+        }
         break;
       case 1012:
-        out.rtcmtypes.rtcm3_1012.resize(1);
-        fill(in.rtcmtypes.rtcm3_1012, out.rtcmtypes.rtcm3_1012[0]);
+        if constexpr (has_rtcm3_1012<Arms>::value) {
+          out.rtcmtypes.rtcm3_1012.resize(1);
+          fill(in.rtcmtypes.rtcm3_1012, out.rtcmtypes.rtcm3_1012[0]);
+        }
         break;
       case 1013:
-        out.rtcmtypes.rtcm3_1013.resize(1);
-        fill(in.rtcmtypes.rtcm3_1013, out.rtcmtypes.rtcm3_1013[0]);
+        if constexpr (has_rtcm3_1013<Arms>::value) {
+          out.rtcmtypes.rtcm3_1013.resize(1);
+          fill(in.rtcmtypes.rtcm3_1013, out.rtcmtypes.rtcm3_1013[0]);
+        }
         break;
       case 1014:
-        out.rtcmtypes.rtcm3_1014.resize(1);
-        fill(in.rtcmtypes.rtcm3_1014, out.rtcmtypes.rtcm3_1014[0]);
+        if constexpr (has_rtcm3_1014<Arms>::value) {
+          out.rtcmtypes.rtcm3_1014.resize(1);
+          fill(in.rtcmtypes.rtcm3_1014, out.rtcmtypes.rtcm3_1014[0]);
+        }
         break;
       case 1015:
-        out.rtcmtypes.rtcm3_1015.resize(1);
-        fill(in.rtcmtypes.rtcm3_1015, out.rtcmtypes.rtcm3_1015[0]);
+        if constexpr (has_rtcm3_1015<Arms>::value) {
+          out.rtcmtypes.rtcm3_1015.resize(1);
+          fill(in.rtcmtypes.rtcm3_1015, out.rtcmtypes.rtcm3_1015[0]);
+        }
         break;
       case 1019:
-        out.rtcmtypes.rtcm3_1019.resize(1);
-        fill(in.rtcmtypes.rtcm3_1019, out.rtcmtypes.rtcm3_1019[0]);
+        if constexpr (has_rtcm3_1019<Arms>::value) {
+          out.rtcmtypes.rtcm3_1019.resize(1);
+          fill(in.rtcmtypes.rtcm3_1019, out.rtcmtypes.rtcm3_1019[0]);
+        }
         break;
       case 1020:
-        out.rtcmtypes.rtcm3_1020.resize(1);
-        fill(in.rtcmtypes.rtcm3_1020, out.rtcmtypes.rtcm3_1020[0]);
+        if constexpr (has_rtcm3_1020<Arms>::value) {
+          out.rtcmtypes.rtcm3_1020.resize(1);
+          fill(in.rtcmtypes.rtcm3_1020, out.rtcmtypes.rtcm3_1020[0]);
+        }
         break;
       case 1021:
-        out.rtcmtypes.rtcm3_1021.resize(1);
-        fill(in.rtcmtypes.rtcm3_1021, out.rtcmtypes.rtcm3_1021[0]);
+        if constexpr (has_rtcm3_1021<Arms>::value) {
+          out.rtcmtypes.rtcm3_1021.resize(1);
+          fill(in.rtcmtypes.rtcm3_1021, out.rtcmtypes.rtcm3_1021[0]);
+        }
         break;
       case 1023:
-        out.rtcmtypes.rtcm3_1023.resize(1);
-        fill(in.rtcmtypes.rtcm3_1023, out.rtcmtypes.rtcm3_1023[0]);
+        if constexpr (has_rtcm3_1023<Arms>::value) {
+          out.rtcmtypes.rtcm3_1023.resize(1);
+          fill(in.rtcmtypes.rtcm3_1023, out.rtcmtypes.rtcm3_1023[0]);
+        }
         break;
       case 1025:
-        out.rtcmtypes.rtcm3_1025.resize(1);
-        fill(in.rtcmtypes.rtcm3_1025, out.rtcmtypes.rtcm3_1025[0]);
+        if constexpr (has_rtcm3_1025<Arms>::value) {
+          out.rtcmtypes.rtcm3_1025.resize(1);
+          fill(in.rtcmtypes.rtcm3_1025, out.rtcmtypes.rtcm3_1025[0]);
+        }
         break;
       case 1029:
-        out.rtcmtypes.rtcm3_1029.resize(1);
-        fill(in.rtcmtypes.rtcm3_1029, out.rtcmtypes.rtcm3_1029[0]);
+        if constexpr (has_rtcm3_1029<Arms>::value) {
+          out.rtcmtypes.rtcm3_1029.resize(1);
+          fill(in.rtcmtypes.rtcm3_1029, out.rtcmtypes.rtcm3_1029[0]);
+        }
         break;
       case 1033:
-        out.rtcmtypes.rtcm3_1033.resize(1);
-        fill(in.rtcmtypes.rtcm3_1033, out.rtcmtypes.rtcm3_1033[0]);
+        if constexpr (has_rtcm3_1033<Arms>::value) {
+          out.rtcmtypes.rtcm3_1033.resize(1);
+          fill(in.rtcmtypes.rtcm3_1033, out.rtcmtypes.rtcm3_1033[0]);
+        }
         break;
       case 1230:
-        out.rtcmtypes.rtcm3_1230.resize(1);
-        fill(in.rtcmtypes.rtcm3_1230, out.rtcmtypes.rtcm3_1230[0]);
+        if constexpr (has_rtcm3_1230<Arms>::value) {
+          out.rtcmtypes.rtcm3_1230.resize(1);
+          fill(in.rtcmtypes.rtcm3_1230, out.rtcmtypes.rtcm3_1230[0]);
+        }
         break;
       case 4076:
-        out.rtcmtypes.rtcm3_4076.resize(1);
-        fill(in.rtcmtypes.rtcm3_4076, out.rtcmtypes.rtcm3_4076[0]);
+        if constexpr (has_rtcm3_4076<Arms>::value) {
+          out.rtcmtypes.rtcm3_4076.resize(1);
+          fill(in.rtcmtypes.rtcm3_4076, out.rtcmtypes.rtcm3_4076[0]);
+        }
         break;
       case 1071:
       case 1072:
@@ -3369,14 +3425,18 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3V16v1& out)
       case 1125:
       case 1126:
       case 1127:
-        out.rtcmtypes.rtcm3_msm.resize(1);
-        fill(in.rtcmtypes.rtcm3_msm, out.rtcmtypes.rtcm3_msm[0]);
+        if constexpr (has_rtcm3_msm<Arms>::value) {
+          out.rtcmtypes.rtcm3_msm.resize(1);
+          fill(in.rtcmtypes.rtcm3_msm, out.rtcmtypes.rtcm3_msm[0]);
+        }
         break;
       default:
         // gpsd keeps the undecoded payload here.
-        out.rtcmtypes.data.assign(
-            std::begin(in.rtcmtypes.data),
-            std::end(in.rtcmtypes.data));
+        if constexpr (has_data<Arms>::value) {
+          out.rtcmtypes.data.assign(
+              std::begin(in.rtcmtypes.data),
+              std::end(in.rtcmtypes.data));
+        }
         break;
     }
   }

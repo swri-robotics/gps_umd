@@ -256,10 +256,17 @@ build_and_test_client() {
   # versions compiling the generated typesupport sources, on a different file
   # each time, with 50+ GB free and no OOM. Building it once cuts that exposure
   # by ten.
+  #
+  # `--packages-up-to gpsd_client --packages-skip gpsd_client` rather than
+  # naming the message packages: it builds everything gpsd_client depends on
+  # and nothing else, so a dependency added later is picked up without editing
+  # this. Naming gps_extended_msgs alone is what broke CI -- it does not depend
+  # on gps_msgs, so gps_msgs was never built, and gpsd_client then failed to
+  # configure against an install prefix that did not contain it.
   local msgs=${GPSD_MSGS_INSTALL:-${CACHE}/msgs/install}
   if [ ! -f "${msgs}/setup.bash" ]; then
     (cd "${WORKSPACE}" &&
-     colcon build --packages-up-to gps_extended_msgs \
+     colcon build --packages-up-to gpsd_client --packages-skip gpsd_client \
        --build-base "$(dirname "${msgs}")/build" --install-base "${msgs}" \
        >"${LOGS}/msgs.log" 2>&1) || return 5
   fi

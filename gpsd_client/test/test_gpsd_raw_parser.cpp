@@ -158,14 +158,14 @@ TEST(GpsdRawParser, FixStatusIsCarriedWhereverThisVersionKeepsIt)
   // message mirrors its own version's layout rather than normalising, so the
   // field simply lives in a different sub-message either way.
   gps_data_t data = gpsd_client::test::makeEmptyData();
-#if GPSD_API_MAJOR_VERSION >= 10
+#ifdef HAVE_GPS_FIX_STATUS
   data.fix.status = kStatusGps;
 #else
   data.status = kStatusGps;
 #endif
 
   gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
-#if GPSD_API_MAJOR_VERSION >= 10
+#ifdef HAVE_GPS_FIX_STATUS
   EXPECT_EQ(msg.fix.status, kStatusGps);
 #else
   EXPECT_EQ(msg.status, kStatusGps);
@@ -203,7 +203,7 @@ TEST(GpsdRawParser, DeviceListIsTrimmedToNdevices)
             capacity);
 }
 
-#if GPSD_API_MAJOR_VERSION >= 12
+#ifdef HAVE_GPS_DATA_IMU
 TEST(GpsdRawParser, ImuIsTerminatedByAnEmptyMsg)
 {
   /* imu[] carries no count. gpsd's own JSON dumper walks it until
@@ -237,7 +237,12 @@ TEST(GpsdRawParser, ImuIsTerminatedByAnEmptyMsg)
 }
 #endif
 
-#if GPSD_API_MAJOR_VERSION >= 14
+/* Probed by CMake, not keyed on the API version: gps_data_t::source arrived
+ * *within* API 14.0 -- gpsd 3.24 does not have it, 3.25 does, and both report
+ * 14.0. A version guard here compiled fine against the reference rev and broke
+ * against a distro libgps. See CheckStructHasMember in CMakeLists.txt.
+ */
+#ifdef HAVE_GPS_DATA_SOURCE
 TEST(GpsdRawParser, PointerMembersAreNotPublished)
 {
   // fixsource_t's server/port/device are const char* into caller memory --
@@ -250,7 +255,7 @@ TEST(GpsdRawParser, PointerMembersAreNotPublished)
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
   EXPECT_EQ(msg.source.spec, "localhost:2947");
 }
-#endif  // fixsource_t reached gps_data_t in API 14
+#endif  // HAVE_GPS_DATA_SOURCE -- added during API 14.0, at gpsd 3.25
 
 TEST(GpsdRawParser, AnUnterminatedCharArrayStopsAtTheEndOfTheArray)
 {
@@ -373,7 +378,7 @@ TEST(GpsdRawParser, Rtcm3TypeSelectsItsArm)
   EXPECT_TRUE(msg->rtcmtypes.rtcm3_1003.empty());
 }
 
-#if GPSD_API_MAJOR_VERSION >= 13
+#ifdef HAVE_RTCM3_MSM
 TEST(GpsdRawParser, Rtcm3MsmTypesShareOneArm)
 {
   // ~43 Multiple Signal Message types fold into rtcm3_msm, exactly as gpsd's
@@ -391,7 +396,7 @@ TEST(GpsdRawParser, Rtcm3MsmTypesShareOneArm)
     EXPECT_EQ(msg->rtcmtypes.rtcm3_msm[0].station_id, 7u);
   }
 }
-#endif  // rtcm3_msm was added in API 13
+#endif  // HAVE_RTCM3_MSM -- probed, not version-keyed (see CMakeLists.txt)
 
 TEST(GpsdRawParser, UnknownRtcm3TypeFallsBackToRawBytes)
 {
@@ -455,7 +460,7 @@ TEST(GpsdRawParser, Rtcm2UndecodedTypeKeepsRawWords)
             sizeof(data.rtcm2.words) / sizeof(data.rtcm2.words[0]));
 }
 
-#if GPSD_API_MAJOR_VERSION >= 10
+#ifdef HAVE_RTCM2_18
 TEST(GpsdRawParser, Rtcm2DeadArmsAreNeverFilled)
 {
   /* rtcm2_18 .. rtcm2_24 are declared in gps.h and written by nothing in
@@ -476,7 +481,7 @@ TEST(GpsdRawParser, Rtcm2DeadArmsAreNeverFilled)
   // ... while the field gpsd actually populates comes through as usual.
   EXPECT_EQ(msg->rtk.nentries, 5u);
 }
-#endif  // rtcm2_t gained rtk/ref_sta and the rtcm2_NN arms at API 10
+#endif  // HAVE_RTCM2_18 -- probed, not version-keyed (see CMakeLists.txt)
 
 TEST(GpsdRawParser, SubframeNumberSelectsItsArm)
 {

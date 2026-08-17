@@ -5,103 +5,103 @@
 
 #include <gpsd_client/parsers/generated/gpsd_has_member.hpp>
 
-#include <gps_extended_msgs/msg/gps_extended_raw16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_fix16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_fix_ecef16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_fix_ned16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_baseline16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_log16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_dop16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_satellite16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_devconfig16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_policy16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_raw_devices16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_gst16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_ref_sta16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_rtk16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtk_sat16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_gps_ranges16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rangesat16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_reference16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_conhealth16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_consat16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_almanac16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_station16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_xmitter16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_gpstime16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_rtcm218_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_rtcm219_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_rtcm220_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_rtcm221_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_rtcm222_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_rtcm224_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm2_glonass_ranges16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_glonass_rangesat16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm3_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm3_rtcmtypes16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31001_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm3_rtk_hdr16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31001_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm3_basic_rtk16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31002_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31002_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm3_extended_rtk16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31003_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31003_rtk_data16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31004_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31004_rtk_data16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31005_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31006_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31007_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31008_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31009_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31009_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31010_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31010_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31011_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31011_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31012_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31012_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31013_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31013_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31014_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31015_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm3_network_rtk_header16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm3_correction_diff16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31019_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31020_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31021_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31023_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31023_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31025_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31029_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm31033_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcmtypes_rtcm31230_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm3_msm_hdr16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm3_msm_sat16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm3_msm_sig16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rtcm34076_hdr16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_orbit16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe_sub1_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe_sub2_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe_sub3_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe_sub4_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_almanac16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe_sub413_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe_sub417_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe_sub418_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe_sub425_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe_sub5_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_subframe_sub525_v16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_rawdata16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_meas16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_oscillator16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_version16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_attitude16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_timedelta16v1.hpp>
-#include <gps_extended_msgs/msg/gps_extended_fixsource16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_raw16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_fix16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_fix_ecef16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_fix_ned16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_baseline16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_log16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_dop16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_satellite16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_devconfig16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_policy16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_raw_devices16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_gst16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_ref_sta16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_rtk16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtk_sat16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_gps_ranges16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rangesat16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_reference16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_conhealth16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_consat16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_almanac16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_station16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_xmitter16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_gpstime16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_rtcm218_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_rtcm219_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_rtcm220_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_rtcm221_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_rtcm222_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_rtcm224_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm2_glonass_ranges16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_glonass_rangesat16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm3_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm3_rtcmtypes16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31001_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm3_rtk_hdr16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31001_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm3_basic_rtk16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31002_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31002_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm3_extended_rtk16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31003_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31003_rtk_data16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31004_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31004_rtk_data16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31005_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31006_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31007_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31008_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31009_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31009_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31010_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31010_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31011_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31011_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31012_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31012_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31013_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31013_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31014_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31015_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm3_network_rtk_header16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm3_correction_diff16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31019_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31020_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31021_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31023_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31023_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31025_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31029_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm31033_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcmtypes_rtcm31230_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm3_msm_hdr16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm3_msm_sat16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm3_msm_sig16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rtcm34076_hdr16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_orbit16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub1_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub2_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub3_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub4_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_almanac16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub413_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub417_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub418_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub425_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub5_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub525_v16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_rawdata16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_meas16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_oscillator16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_version16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_attitude16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_timedelta16v1.hpp>
+#include <gps_extended_msgs/msg/gpsd_fixsource16v1.hpp>
 
 #include <gps.h>
 
@@ -759,202 +759,202 @@ GPSD_DEFINE_HAS_MEMBER(zcount)
 
 // Forward declarations; see the note in the generator.
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRaw16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFix16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDFix16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFixEcef16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDFixEcef16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFixNed16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDFixNed16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedBaseline16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDBaseline16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedLog16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDLog16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedDop16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDDop16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSatellite16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSatellite16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedDevconfig16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDDevconfig16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedPolicy16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDPolicy16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRawDevices16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawDevices16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedGst16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDGst16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2RefSta16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2RefSta16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtk16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtk16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtkSat16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtkSat16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2GpsRanges16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2GpsRanges16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRangesat16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRangesat16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Reference16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Reference16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Conhealth16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Conhealth16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedConsat16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDConsat16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Almanac16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Almanac16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedStation16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDStation16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Xmitter16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Xmitter16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Gpstime16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Gpstime16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm218V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm218V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm219V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm219V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm220V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm220V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm221V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm221V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm222V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm222V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm224V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm224V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2GlonassRanges16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2GlonassRanges16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedGlonassRangesat16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDGlonassRangesat16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3Rtcmtypes16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3Rtcmtypes16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31001V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31001V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3RtkHdr16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3RtkHdr16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31001V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31001V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3BasicRtk16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3BasicRtk16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31002V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31002V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31002V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31002V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3ExtendedRtk16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3ExtendedRtk16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31003V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31003V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31003RtkData16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31003RtkData16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31004V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31004V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31004RtkData16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31004RtkData16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31005V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31005V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31006V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31006V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31007V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31007V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31008V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31008V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31009V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31009V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31009V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31009V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31010V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31010V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31010V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31010V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31011V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31011V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31011V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31011V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31012V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31012V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31012V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31012V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31013V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31013V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31013V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31013V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31014V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31014V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31015V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31015V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3NetworkRtkHeader16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3NetworkRtkHeader16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3CorrectionDiff16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3CorrectionDiff16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31019V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31019V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31020V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31020V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31021V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31021V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31023V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31023V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31023V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31023V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31025V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31025V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31029V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31029V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31033V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31033V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31230V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31230V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3MsmHdr16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3MsmHdr16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3MsmSat16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3MsmSat16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3MsmSig16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3MsmSig16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm34076Hdr16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm34076Hdr16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframe16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframe16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedOrbit16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDOrbit16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub1V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub1V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub2V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub2V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub3V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub3V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub4V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub4V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedAlmanac16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDAlmanac16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub413V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub413V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub417V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub417V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub418V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub418V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub425V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub425V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub5V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub5V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub525V16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub525V16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRawdata16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawdata16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedMeas16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDMeas16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedOscillator16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDOscillator16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedVersion16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDVersion16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedAttitude16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDAttitude16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedTimedelta16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDTimedelta16v1& out);
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFixsource16v1& out);
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDFixsource16v1& out);
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRaw16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw16v1& out)
 {
   (void)in;
   (void)out;
@@ -1047,7 +1047,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRaw16v1& out)
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFix16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDFix16v1& out)
 {
   (void)in;
   (void)out;
@@ -1190,7 +1190,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFix16v1& out)
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFixEcef16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDFixEcef16v1& out)
 {
   (void)in;
   (void)out;
@@ -1221,7 +1221,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFixEcef16v1& ou
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFixNed16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDFixNed16v1& out)
 {
   (void)in;
   (void)out;
@@ -1252,7 +1252,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFixNed16v1& out
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedBaseline16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDBaseline16v1& out)
 {
   (void)in;
   (void)out;
@@ -1280,7 +1280,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedBaseline16v1& o
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedLog16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDLog16v1& out)
 {
   (void)in;
   (void)out;
@@ -1360,7 +1360,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedLog16v1& out)
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedDop16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDDop16v1& out)
 {
   (void)in;
   (void)out;
@@ -1388,7 +1388,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedDop16v1& out)
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSatellite16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSatellite16v1& out)
 {
   (void)in;
   (void)out;
@@ -1437,7 +1437,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSatellite16v1& 
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedDevconfig16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDDevconfig16v1& out)
 {
   (void)in;
   (void)out;
@@ -1489,7 +1489,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedDevconfig16v1& 
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedPolicy16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDPolicy16v1& out)
 {
   (void)in;
   (void)out;
@@ -1529,7 +1529,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedPolicy16v1& out
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRawDevices16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawDevices16v1& out)
 {
   (void)in;
   (void)out;
@@ -1544,7 +1544,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRawDevices16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedGst16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDGst16v1& out)
 {
   (void)in;
   (void)out;
@@ -1585,7 +1585,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedGst16v1& out)
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2V16v1& out)
 {
   (void)in;
   (void)out;
@@ -1661,7 +1661,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2V16v1& out
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2RefSta16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2RefSta16v1& out)
 {
   (void)in;
   (void)out;
@@ -1716,7 +1716,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2RefSta16v1
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtk16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtk16v1& out)
 {
   (void)in;
   (void)out;
@@ -1736,7 +1736,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtk16v1& o
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtkSat16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtkSat16v1& out)
 {
   (void)in;
   (void)out;
@@ -1776,7 +1776,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtkSat16v1& out
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2GpsRanges16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2GpsRanges16v1& out)
 {
   (void)in;
   (void)out;
@@ -1787,7 +1787,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2GpsRanges1
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRangesat16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRangesat16v1& out)
 {
   (void)in;
   (void)out;
@@ -1809,7 +1809,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRangesat16v1& o
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Reference16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Reference16v1& out)
 {
   (void)in;
   (void)out;
@@ -1837,7 +1837,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Reference1
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Conhealth16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Conhealth16v1& out)
 {
   (void)in;
   (void)out;
@@ -1848,7 +1848,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Conhealth1
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedConsat16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDConsat16v1& out)
 {
   (void)in;
   (void)out;
@@ -1879,7 +1879,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedConsat16v1& out
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Almanac16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Almanac16v1& out)
 {
   (void)in;
   (void)out;
@@ -1890,7 +1890,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Almanac16v
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedStation16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDStation16v1& out)
 {
   (void)in;
   (void)out;
@@ -1918,7 +1918,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedStation16v1& ou
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Xmitter16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Xmitter16v1& out)
 {
   (void)in;
   (void)out;
@@ -1940,7 +1940,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Xmitter16v
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Gpstime16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Gpstime16v1& out)
 {
   (void)in;
   (void)out;
@@ -1956,7 +1956,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Gpstime16v
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm218V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm218V16v1& out)
 {
   (void)in;
   (void)out;
@@ -1966,7 +1966,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm218V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm219V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm219V16v1& out)
 {
   (void)in;
   (void)out;
@@ -1976,7 +1976,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm219V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm220V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm220V16v1& out)
 {
   (void)in;
   (void)out;
@@ -1986,7 +1986,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm220V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm221V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm221V16v1& out)
 {
   (void)in;
   (void)out;
@@ -1996,7 +1996,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm221V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm222V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm222V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2030,7 +2030,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm222V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm224V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2Rtcm224V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2055,7 +2055,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2Rtcm224V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2GlonassRanges16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2GlonassRanges16v1& out)
 {
   (void)in;
   (void)out;
@@ -2066,7 +2066,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm2GlonassRan
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedGlonassRangesat16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDGlonassRangesat16v1& out)
 {
   (void)in;
   (void)out;
@@ -2091,7 +2091,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedGlonassRangesat
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2107,7 +2107,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3V16v1& out
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3Rtcmtypes16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3Rtcmtypes16v1& out)
 {
   (void)in;
   (void)out;
@@ -2142,7 +2142,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3Rtcmtypes1
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31001V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31001V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2153,7 +2153,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3RtkHdr16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3RtkHdr16v1& out)
 {
   (void)in;
   (void)out;
@@ -2178,7 +2178,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3RtkHdr16v1
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31001V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31001V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2191,7 +2191,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31001V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3BasicRtk16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3BasicRtk16v1& out)
 {
   (void)in;
   (void)out;
@@ -2213,7 +2213,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3BasicRtk16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31002V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31002V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2224,7 +2224,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31002V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31002V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2237,7 +2237,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31002V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3ExtendedRtk16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3ExtendedRtk16v1& out)
 {
   (void)in;
   (void)out;
@@ -2265,7 +2265,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3ExtendedRt
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31003V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31003V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2276,7 +2276,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31003V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31003RtkData16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31003RtkData16v1& out)
 {
   (void)in;
   (void)out;
@@ -2292,7 +2292,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31003RtkDat
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31004V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31004V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2303,7 +2303,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31004V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31004RtkData16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31004RtkData16v1& out)
 {
   (void)in;
   (void)out;
@@ -2319,7 +2319,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31004RtkDat
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31005V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31005V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2347,7 +2347,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31005V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31006V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31006V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2378,7 +2378,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31006V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31007V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31007V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2394,7 +2394,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31008V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31008V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2413,7 +2413,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31009V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31009V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2424,7 +2424,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31009V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31009V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2437,7 +2437,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31009V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31010V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31010V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2448,7 +2448,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31010V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31010V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2461,7 +2461,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31010V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31011V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31011V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2472,34 +2472,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31011V16v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_ident<T>::value) {
-    out.ident = in.ident;
-  }
-  if constexpr (has_L1<T>::value) {
-    fill(in.L1, out.l1);
-  }
-  if constexpr (has_L2<T>::value) {
-    fill(in.L2, out.l2);
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31012V16v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_header<T>::value) {
-    fill(in.header, out.header);
-  }
-  // rtk_data: filled by the caller, which knows the valid element count
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31012V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31011V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2515,7 +2488,34 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31012V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31013V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31012V16v1& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_header<T>::value) {
+    fill(in.header, out.header);
+  }
+  // rtk_data: filled by the caller, which knows the valid element count
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31012V16v1& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_ident<T>::value) {
+    out.ident = in.ident;
+  }
+  if constexpr (has_L1<T>::value) {
+    fill(in.L1, out.l1);
+  }
+  if constexpr (has_L2<T>::value) {
+    fill(in.L2, out.l2);
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31013V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2538,7 +2538,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31013V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31013V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2554,7 +2554,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31013V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31014V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31014V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2585,7 +2585,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31014V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31015V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31015V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2596,7 +2596,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31015V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3NetworkRtkHeader16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3NetworkRtkHeader16v1& out)
 {
   (void)in;
   (void)out;
@@ -2624,7 +2624,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3NetworkRtk
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3CorrectionDiff16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3CorrectionDiff16v1& out)
 {
   (void)in;
   (void)out;
@@ -2649,7 +2649,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3Correction
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31019V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31019V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2746,7 +2746,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31019V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31020V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31020V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2858,7 +2858,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31020V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31021V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31021V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2937,7 +2937,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31021V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31023V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31023V16v1& out)
 {
   (void)in;
   (void)out;
@@ -2990,7 +2990,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31023V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31023V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3006,7 +3006,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31023V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31025V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31025V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3034,7 +3034,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31025V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31029V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31029V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3059,7 +3059,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31029V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31033V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31033V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3084,7 +3084,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm31033V16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31230V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcmtypesRtcm31230V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3112,7 +3112,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcmtypesRtcm31
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3MsmHdr16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3MsmHdr16v1& out)
 {
   (void)in;
   (void)out;
@@ -3172,7 +3172,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3MsmHdr16v1
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3MsmSat16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3MsmSat16v1& out)
 {
   (void)in;
   (void)out;
@@ -3191,7 +3191,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3MsmSat16v1
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3MsmSig16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3MsmSig16v1& out)
 {
   (void)in;
   (void)out;
@@ -3216,7 +3216,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm3MsmSig16v1
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm34076Hdr16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm34076Hdr16v1& out)
 {
   (void)in;
   (void)out;
@@ -3247,7 +3247,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRtcm34076Hdr16v
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframe16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframe16v1& out)
 {
   (void)in;
   (void)out;
@@ -3323,7 +3323,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframe16v1& o
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedOrbit16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDOrbit16v1& out)
 {
   (void)in;
   (void)out;
@@ -3474,7 +3474,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedOrbit16v1& out)
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub1V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub1V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3529,7 +3529,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub1V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub2V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub2V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3596,7 +3596,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub2V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub3V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub3V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3654,7 +3654,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub3V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub4V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub4V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3664,7 +3664,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub4V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedAlmanac16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDAlmanac16v1& out)
 {
   (void)in;
   (void)out;
@@ -3737,7 +3737,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedAlmanac16v1& ou
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub413V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub413V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3750,7 +3750,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub413V
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub417V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub417V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3760,7 +3760,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub417V
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub418V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub418V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3848,7 +3848,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub418V
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub425V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub425V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3861,7 +3861,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub425V
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub5V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub5V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3871,7 +3871,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub5V16
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub525V16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub525V16v1& out)
 {
   (void)in;
   (void)out;
@@ -3890,7 +3890,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedSubframeSub525V
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRawdata16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawdata16v1& out)
 {
   (void)in;
   (void)out;
@@ -3902,7 +3902,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedRawdata16v1& ou
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedMeas16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDMeas16v1& out)
 {
   (void)in;
   (void)out;
@@ -3957,7 +3957,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedMeas16v1& out)
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedOscillator16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDOscillator16v1& out)
 {
   (void)in;
   (void)out;
@@ -3976,7 +3976,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedOscillator16v1&
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedVersion16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDVersion16v1& out)
 {
   (void)in;
   (void)out;
@@ -3998,7 +3998,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedVersion16v1& ou
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedAttitude16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDAttitude16v1& out)
 {
   (void)in;
   (void)out;
@@ -4093,7 +4093,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedAttitude16v1& o
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedTimedelta16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDTimedelta16v1& out)
 {
   (void)in;
   (void)out;
@@ -4108,7 +4108,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedTimedelta16v1& 
 }
 
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSExtendedFixsource16v1& out)
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDFixsource16v1& out)
 {
   (void)in;
   (void)out;

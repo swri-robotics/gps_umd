@@ -33,23 +33,23 @@ class SnakeCase(unittest.TestCase):
     def test_matches_rosidl_header_names(self):
         # Verified against the headers rosidl actually emitted; the acronym
         # split is the part that is easy to get wrong (not "gpsdbaseline").
-        self.assertEqual(gen.ros_header_name("GPSExtendedBaseline16v1"), "gps_extended_baseline16v1")
-        self.assertEqual(gen.ros_header_name("GPSExtendedRaw16v1"), "gps_extended_raw16v1")
-        self.assertEqual(gen.ros_header_name("GPSExtendedFixEcef16v1"), "gps_extended_fix_ecef16v1")
-        self.assertEqual(gen.ros_header_name("GPSExtendedFixNED16v1"), "gps_extended_fix_ned16v1")
+        self.assertEqual(gen.ros_header_name("GPSDBaseline16v1"), "gpsd_baseline16v1")
+        self.assertEqual(gen.ros_header_name("GPSDRaw16v1"), "gpsd_raw16v1")
+        self.assertEqual(gen.ros_header_name("GPSDFixEcef16v1"), "gpsd_fix_ecef16v1")
+        self.assertEqual(gen.ros_header_name("GPSDFixNED16v1"), "gpsd_fix_ned16v1")
 
 
 class MessageNames(unittest.TestCase):
     def test_struct_tag_to_message_stem(self):
-        self.assertEqual(gen.message_base_name("gps_data_t"), "GPSExtendedRaw")
-        self.assertEqual(gen.message_base_name("gps_fix_t"), "GPSExtendedFix")
-        self.assertEqual(gen.message_base_name("satellite_t"), "GPSExtendedSatellite")
-        self.assertEqual(gen.message_base_name("dop_t"), "GPSExtendedDop")
-        self.assertEqual(gen.message_base_name("baseline_t"), "GPSExtendedBaseline")
+        self.assertEqual(gen.message_base_name("gps_data_t"), "GPSDRaw")
+        self.assertEqual(gen.message_base_name("gps_fix_t"), "GPSDFix")
+        self.assertEqual(gen.message_base_name("satellite_t"), "GPSDSatellite")
+        self.assertEqual(gen.message_base_name("dop_t"), "GPSDDop")
+        self.assertEqual(gen.message_base_name("baseline_t"), "GPSDBaseline")
 
     def test_versioned(self):
-        self.assertEqual(gen.versioned("GPSExtendedRaw", (16, 1)), "GPSExtendedRaw16v1")
-        self.assertEqual(gen.versioned("GPSExtendedRaw", (9, 0)), "GPSExtendedRaw9v0")
+        self.assertEqual(gen.versioned("GPSDRaw", (16, 1)), "GPSDRaw16v1")
+        self.assertEqual(gen.versioned("GPSDRaw", (9, 0)), "GPSDRaw9v0")
 
 
 class SplitMembers(unittest.TestCase):

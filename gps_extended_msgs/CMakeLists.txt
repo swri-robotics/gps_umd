@@ -22,9 +22,18 @@ find_package(builtin_interfaces REQUIRED)
 #
 # Note they are built unconditionally, with no libgps dependency: this is a
 # pure interface package and must stay buildable everywhere.
-file(GLOB MSG_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} msg/GPSExtended*.msg)
+# Globs every message rather than a name prefix: this package contains only
+# generated messages (gps_msgs keeps the hand-written GPSFix/GPSStatus), so a
+# prefix here would only be one more thing to forget when names change --
+# which is exactly what happened, silently emptying the glob.
+file(GLOB MSG_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} msg/*.msg)
 list(SORT MSG_FILES)
 list(LENGTH MSG_FILES MSG_COUNT)
+if(MSG_COUNT EQUAL 0)
+  message(FATAL_ERROR
+    "No messages found in ${CMAKE_CURRENT_SOURCE_DIR}/msg. They are generated: "
+    "run tools/generate_raw_msgs.py")
+endif()
 message(STATUS "gps_extended_msgs: generating ${MSG_COUNT} messages")
 
 rosidl_generate_interfaces(${PROJECT_NAME}

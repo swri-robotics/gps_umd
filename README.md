@@ -29,16 +29,16 @@ and in the notification -- rather than as one row of a matrix:
 
 | API | gpsd revision | Message | Status |
 |---|---|---|---|
-| **9.0** | `3.20` | `GPSExtendedRaw9v0` | [![gpsd API 9.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml) |
-| **9.1** | `e5279ef52` *(unreleased)* | `GPSExtendedRaw9v1` | [![gpsd API 9.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml) |
-| **10.0** | `3.21` | `GPSExtendedRaw10v0` | [![gpsd API 10.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml) |
-| **10.1** | `42f816d59` *(unreleased)* | `GPSExtendedRaw10v1` | [![gpsd API 10.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml) |
-| **11.0** | `3.22` | `GPSExtendedRaw11v0` | [![gpsd API 11.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml) |
-| **12.0** | `3.23.1` | `GPSExtendedRaw12v0` | [![gpsd API 12.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml) |
-| **13.0** | `264e808c6` *(unreleased)* | `GPSExtendedRaw13v0` | [![gpsd API 13.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml) |
-| **14.0** | `3.26.1` | `GPSExtendedRaw14v0` | [![gpsd API 14.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml) |
-| **16.0** | `3.27.3` | `GPSExtendedRaw16v0` | [![gpsd API 16.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml) |
-| **16.1** | `3.27.5` | `GPSExtendedRaw16v1` | [![gpsd API 16.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml) |
+| **9.0** | `3.20` | `GPSDRaw9v0` | [![gpsd API 9.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml) |
+| **9.1** | `e5279ef52` *(unreleased)* | `GPSDRaw9v1` | [![gpsd API 9.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml) |
+| **10.0** | `3.21` | `GPSDRaw10v0` | [![gpsd API 10.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml) |
+| **10.1** | `42f816d59` *(unreleased)* | `GPSDRaw10v1` | [![gpsd API 10.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml) |
+| **11.0** | `3.22` | `GPSDRaw11v0` | [![gpsd API 11.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml) |
+| **12.0** | `3.23.1` | `GPSDRaw12v0` | [![gpsd API 12.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml) |
+| **13.0** | `264e808c6` *(unreleased)* | `GPSDRaw13v0` | [![gpsd API 13.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml) |
+| **14.0** | `3.26.1` | `GPSDRaw14v0` | [![gpsd API 14.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml) |
+| **16.0** | `3.27.3` | `GPSDRaw16v0` | [![gpsd API 16.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml) |
+| **16.1** | `3.27.5` | `GPSDRaw16v1` | [![gpsd API 16.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml) |
 
 The three unreleased pairs shipped in no gpsd release and are pinned to the last
 commit at which each was current; they are reachable only by building a gpsd git
@@ -82,9 +82,9 @@ With `publish_gpsd_raw` set, `gpsd_client` also publishes everything gpsd
 reports, as close to verbatim as a ROS message can be, on `gpsd_raw`.
 
 The message type is named after the gpsd C API version the package was compiled
-against: `gps_extended_msgs/GPSExtendedRaw<MAJOR>v<MINOR>`, from `GPSD_API_MAJOR_VERSION` and
+against: `gps_extended_msgs/GPSDRaw<MAJOR>v<MINOR>`, from `GPSD_API_MAJOR_VERSION` and
 `GPSD_API_MINOR_VERSION` in `gps.h`. Building against gpsd 3.27.5 gives
-`GPSExtendedRaw16v1`; against gpsd 3.20, `GPSExtendedRaw9v0`. The node logs which one it
+`GPSDRaw16v1`; against gpsd 3.20, `GPSDRaw9v0`. The node logs which one it
 selected at startup. All of the message types are always built, so `gps_extended_msgs`
 has no dependency on gpsd; only `gpsd_client` cares which libgps is present.
 
@@ -106,7 +106,7 @@ Points worth knowing before subscribing:
 * **`NaN` means "unknown", not zero.** gpsd uses `NaN` as its no-value sentinel
   throughout, and it is preserved rather than replaced with `0.0`.
 * **`set` is the report mask, copied undecoded.** Test it with the `SET_*`
-  constants on the message, e.g. `msg.set & GPSExtendedRaw16v1::SET_LATLON`. The
+  constants on the message, e.g. `msg.set & GPSDRaw16v1::SET_LATLON`. The
   constants are gpsd's own bit values with the name reversed (`LATLON_SET`
   becomes `SET_LATLON`) because `gps.h` defines the gpsd spellings as
   preprocessor macros. Bit positions have never been renumbered, so mask tests
@@ -147,7 +147,7 @@ simply empty. The reliable test for "does this message actually carry a
 skyview" is the mask:
 
 ```cpp
-if (msg.set & gps_extended_msgs::msg::GPSExtendedRaw16v1::SET_SATELLITE) {
+if (msg.set & gps_extended_msgs::msg::GPSDRaw16v1::SET_SATELLITE) {
   // skyview and satellites_visible are meaningful for this report
 }
 ```

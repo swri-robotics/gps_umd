@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the GPSExtendedRaw<MAJOR>v<MINOR> messages and their parsers from gps.h.
+"""Generate the GPSDRaw<MAJOR>v<MINOR> messages and their parsers from gps.h.
 
 Ground truth is gpsd's ``include/gps.h`` at a pinned commit per API pair (see
 REFERENCE_REVS). Nothing here reads the build host's installed libgps: the
@@ -192,10 +192,10 @@ CHECKED_IN_TIER = "C"
 # that on every consumer of gps_msgs, released or not. A separate package keeps
 # the cost with the feature that incurs it.
 #
-# The GPSExtended prefix distinguishes these from gps_msgs' own types and from
-# gpsd's C names.
+# Messages keep the GPSD prefix, naming the daemon they mirror, while the
+# package name says what it is relative to gps_msgs.
 PACKAGE = "gps_extended_msgs"
-MESSAGE_PREFIX = "GPSExtended"
+MESSAGE_PREFIX = "GPSD"
 
 
 import argparse
@@ -494,7 +494,7 @@ def camel(name: str) -> str:
 
 
 def message_base_name(cname: str) -> str:
-    """C struct tag -> message name stem, e.g. gps_fix_t -> GPSExtendedFix."""
+    """C struct tag -> message name stem, e.g. gps_fix_t -> GPSDFix."""
     if cname == "gps_data_t":
         return MESSAGE_PREFIX + "Raw"
     stem = re.sub(r"_t$", "", cname)
@@ -505,13 +505,13 @@ def message_base_name(cname: str) -> str:
 def versioned(base: str, pair: Tuple[int, int]) -> str:
     """Append the API pair, keeping the boundary readable.
 
-    The plain form is `<Stem><MAJOR>v<MINOR>` -- GPSExtendedFix16v1 -- which is what
-    the specified root name GPSExtendedRaw<MAJOR>v<MINOR> uses.
+    The plain form is `<Stem><MAJOR>v<MINOR>` -- GPSDFix16v1 -- which is what
+    the specified root name GPSDRaw<MAJOR>v<MINOR> uses.
 
     A stem that itself *ends in a digit* would run into the version and become
     ambiguous: the rtcm3 arm `rtcm3_1001` at API 9.0 would read
-    GPSExtendedRtcm3100 19v0 / GPSExtendedRtcm31001 9v0 with no way to tell, and even the
-    plain GPSExtendedRtcm3 + 16v1 gives GPSExtendedRtcm316v1. Those stems get a 'V'
+    GPSDRtcm3100 19v0 / GPSDRtcm31001 9v0 with no way to tell, and even the
+    plain GPSDRtcm3 + 16v1 gives GPSDRtcm316v1. Those stems get a 'V'
     separator. rosidl rejects underscores in message names, so a letter is the
     only option.
 
@@ -1044,10 +1044,10 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
 
 
 def ros_header_name(message_name: str) -> str:
-    """GPSExtendedRaw16v1 -> gpsd_raw16v1, matching rosidl's generated header names.
+    """GPSDRaw16v1 -> gpsd_raw16v1, matching rosidl's generated header names.
 
     rosidl uses the same camel-to-snake rule as ROS field names, including the
-    acronym-run split that turns GPSExtendedBaseline into gpsd_baseline rather than
+    acronym-run split that turns GPSDBaseline into gpsd_baseline rather than
     gpsdbaseline. Verified against the headers rosidl actually emitted for all
     seven Tier A messages.
     """
@@ -1171,7 +1171,7 @@ def emit_version_workflow(pair: Tuple[int, int], rev: str) -> str:
     workflow too; `--check` fails if the checked-in set has drifted.
     """
     major, minor = pair
-    message = versioned("GPSExtendedRaw", pair)
+    message = versioned(MESSAGE_PREFIX + "Raw", pair)
     unreleased = not rev.startswith("release-")
     note = ("#\n"
             "# This API pair shipped in no gpsd release, so the revision below\n"
@@ -1249,7 +1249,7 @@ def generate(repo: str, tier: str) -> Dict[str, str]:
         model = build_model(pair, src, tier_members)
         constants = mask_constants(src)
         assert_no_macro_collisions(constants, src, rev)
-        root = versioned("GPSExtendedRaw", pair)
+        root = versioned("GPSDRaw", pair)
         for name in model.order:
             files[f"{PACKAGE}/msg/{name}.msg"] = emit_msg(
                 model, name, rev, constants if name == root else ())
@@ -1263,13 +1263,17 @@ def orphans(files: Dict[str, str], output_root: str) -> List[str]:
     """Checked-in files that look generated but are no longer produced.
 
     Scoped to the directories this generator owns and to its own naming, so it
-    can never propose deleting a hand-written file. `msg/GPSExtended*.msg` is
+    can never propose deleting a hand-written file. `msg/GPSD*.msg` is
     exactly what the message package globs, which is what makes a leftover
     dangerous rather than merely untidy.
     """
     owned = {
-        os.path.join(PACKAGE, "msg"): lambda n: (
-            n.startswith(MESSAGE_PREFIX) and n.endswith(".msg")),
+        # Every message in this package is generated -- gps_msgs keeps the
+        # hand-written GPSFix/GPSStatus -- so ownership is the whole directory
+        # rather than a name prefix. Keying on the prefix would strand the old
+        # files the moment the prefix itself changed, which is precisely when
+        # the glob would pick up two definitions of the same message.
+        os.path.join(PACKAGE, "msg"): lambda n: n.endswith(".msg"),
         os.path.join("gpsd_client", "include", "gpsd_client", "parsers",
                      "generated"): lambda n: n.endswith(".hpp"),
         os.path.join(".github", "workflows"): lambda n: (

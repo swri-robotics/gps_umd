@@ -474,7 +474,7 @@ NEW (members): source.server = localhost
 reverse-order destruction leaves them alive longer than the gpsmm holding
 pointers into them, and never reassigned after the connection is built.
 
-### D13 — Generated messages live in `gps_extended_msgs`, prefixed `GPSExtended`
+### D13 — Generated messages live in `gps_extended_msgs`
 
 Tier C makes the generated set ~905 messages, 90 per API pair, and building
 them takes **8m48s** (measured) against 1m48s for Tier A+B alone and ~8s for
@@ -485,9 +485,14 @@ them takes **8m48s** (measured) against 1m48s for Tier A+B alone and ~8s for
 depend on. Putting the generated set there would impose a nine-minute build on
 every one of them, released or not, whether or not they want raw gpsd data.
 
-**Decision:** the generated messages live in a new `gps_extended_msgs` package
-and are named `GPSExtended*` rather than `GPSD*`. `gps_msgs` returns to its
-prior contents and build time; `gpsd_client` depends on both.
+**Decision:** the generated messages live in a new `gps_extended_msgs` package.
+`gps_msgs` returns to its prior contents and build time; `gpsd_client` depends
+on both.
+
+The message names keep the `GPSD` prefix — they mirror gpsd's own structures,
+and the package name already says how they relate to `gps_msgs`. (They were
+briefly `GPSExtended*`; the rename back is what exercised D15's orphan
+removal, which deleted all 905 stale files on the next run.)
 
 This supersedes the original placement in `gps_msgs/msg`. D1 is unchanged in
 substance — the message package still never gains a libgps dependency — it just
@@ -500,7 +505,7 @@ not `NED`. That looks like a loss of fidelity and was "fixed" once; the fix
 broke the build.
 
 rosidl normalises a run of capitals when deriving the C struct name
-(`GPSExtendedFixNED16v1` → `gps_extended_msgs__msg__GPSExtendedFixNed16v1`) but
+(`GPSDFixNED16v1` → `gps_extended_msgs__msg__GPSDFixNed16v1`) but
 writes the name *as authored* into the referencing message's header. The two
 spellings disagree and the generated C fails with `unknown type name ...NED16v1;
 did you mean ...Ned16v1?`.
@@ -966,7 +971,7 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
-| 2026-08-17 | 2 | **Tier C generated, and the messages moved to a new `gps_extended_msgs` package** prefixed `GPSExtended` (D13), after measuring Tier C at 8m48s — too much to impose on the released `gps_msgs`. Tier C needed six new generator capabilities: inline *tagged* structs, enums, unions with a declarator, struct typedefs, `isgps30bits_t`, and a function-pointer test that was misfiring on a parenthesised array extent. Union arms are 0-or-1 arrays. Also D14 (rosidl name normalisation) and D15 (orphan removal), both found by breaking the build. |
+| 2026-08-17 | 2 | **Tier C generated, and the messages moved to a new `gps_extended_msgs` package** (D13), keeping the `GPSD` message prefix, after measuring Tier C at 8m48s — too much to impose on the released `gps_msgs`. Tier C needed six new generator capabilities: inline *tagged* structs, enums, unions with a declarator, struct typedefs, `isgps30bits_t`, and a function-pointer test that was misfiring on a parenthesised array extent. Union arms are 0-or-1 arrays. Also D14 (rosidl name normalisation) and D15 (orphan removal), both found by breaking the build. |
 | 2026-08-17 | 2/3/4 | **Tier B landed.** 136 generated messages (was 64), 7 new sub-messages. Parser gained `devices.list` (trimmed to `ndevices`) and `imu[]` (terminated by an empty `attitude_t::msg`, the rule gpsd's own dumper uses — there is no count field). New exclusion: pointer members, by type not name. Completeness cross-check and manual expectations extended to all Tier B structs. `colcon test`: **100-102 tests, 0 failures on all ten API pairs**. |
 | 2026-08-17 | — | D12: fixed a live dangling-pointer defect in `client.cpp` found while excluding `fixsource_t`'s pointers. Confirmed with ASAN (`stack-use-after-return` before, clean after). |
 | 2026-08-16 | 6 | Replaced the matrix with one generated workflow per API pair calling a shared reusable workflow, so each version has its own name, badge and re-run. Generated from `REFERENCE_REVS` and covered by two new drift tests; README gained a per-version badge table. |

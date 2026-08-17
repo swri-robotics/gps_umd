@@ -63,7 +63,7 @@ def message_fields(pair, stem):
             if line and not line.startswith("#") and "=" not in line]
 
 
-def message_constants(pair, stem="GPSExtendedRaw"):
+def message_constants(pair, stem="GPSDRaw"):
     text = generated().get(f"gps_extended_msgs/msg/{stem}{pair[0]}v{pair[1]}.msg") or ""
     return {line.split()[1] for line in text.splitlines() if line.startswith("uint64 ")}
 
@@ -99,35 +99,35 @@ class ManualExpectations(unittest.TestCase):
         # gps_fix_t "for better fix merging". It is why GpsdParserV9 exists.
         for pair in ALL_PAIRS:
             if pair[0] == 9:
-                self.assertHas(pair, "GPSExtendedRaw", "status",
+                self.assertHas(pair, "GPSDRaw", "status",
                                "API 9 keeps the fix status in gps_data_t")
-                self.assertLacks(pair, "GPSExtendedFix", "status",
+                self.assertLacks(pair, "GPSDFix", "status",
                                  "status does not reach gps_fix_t until API 10")
             else:
-                self.assertLacks(pair, "GPSExtendedRaw", "status",
+                self.assertLacks(pair, "GPSDRaw", "status",
                                  "status left gps_data_t at API 10")
-                self.assertHas(pair, "GPSExtendedFix", "status",
+                self.assertHas(pair, "GPSDFix", "status",
                                "status lives in gps_fix_t from API 10 on")
 
     def test_leap_seconds_arrives_at_9_1(self):
         # The entire content of the 9.0 -> 9.1 bump.
-        self.assertLacks((9, 0), "GPSExtendedRaw", "leap_seconds", "added at API 9.1")
+        self.assertLacks((9, 0), "GPSDRaw", "leap_seconds", "added at API 9.1")
         for pair in ALL_PAIRS:
             if pair >= (9, 1):
-                self.assertHas(pair, "GPSExtendedRaw", "leap_seconds",
+                self.assertHas(pair, "GPSDRaw", "leap_seconds",
                                "present from API 9.1 on")
 
     def test_baseline_message_only_exists_from_13_0(self):
         # API 13 added struct baseline_t and gps_fix_t::base. Before that the
         # message must not exist at all, not merely be empty.
         for pair in ALL_PAIRS:
-            fields = message_fields(pair, "GPSExtendedBaseline")
+            fields = message_fields(pair, "GPSDBaseline")
             if pair >= (13, 0):
                 self.assertIsNotNone(fields, f"API {pair}: baseline_t exists from 13.0")
-                self.assertHas(pair, "GPSExtendedFix", "base", "gps_fix_t::base added at API 13")
+                self.assertHas(pair, "GPSDFix", "base", "gps_fix_t::base added at API 13")
             else:
                 self.assertIsNone(fields, f"API {pair}: baseline_t did not exist yet")
-                self.assertLacks(pair, "GPSExtendedFix", "base", "gps_fix_t::base added at API 13")
+                self.assertLacks(pair, "GPSDFix", "base", "gps_fix_t::base added at API 13")
 
     def test_api_14_gps_fix_t_additions(self):
         # These six landed *within* API 14.0 (after 3.24 shipped), which is the
@@ -135,9 +135,9 @@ class ManualExpectations(unittest.TestCase):
         # must carry them at 14.0 and must not at 13.0.
         late_14 = ("jam", "temp", "wtemp", "ant_stat", "clockbias", "clockdrift")
         for field in late_14:
-            self.assertHas((14, 0), "GPSExtendedFix", field,
+            self.assertHas((14, 0), "GPSDFix", field,
                            "added mid-pair within API 14.0 (gpsd 3.25/3.26)")
-            self.assertLacks((13, 0), "GPSExtendedFix", field, "not present at API 13")
+            self.assertLacks((13, 0), "GPSDFix", field, "not present at API 13")
 
     def test_api_16_gps_fix_t_additions(self):
         # Listed in the gps.h "15" changelog stanza, but API 15 never existed --
@@ -145,15 +145,15 @@ class ManualExpectations(unittest.TestCase):
         for field in ("ant_power", "err_ellipse_orient", "err_ellipse_major",
                       "err_ellipse_minor"):
             for pair in ((16, 0), (16, 1)):
-                self.assertHas(pair, "GPSExtendedFix", field,
+                self.assertHas(pair, "GPSDFix", field,
                                "arrives with API 16 (the never-released '15' stanza)")
-            self.assertLacks((14, 0), "GPSExtendedFix", field, "not present at API 14")
+            self.assertLacks((14, 0), "GPSDFix", field, "not present at API 14")
 
     def test_api_14_satellite_additions(self):
         # "Add prRes, prRate, pr, and qualityInd to satellite_t" (API 14).
         for field in ("pr_res", "pr_rate", "pr", "quality_ind"):
-            self.assertHas((14, 0), "GPSExtendedSatellite", field, "added to satellite_t at API 14")
-            self.assertLacks((12, 0), "GPSExtendedSatellite", field, "not present at API 12")
+            self.assertHas((14, 0), "GPSDSatellite", field, "added to satellite_t at API 14")
+            self.assertLacks((12, 0), "GPSDSatellite", field, "not present at API 12")
 
     def test_fields_present_in_every_version(self):
         # The core of a fix. If any of these ever goes missing the generator is
@@ -161,14 +161,14 @@ class ManualExpectations(unittest.TestCase):
         for pair in ALL_PAIRS:
             for field in ("latitude", "longitude", "altitude", "alt_hae", "alt_msl",
                           "track", "speed", "climb", "mode", "ecef", "ned"):
-                self.assertHas(pair, "GPSExtendedFix", field, "core gps_fix_t member")
+                self.assertHas(pair, "GPSDFix", field, "core gps_fix_t member")
             for field in ("set", "online", "fix", "dop", "skyview",
                           "skyview_time", "satellites_used", "satellites_visible"):
-                self.assertHas(pair, "GPSExtendedRaw", field, "core Tier A member")
+                self.assertHas(pair, "GPSDRaw", field, "core Tier A member")
             for field in ("prn", "elevation", "azimuth", "ss", "used", "gnssid"):
-                self.assertHas(pair, "GPSExtendedSatellite", field, "core satellite_t member")
+                self.assertHas(pair, "GPSDSatellite", field, "core satellite_t member")
             for field in ("xdop", "ydop", "pdop", "hdop", "vdop", "tdop", "gdop"):
-                self.assertHas(pair, "GPSExtendedDop", field, "dop_t is stable across the range")
+                self.assertHas(pair, "GPSDDop", field, "dop_t is stable across the range")
 
     # --- Tier B ----------------------------------------------------------
 
@@ -176,30 +176,30 @@ class ManualExpectations(unittest.TestCase):
         # "Add fixsource_t, watch_t, set_pending to gps_data_t" (API 14).
         for pair in ALL_PAIRS:
             if pair >= (14, 0):
-                self.assertHas(pair, "GPSExtendedRaw", "source", "fixsource_t added at API 14")
-                self.assertHas(pair, "GPSExtendedRaw", "watch", "watch_t added at API 14")
+                self.assertHas(pair, "GPSDRaw", "source", "fixsource_t added at API 14")
+                self.assertHas(pair, "GPSDRaw", "watch", "watch_t added at API 14")
             else:
-                self.assertLacks(pair, "GPSExtendedRaw", "source", "not present before API 14")
-                self.assertLacks(pair, "GPSExtendedRaw", "watch", "not present before API 14")
+                self.assertLacks(pair, "GPSDRaw", "source", "not present before API 14")
+                self.assertLacks(pair, "GPSDRaw", "watch", "not present before API 14")
 
     def test_imu_arrives_at_api_12(self):
         # "add imu[], and matching IMU_SET flag" (API 12). attitude_t::msg
         # arrived with it, which is what the parser uses to find the count.
         for pair in ALL_PAIRS:
             if pair >= (12, 0):
-                self.assertHas(pair, "GPSExtendedRaw", "imu", "imu[] added at API 12")
-                self.assertHas(pair, "GPSExtendedAttitude", "msg",
+                self.assertHas(pair, "GPSDRaw", "imu", "imu[] added at API 12")
+                self.assertHas(pair, "GPSDAttitude", "msg",
                                "attitude_t::msg terminates imu[]; added at API 12")
             else:
-                self.assertLacks(pair, "GPSExtendedRaw", "imu", "imu[] added at API 12")
+                self.assertLacks(pair, "GPSDRaw", "imu", "imu[] added at API 12")
 
     def test_devices_present_in_every_version(self):
         # Unlike source/watch/imu, gps_data_t has carried devices since API 9,
         # which is why the parser fills it without a version guard.
         for pair in ALL_PAIRS:
-            self.assertHas(pair, "GPSExtendedRaw", "devices", "present since API 9")
-            self.assertHas(pair, "GPSExtendedRawDevices", "ndevices", "the list's count")
-            self.assertHas(pair, "GPSExtendedRawDevices", "list", "the device array")
+            self.assertHas(pair, "GPSDRaw", "devices", "present since API 9")
+            self.assertHas(pair, "GPSDRawDevices", "ndevices", "the list's count")
+            self.assertHas(pair, "GPSDRawDevices", "list", "the device array")
 
     def test_fixsource_publishes_spec_but_no_pointers(self):
         # server/server_ip/port/device are const char* aimed at caller memory
@@ -208,9 +208,9 @@ class ManualExpectations(unittest.TestCase):
         for pair in ALL_PAIRS:
             if pair < (14, 0):
                 continue
-            self.assertHas(pair, "GPSExtendedFixsource", "spec", "a real char array")
+            self.assertHas(pair, "GPSDFixsource", "spec", "a real char array")
             for pointer in ("server", "server_ip", "port", "device"):
-                self.assertLacks(pair, "GPSExtendedFixsource", pointer,
+                self.assertLacks(pair, "GPSDFixsource", pointer,
                                  "pointer into caller memory, never published")
 
     def test_tier_b_core_members(self):
@@ -219,12 +219,12 @@ class ManualExpectations(unittest.TestCase):
                           "q_err", "q_err_time", "devices"):
                 if field in ("gst",) and pair < (10, 0):
                     continue
-                self.assertHas(pair, "GPSExtendedRaw", field, "Tier B member")
+                self.assertHas(pair, "GPSDRaw", field, "Tier B member")
 
     def test_header_is_first_field_everywhere(self):
-        # The spec: every GPSExtendedRaw carries a ROS header, following GPSFix.msg.
+        # The spec: every GPSDRaw carries a ROS header, following GPSFix.msg.
         for pair in ALL_PAIRS:
-            self.assertEqual(message_fields(pair, "GPSExtendedRaw")[0], "header")
+            self.assertEqual(message_fields(pair, "GPSDRaw")[0], "header")
 
     def test_mask_constants_track_their_version(self):
         # Bit assignments are append-only (plan 1.5), so newer pairs define
@@ -293,7 +293,7 @@ class ManualExpectations(unittest.TestCase):
         src = gen.strip_comments(read_gps_h(gen.REFERENCE_REVS[pair]))
         greedy = tuple(gen.TIER_A_MEMBERS) + gen.EXCLUDED_MEMBERS
         model = gen.build_model(pair, src, greedy)
-        fields = [f.name for f in model.messages[f"GPSExtendedRaw{pair[0]}v{pair[1]}"]]
+        fields = [f.name for f in model.messages[f"GPSDRaw{pair[0]}v{pair[1]}"]]
         for excluded in gen.EXCLUDED_MEMBERS:
             self.assertNotIn(gen.snake_case(excluded), fields,
                              f"{excluded} was requested by the tier but must "
@@ -305,7 +305,7 @@ class ManualExpectations(unittest.TestCase):
 
     def test_excluded_members_are_absent_everywhere(self):
         for pair in ALL_PAIRS:
-            fields = message_fields(pair, "GPSExtendedRaw")
+            fields = message_fields(pair, "GPSDRaw")
             for excluded in ("gps_fd", "update_fd", "privdata", "set_pending"):
                 self.assertNotIn(gen.snake_case(excluded), fields,
                                  f"API {pair}: {excluded} is process-local, never published")
@@ -418,17 +418,17 @@ class Completeness(unittest.TestCase):
     # excluded, so "message absent" and "struct absent" must agree.
     STRUCT_TO_MESSAGE = {
         # Tier A
-        "gps_fix_t": "GPSExtendedFix",
-        "satellite_t": "GPSExtendedSatellite",
-        "dop_t": "GPSExtendedDop",
+        "gps_fix_t": "GPSDFix",
+        "satellite_t": "GPSDSatellite",
+        "dop_t": "GPSDDop",
         # Tier B
-        "devconfig_t": "GPSExtendedDevconfig",
-        "gps_policy_t": "GPSExtendedPolicy",
-        "gst_t": "GPSExtendedGst",
-        "attitude_t": "GPSExtendedAttitude",
-        "gps_log_t": "GPSExtendedLog",
-        "timedelta_t": "GPSExtendedTimedelta",
-        "fixsource_t": "GPSExtendedFixsource",
+        "devconfig_t": "GPSDDevconfig",
+        "gps_policy_t": "GPSDPolicy",
+        "gst_t": "GPSDGst",
+        "attitude_t": "GPSDAttitude",
+        "gps_log_t": "GPSDLog",
+        "timedelta_t": "GPSDTimedelta",
+        "fixsource_t": "GPSDFixsource",
     }
 
     def test_every_struct_member_reaches_its_message(self):
@@ -457,14 +457,14 @@ class Completeness(unittest.TestCase):
         for pair in ALL_PAIRS:
             src = read_gps_h(gen.REFERENCE_REVS[pair])
             declared = scan_struct_members(src, "gps_data_t")
-            fields = message_fields(pair, "GPSExtendedRaw")
+            fields = message_fields(pair, "GPSDRaw")
             for member in sorted(declared):
                 if member in gen.EXCLUDED_MEMBERS or member not in gen.TIER_A_MEMBERS:
                     continue
                 self.assertIn(
                     gen.snake_case(member), fields,
                     f"API {pair[0]}.{pair[1]}: gps_data_t.{member} is Tier A but "
-                    f"has no field in GPSExtendedRaw")
+                    f"has no field in GPSDRaw")
 
     def test_scanner_disagrees_with_nothing_it_should_agree_with(self):
         # Guard on the guard: if the independent scanner silently returned
@@ -506,7 +506,7 @@ class FieldTypes(unittest.TestCase):
 
     # Types that must hold for these fields in every supported API pair.
     STABLE = {
-        "GPSExtendedRaw": {
+        "GPSDRaw": {
             "header": "std_msgs/Header",
             "set": "uint64",                       # gps_mask_t, verbatim
             "online": "builtin_interfaces/Time",   # timespec_t
@@ -514,7 +514,7 @@ class FieldTypes(unittest.TestCase):
             "satellites_used": "int32",
             "satellites_visible": "int32",
         },
-        "GPSExtendedFix": {
+        "GPSDFix": {
             "time": "builtin_interfaces/Time",
             "mode": "int32",
             "latitude": "float64",
@@ -529,7 +529,7 @@ class FieldTypes(unittest.TestCase):
             "epv": "float64",
             "ept": "float64",
         },
-        "GPSExtendedSatellite": {
+        "GPSDSatellite": {
             "prn": "int16",       # int16_t
             "elevation": "float64",
             "azimuth": "float64",
@@ -538,7 +538,7 @@ class FieldTypes(unittest.TestCase):
             "gnssid": "uint8",    # uint8_t
             "freqid": "int8",     # int8_t
         },
-        "GPSExtendedDop": {name: "float64" for name in
+        "GPSDDop": {name: "float64" for name in
                     ("xdop", "ydop", "pdop", "hdop", "vdop", "tdop", "gdop")},
     }
 
@@ -556,25 +556,25 @@ class FieldTypes(unittest.TestCase):
                         f"{ros_type}, got {actual[name]}")
 
     def test_sub_message_references_are_version_suffixed(self):
-        # A GPSExtendedRaw16v1 pointing at GPSExtendedFix14v0 would compile and be wrong.
+        # A GPSDRaw16v1 pointing at GPSDFix14v0 would compile and be wrong.
         for pair in ALL_PAIRS:
             suffix = f"{pair[0]}v{pair[1]}"
-            raw = message_typed_fields(pair, "GPSExtendedRaw")
-            self.assertEqual(raw["fix"], f"GPSExtendedFix{suffix}")
-            self.assertEqual(raw["dop"], f"GPSExtendedDop{suffix}")
-            self.assertEqual(raw["skyview"], f"GPSExtendedSatellite{suffix}[]")
-            fix = message_typed_fields(pair, "GPSExtendedFix")
-            self.assertEqual(fix["ecef"], f"GPSExtendedFixEcef{suffix}")
-            self.assertEqual(fix["ned"], f"GPSExtendedFixNed{suffix}")
+            raw = message_typed_fields(pair, "GPSDRaw")
+            self.assertEqual(raw["fix"], f"GPSDFix{suffix}")
+            self.assertEqual(raw["dop"], f"GPSDDop{suffix}")
+            self.assertEqual(raw["skyview"], f"GPSDSatellite{suffix}[]")
+            fix = message_typed_fields(pair, "GPSDFix")
+            self.assertEqual(fix["ecef"], f"GPSDFixEcef{suffix}")
+            self.assertEqual(fix["ned"], f"GPSDFixNed{suffix}")
             if "base" in fix:
-                self.assertEqual(fix["base"], f"GPSExtendedBaseline{suffix}")
+                self.assertEqual(fix["base"], f"GPSDBaseline{suffix}")
 
     def test_skyview_is_an_unbounded_array(self):
         # D4: MAXCHANNELS is 140 or 184 depending on the rev and is not a
         # function of the API pair, so it must not appear in any message type.
         for pair in ALL_PAIRS:
             self.assertTrue(
-                message_typed_fields(pair, "GPSExtendedRaw")["skyview"].endswith("[]"))
+                message_typed_fields(pair, "GPSDRaw")["skyview"].endswith("[]"))
         for path, text in generated().items():
             if path.endswith(".msg"):
                 self.assertNotRegex(text, r"\[\s*\d+\s*\]",
@@ -582,7 +582,7 @@ class FieldTypes(unittest.TestCase):
 
     def test_char_array_becomes_string(self):
         for pair in ALL_PAIRS:
-            fix = message_typed_fields(pair, "GPSExtendedFix")
+            fix = message_typed_fields(pair, "GPSDFix")
             if "datum" in fix:              # char datum[40]
                 self.assertEqual(fix["datum"], "string")
 
@@ -699,11 +699,11 @@ class CheckedInFilesAreUpToDate(unittest.TestCase):
                          "stale generated files; rerun tools/generate_raw_msgs.py")
 
     def test_every_generated_message_is_listed_for_rosidl(self):
-        # gps_extended_msgs globs msg/GPSExtended*.msg, so a message whose name did not match
+        # gps_extended_msgs globs msg/GPSD*.msg, so a message whose name did not match
         # the glob would generate cleanly and then never be built.
         for path in generated():
             if path.endswith(".msg"):
-                self.assertRegex(os.path.basename(path), r"^GPSExtended.*\.msg$",
+                self.assertRegex(os.path.basename(path), r"^GPSD.*\.msg$",
                                  f"{path} would not be picked up by the glob "
                                  f"in gps_extended_msgs/CMakeLists.txt")
 
@@ -716,7 +716,7 @@ class CheckedInFilesAreUpToDate(unittest.TestCase):
             self.assertIn(path, generated(), f"API {pair} has no CI workflow")
             body = generated()[path]
             self.assertIn(f"name: gpsd API {pair[0]}.{pair[1]}", body)
-            self.assertIn(f"msg: 'GPSExtendedRaw{pair[0]}v{pair[1]}'", body)
+            self.assertIn(f"msg: 'GPSDRaw{pair[0]}v{pair[1]}'", body)
             # Must call the shared workflow, not carry its own copy of the logic.
             self.assertIn("uses: ./.github/workflows/gpsd_api_shared.yml", body)
             # The revision must be the one the message was generated from.
@@ -728,7 +728,7 @@ class CheckedInFilesAreUpToDate(unittest.TestCase):
 
         rosidl derives the C struct name by normalising a run of capitals
         (NED -> Ned) but writes the name as authored into the *referencing*
-        message's header. A name like GPSExtendedFixNED16v1 therefore yields
+        message's header. A name like GPSDFixNED16v1 therefore yields
         two spellings that disagree, and the generated C fails to build with
         "unknown type name". Caught the hard way; guarded here.
         """
@@ -788,7 +788,7 @@ class GeneratedParserCode(unittest.TestCase):
                 f"#include <gpsd_client/parsers/generated/"
                 f"gpsd_raw_fill_{pair[0]}v{pair[1]}.hpp>", ladder)
             self.assertIn(
-                f"using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw{pair[0]}v{pair[1]};",
+                f"using GpsdRawMsg = gps_extended_msgs::msg::GPSDRaw{pair[0]}v{pair[1]};",
                 ladder)
         # Matches the policy in gpsd_parser_factory.cpp: hard error below the
         # minimum, warn and fall back to newest above the maximum.
@@ -835,11 +835,11 @@ class GeneratedParserCode(unittest.TestCase):
         for pair in ALL_PAIRS:
             source = self.parser_source(pair)
             suffix = f"{pair[0]}v{pair[1]}"
-            self.assertIn(f"#include <gps_extended_msgs/msg/gps_extended_raw{suffix}.hpp>", source)
-            self.assertIn(f"#include <gps_extended_msgs/msg/gps_extended_fix{suffix}.hpp>", source)
+            self.assertIn(f"#include <gps_extended_msgs/msg/gpsd_raw{suffix}.hpp>", source)
+            self.assertIn(f"#include <gps_extended_msgs/msg/gpsd_fix{suffix}.hpp>", source)
             # The acronym split is the part that is easy to regress.
-            self.assertNotIn("gpsextendedraw", source)
-            self.assertNotIn("gpsextendedfix", source)
+            self.assertNotIn("gpsdraw", source)
+            self.assertNotIn("gpsdfix", source)
 
 
 if __name__ == "__main__":

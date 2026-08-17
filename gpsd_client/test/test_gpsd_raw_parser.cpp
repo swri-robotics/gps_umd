@@ -142,7 +142,7 @@ TEST(GpsdRawParser, PreservesNanRatherThanZeroing)
 
 TEST(GpsdRawParser, CarriesTheSetMaskVerbatim)
 {
-  // D5/D10: the mask is copied undecoded, so a consumer can tell that gpsd
+  // The mask is copied undecoded, so a consumer can tell that gpsd
   // reported something this message does not carry -- AIS above all.
   gps_data_t data = gpsd_client::test::makeEmptyData();
   data.set = LATLON_SET | AIS_SET;
@@ -172,7 +172,7 @@ TEST(GpsdRawParser, FixStatusIsCarriedWhereverThisVersionKeepsIt)
 #endif
 }
 
-// --- Tier B arrays -------------------------------------------------------
+// --- Sensor and device arrays -------------------------------------------------------
 
 // gps_data_t has carried `devices` since API 9, so this needs no guard --
 // unlike the imu[] and fixsource_t tests below, which arrived later.
@@ -289,7 +289,7 @@ TEST(GpsdRawParser, ATerminatedCharArrayStopsAtTheTerminator)
 
 // --- Time transfer: TOFF, PPS and qErr ------------------------------------
 //
-// These three are reachable *only* from tier 1. gpsd's whole 196-log corpus
+// These three are reachable only from the library-only tests. gpsd's whole 196-log corpus
 // contains no TOFF or PPS report, because they do not come from the receiver's
 // data stream at all -- they are produced by the daemon from a PPS signal on a
 // real serial line. gpsfake replays recorded device output, so it can never
@@ -394,7 +394,7 @@ TEST(GpsdRawParser, ToffAndPpsFillIndependently)
   EXPECT_EQ(msg.q_err, 7);
 }
 
-// --- Tier C union dispatch (D16) -----------------------------------------
+// --- Report union dispatch -----------------------------------------
 
 TEST(GpsdRawParser, ReportUnionFillsOnlyTheArmTheMaskNames)
 {
@@ -523,7 +523,7 @@ TEST(GpsdRawParser, Rtcm2TypeSelectsItsArm)
 {
   // rtcm2_t's union is anonymous, so its arms sit alongside the discriminator
   // rather than one level down. The names give no hint of the type, so the
-  // mapping is a curated table read off gpsd's own dumper (D16).
+  // mapping is a curated table read off gpsd's own dumper.
   gps_data_t data = gpsd_client::test::makeEmptyData();
   data.set = RTCM2_SET;
   data.rtcm2.type = 14;                 // GPS time of week

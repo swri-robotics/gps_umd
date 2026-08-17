@@ -1,4 +1,4 @@
-/// Tests for the tier-1 JSON fixture harness, and for the parsers driven by it.
+/// Tests for the JSON fixture harness, and for the parsers driven by it.
 ///
 /// Two jobs:
 ///   1. Prove the harness itself behaves -- that gps_unpack() populates what we

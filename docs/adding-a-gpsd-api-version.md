@@ -6,8 +6,9 @@ the procedure. It is short because the generator does most of it; the parts
 that need judgement are called out, and every one of them has bitten this
 package at least once.
 
-Read `gpsd-raw-messages-plan.md` first if you have not — this document assumes
-its vocabulary (tiers, the `set` mask, D-numbered decisions).
+Read [gpsd-raw-message-structure.md](gpsd-raw-message-structure.md) and
+[gpsd-quirks.md](gpsd-quirks.md) first if you have not — this document assumes
+the message layout and the gpsd behaviours they describe.
 
 ## 0. The one thing to internalise
 
@@ -173,9 +174,11 @@ Hand-maintained, so do these yourself:
 
 * the API coverage table in [README.md](../README.md) — add a row with the
   revision, the message name and a badge pointing at the new workflow
-* the API ↔ release table in `gpsd-raw-messages-plan.md` §1.1
-* a note in §1.7 if the new pair spans a range where fields appeared without a
-  bump — that section is the record of exactly this hazard
+* the version tables in
+  [gpsd-raw-message-structure.md](gpsd-raw-message-structure.md) — the
+  per-version message counts and any family that appears or disappears
+* a note in [gpsd-quirks.md](gpsd-quirks.md) if the new pair spans a range
+  where fields appeared without a bump
 
 Do **not** touch `CHANGELOG.rst`. Those are generated from commit history by a
 separate release tool; edit them by hand and your entry is clobbered or

@@ -1,7 +1,7 @@
 #ifndef GPSD_CLIENT__TEST__GPSD_JSON_FIXTURE_HPP_
 #define GPSD_CLIENT__TEST__GPSD_JSON_FIXTURE_HPP_
 
-/// Tier-1 test harness: build gps_data_t from gpsd's own JSON.
+/// Library-only test harness: build gps_data_t from gpsd's own JSON.
 ///
 /// gps.h publicly declares
 ///

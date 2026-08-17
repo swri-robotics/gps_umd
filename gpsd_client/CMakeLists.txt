@@ -149,7 +149,7 @@ if(BUILD_TESTING)
   # Covers the generated fill code and the raw parser. Its first include is
   # <gps.h>, which also serves as the standing regression test that a
   # generated message header survives being parsed after gps.h -- the
-  # collision D9's constant renaming exists to prevent.
+  # collision the constant renaming exists to prevent.
   ament_add_gtest(test_gpsd_raw_parser
     test/test_gpsd_raw_parser.cpp
     test/gpsd_json_fixture.cpp
@@ -170,10 +170,10 @@ if(BUILD_TESTING)
     target_compile_definitions(${target} PRIVATE ${GPSD_FEATURE_DEFINES})
   endforeach()
 
-  # Tier 2: gpsfake -> real gpsd -> this node -> ROS topics.
+  # End-to-end: gpsfake -> real gpsd -> this node -> ROS topics.
   #
   # Skips itself unless pointed at a gpsd built with the daemon and Python
-  # module (GPSD_TIER2_PREFIX) and a source checkout for the log corpus
+  # module (GPSD_E2E_PREFIX) and a source checkout for the log corpus
   # (GPSD_REPO), neither of which exists on the build farm. See the test's
   # docstring for how to run it.
   #

@@ -1,6 +1,7 @@
 /// Proves the generated raw messages survive being parsed after gps.h.
 ///
-/// This is D9's whole point, and it needs its own translation unit to mean
+/// This is the whole point of the constant renaming, and it needs its own
+/// translation unit to mean
 /// anything. gps.h defines every mask bit (`LATLON_SET`), the fix statuses
 /// (`STATUS_RTK_FIX`) and `SET_HIGH_BIT` as plain object-like macros, while
 /// rosidl emits message constants as `static constexpr` members. A generated

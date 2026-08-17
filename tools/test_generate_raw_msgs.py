@@ -84,7 +84,7 @@ class SplitMembers(unittest.TestCase):
     def test_anonymous_union_members_are_spliced_into_parent(self):
         # C11 6.7.2.1: an anonymous union injects its members into the
         # enclosing scope. gps_data_t relies on this for the report arms, and
-        # it is what lets the tier filters and the AIS exclusion match by name.
+        # it is what lets the scope filters and the AIS exclusion match by name.
         members = self.parse(
             "struct gst_t gst; union { struct rtcm2_t rtcm2; "
             "struct ais_t ais; char error[256]; }; int leap_seconds;")
@@ -141,7 +141,7 @@ class MaskConstants(unittest.TestCase):
     def test_union_is_resolved_and_keeps_ais(self):
         constants = dict(gen.mask_constants(self.SRC))
         self.assertEqual(constants["SET_UNION"], str((1 << 24) | (1 << 31)))
-        # AIS is not published (D10) but the constant must still mean what
+        # AIS is not published, but the constant must still mean what
         # gps.h says, so consumers can detect an omitted AIS report.
         self.assertIn("SET_AIS", constants)
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tier 2 end-to-end tests: gpsfake -> real gpsd -> gpsd_client -> ROS topics.
+"""End-to-end tests: gpsfake -> real gpsd -> gpsd_client -> ROS topics.
 
 The other suites in this package stop at libgps: they hand JSON to
 ``gps_unpack()`` and inspect the resulting ``gps_data_t``. That covers parsing
@@ -26,10 +26,10 @@ and neither holds on the ROS build farm:
     since every other suite needs only libgps.
   * gpsd's log corpus, i.e. a source checkout.
 
-Point ``GPSD_TIER2_PREFIX`` at the install prefix of such a build and
+Point ``GPSD_E2E_PREFIX`` at the install prefix of such a build and
 ``GPSD_REPO`` at the matching source clone::
 
-    GPSD_TIER2_PREFIX=/opt/gpsd-3.27.5 GPSD_REPO=/src/gpsd \\
+    GPSD_E2E_PREFIX=/opt/gpsd-3.27.5 GPSD_REPO=/src/gpsd \\
         colcon test --packages-select gpsd_client
 
 Note "matching": gpsfake asserts its Python module and the daemon are the same
@@ -52,7 +52,7 @@ import unittest
 # "no daemon at ..." is actionable, "ImportError" is not.
 # --------------------------------------------------------------------------
 
-TIER2_PREFIX = os.environ.get("GPSD_TIER2_PREFIX", "")
+E2E_PREFIX = os.environ.get("GPSD_E2E_PREFIX", "")
 GPSD_REPO = os.environ.get("GPSD_REPO", "")
 LOG_DIR = os.path.join(GPSD_REPO, "test", "daemon") if GPSD_REPO else ""
 
@@ -63,24 +63,23 @@ EXPECTED_RAW_MSG = os.environ.get("GPSD_EXPECTED_RAW_MSG", "")
 
 
 def _find(*relative):
-    """First existing path under the tier-2 prefix, or ''."""
+    """First existing path under the gpsd prefix, or ''."""
     for rel in relative:
-        candidate = os.path.join(TIER2_PREFIX, rel)
+        candidate = os.path.join(E2E_PREFIX, rel)
         if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
             return candidate
     return ""
 
 
-DAEMON = _find("sbin/gpsd", "bin/gpsd") if TIER2_PREFIX else ""
-GPSFAKE = _find("bin/gpsfake") if TIER2_PREFIX else ""
+DAEMON = _find("sbin/gpsd", "bin/gpsd") if E2E_PREFIX else ""
+GPSFAKE = _find("bin/gpsfake") if E2E_PREFIX else ""
 
 
 def _python_module_dir():
-    """Where the tier-2 build put the 'gps' Python module.
+    """Where the gpsd build put the 'gps' Python module.
 
-    scons installs it to the interpreter's site-packages rather than under
-    prefix, so it is found by import rather than by path -- but it must be the
-    *tier-2* one, not a system gpsfake of another version.
+    Resolve it by import rather than by path, but require the one belonging
+    to this build rather than a system gpsfake of another version.
     """
     try:
         import gps  # noqa: F401
@@ -110,13 +109,13 @@ DAEMON_VERSION = _daemon_version()
 
 def skip_reason():
     """Why this suite cannot run here, or None if it can."""
-    if not TIER2_PREFIX:
-        return ("GPSD_TIER2_PREFIX is unset -- needs a gpsd built with "
+    if not E2E_PREFIX:
+        return ("GPSD_E2E_PREFIX is unset -- needs a gpsd built with "
                 "gpsd=True python=True")
     if not DAEMON:
-        return f"no gpsd daemon under {TIER2_PREFIX} (sbin/gpsd, bin/gpsd)"
+        return f"no gpsd daemon under {E2E_PREFIX} (sbin/gpsd, bin/gpsd)"
     if not GPSFAKE:
-        return f"no gpsfake under {TIER2_PREFIX}/bin"
+        return f"no gpsfake under {E2E_PREFIX}/bin"
     if GPS_PY_VERSION is None:
         return "the 'gps' Python module is not importable"
     if not GPSD_REPO:
@@ -238,10 +237,10 @@ class Session:
     def _env(self):
         env = os.environ.copy()
         # gps.fake locates the daemon through GPSD_HOME before falling back to
-        # PATH, so this pins it to the tier-2 build rather than any system one.
+        # PATH, so this pins it to the build under test rather than any system onee.
         env["GPSD_HOME"] = os.path.dirname(DAEMON)
         env["PATH"] = os.path.dirname(GPSFAKE) + os.pathsep + env.get("PATH", "")
-        lib = os.path.join(TIER2_PREFIX, "lib")
+        lib = os.path.join(E2E_PREFIX, "lib")
         if os.path.isdir(lib):
             env["LD_LIBRARY_PATH"] = lib + os.pathsep + env.get("LD_LIBRARY_PATH", "")
         return env
@@ -397,7 +396,7 @@ class EndToEnd(unittest.TestCase):
         return self.session.messages.get("/gpsd_raw", [])
 
     def test_all_three_topics_publish(self):
-        # The point of tier 2: none of this is reachable from a unit test,
+        # None of this is reachable from a library-only test:
         # because none of it exists until a node is running.
         for topic in ("/fix", "/extended_fix", "/gpsd_raw"):
             self.assertTrue(
@@ -473,7 +472,7 @@ class EndToEnd(unittest.TestCase):
 
 @unittest.skipIf(SKIP, SKIP or "")
 class GstReports(unittest.TestCase):
-    """gr8013-w.log carries GST, which reaches the Tier B `gst` member."""
+    """gr8013-w.log carries GST, which reaches the `gst` member."""
 
     @classmethod
     def setUpClass(cls):
@@ -498,7 +497,7 @@ class GstReports(unittest.TestCase):
 
 @unittest.skipIf(SKIP, SKIP or "")
 class AttitudeReports(unittest.TestCase):
-    """tnt-revolution.log carries ATT, which reaches the Tier B `attitude` member.
+    """tnt-revolution.log carries ATT, which reaches the `attitude` member.
 
     The log choice matters. tnt-revolution is a dedicated heading sensor: 60 of
     its 120 reports are ATT, the first arrives at report 2, and the whole log
@@ -508,11 +507,11 @@ class AttitudeReports(unittest.TestCase):
     A log whose ATT reports sit past the capture window would skip forever and
     report that as success, so prefer density near the start over total count.
 
-    On the API this tier runs, `attitude` sits past the union's closing brace
+    On the API this suite runs, `attitude` sits past the union's closing brace
     and UNION_SET omits ATTITUDE_SET, so no following report clobbers it and
     the CYCLE rationale on Session does not apply. attitude left the union at
-    API 12.0, so on API 9-11 it is union-carried and CYCLE would matter; tier 2
-    runs one recent version and never meets that case.
+    API 12.0, so on API 9-11 it is union-carried and CYCLE would matter; this
+    suite runs one recent version and never meets that case.
     """
 
     # Every ATT report in this log carries all five, in disjoint ranges

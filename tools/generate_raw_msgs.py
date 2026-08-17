@@ -8,12 +8,11 @@ never gain a libgps dependency. Regenerating is a
 deliberate, reviewed act, and CI runs ``--check`` so the checked-in output
 cannot drift from this script.
 
-Design decisions this implements live in docs/gpsd-raw-messages-plan.md; the
-ones that constrain the code most are D1 (no libgps in the message package),
-D2 (generated,
-not hand-written), D3 (version-suffixed sub-messages), D5 (union arms selected
-by the ``set`` mask), D9 (``SET_<NAME>`` constants), D10 (no AIS) and D11
-(absent members detected in C++).
+The rules that constrain this script most: the message package never gains a
+libgps dependency, messages are generated rather than hand-written, every
+sub-message carries the version suffix, union arms are selected by the ``set``
+mask, the mask constants are renamed ``SET_<NAME>``, AIS is out of scope, and
+absent members are detected in C++ rather than assumed.
 
 
 Why a commit and not an API version
@@ -29,7 +28,7 @@ the next bump. Both of these are real:
 
 So a message generated from a pair's last rev is a *superset* of what some
 libgps reporting that same pair provides, and generated parser code must guard
-every field with the C++ detection idiom rather than assume presence (D11).
+every field with the C++ detection idiom rather than assume presence.
 
 Do not trust the changelog comment block at the top of gps.h for values. It
 claims MAXCHANNELS went to 185 and then 230; no release ever shipped either.
@@ -60,9 +59,9 @@ Applied uniformly so generated output can be checked against a stated rule.
                                                             duration or a TOW
   gps_mask_t               uint64                           verbatim, undecoded
   gnssid_t (API 16+)       uint8                            was unsigned char
-  struct X                 GPSD<X><MAJOR>v<MINOR>           D3
-  struct X arr[N]          GPSD<X><MAJOR>v<MINOR>[]         unbounded, D4
-  C union                  mask + all arms, one populated   D5
+  struct X                 GPSD<X><MAJOR>v<MINOR>
+  struct X arr[N]          GPSD<X><MAJOR>v<MINOR>[]         unbounded
+  C union                  mask + all arms, one populated
   NaN sentinel             float64 NaN preserved            gpsd uses NaN for
                                                             "unknown"; never zero
 
@@ -73,7 +72,7 @@ not a function of the API pair, so baking it in would be ambiguous as well as
 wasteful.
 
 The ``set`` bitmask constants are emitted as uint64 message constants, renamed
-``<NAME>_SET`` -> ``SET_<NAME>`` (D9). The rename is forced: rosidl emits
+``<NAME>_SET`` -> ``SET_<NAME>``. The rename is forced: rosidl emits
 constants as ``static constexpr`` members, gps.h defines the gpsd spellings as
 global macros, and a member named STATUS_SET in a header parsed after gps.h is
 destroyed by the preprocessor. gps.h defines no SET_* macros, so the flipped
@@ -90,7 +89,7 @@ else in gps_data_t must be mapped or the header-audit test fails the build.
 
 # Members of gps_data_t that are deliberately never published.
 #
-# ais       -- D10. struct ais_t is a ~two-dozen-arm tagged union of marine
+# ais       -- out of scope. struct ais_t is a ~two-dozen-arm tagged union of marine
 #              vessel traffic, the largest and least relevant thing in gps.h.
 #              SET_AIS is still emitted and `set` still carries the bit, so an
 #              omitted AIS report stays detectable by consumers.
@@ -109,7 +108,7 @@ EXCLUDED_MEMBERS = (
 # API (major, minor) -> the gpsd revision the message is generated from.
 #
 # Released pairs use the *last* release carrying that pair, so the message is
-# the superset of what any libgps reporting the pair provides (see D11 for how
+# the superset of what any libgps reporting the pair provides (see below for how
 # parsers cope with the older members being absent).
 #
 # 9.1, 10.1 and 13.0 shipped in no release at all; they are pinned to
@@ -159,7 +158,7 @@ REFERENCE_REVS = {
 }
 
 # MAXCHANNELS at each reference rev, recorded only as a cross-check that the
-# rev was read correctly -- it is never emitted into a message (D4).
+# rev was read correctly -- it is never emitted into a message.
 EXPECTED_MAXCHANNELS = {
     (9, 0): 140,
     (9, 1): 140,
@@ -173,9 +172,9 @@ EXPECTED_MAXCHANNELS = {
     (16, 1): 184,
 }
 
-# Members of gps_data_t that make up each delivery tier (D6). A tier is a
-# starting set; every struct reachable from it is pulled in transitively.
-TIER_A_MEMBERS = (
+# Members of gps_data_t grouped by publishing scope. Each scope is a starting
+# set; the generator pulls in every struct reachable from it transitively.
+FIX_MEMBERS = (
     "set",
     "online",
     "fix",
@@ -188,16 +187,23 @@ TIER_A_MEMBERS = (
     "status",           # gps_data_t only on API 9; moved into gps_fix_t at 10
 )
 
-TIER_B_MEMBERS = (
+SENSOR_MEMBERS = (
     "dev", "devices", "policy", "gst", "attitude", "imu", "log",
     "toff", "pps", "qErr", "qErr_time", "source", "watch",
 )
 
-TIER_C_MEMBERS = (
+REPORT_MEMBERS = (
     "rtcm2", "rtcm3", "subframe", "raw", "osc", "version", "error",
 )
 
-TIERS = {"A": TIER_A_MEMBERS, "B": TIER_B_MEMBERS, "C": TIER_C_MEMBERS}
+# Ordered widest-last: each scope adds to the ones before it, so the order
+# here defines what --scope includes. Do not derive it by sorting the names.
+SCOPE_ORDER = ("fix", "sensors", "reports")
+SCOPES = {
+    "fix": FIX_MEMBERS,          # position, satellites, DOP
+    "sensors": SENSOR_MEMBERS,   # device config, timing, attitude, IMU
+    "reports": REPORT_MEMBERS,   # the report union arms
+}
 
 # gps_data_t's report union: which set-mask bit selects each arm.
 #
@@ -286,17 +292,16 @@ STANDALONE_ROOTS = ("rtcm2_t", "rtcm3_t")
 # The gps_data_t member names those structs appear under.
 STANDALONE_MEMBER_NAMES = ("rtcm2", "rtcm3")
 
-# The tier the checked-in generated files are produced at, and the default for
-# --tier. Single source of truth: the CLI, the drift check and the tests all
-# read it, so moving the tree to the next tier is a one-line change here
-# followed by a regenerate.
-CHECKED_IN_TIER = "C"
+# The scope the checked-in files are generated at, and the default for
+# --scope. The CLI, the drift check and the tests all read this one value, so
+# widening the tree takes a one-line change here plus a regenerate.
+CHECKED_IN_SCOPE = "reports"
 
 # The generated messages live in their own package, not in gps_msgs.
 #
 # gps_msgs is a small, long-released interface package (GPSFix, GPSStatus) that
 # the ROS build farm builds for five distros. The generated set is two orders
-# of magnitude larger -- Tier C alone is ~90 messages per API pair, and building
+# of magnitude larger -- the report arms alone are ~90 messages per API pair, and building
 # them takes minutes rather than seconds -- so putting them here would impose
 # that on every consumer of gps_msgs, released or not. A separate package keeps
 # the cost with the feature that incurs it.
@@ -470,7 +475,7 @@ def split_members(body: str) -> List[Member]:
         # An anonymous union or struct with no declarator injects its members
         # into the enclosing scope (C11 6.7.2.1). gps_data_t uses exactly this
         # for the rtcm2/rtcm3/subframe/ais/raw/osc/version/error arms, so
-        # splicing them in is both correct and what makes the tier filters and
+        # splicing them in is both correct and what makes the scope filters and
         # the AIS exclusion match by plain member name.
         inline = re.compile(r"\s*(?:union|struct)(?:\s+(\w+))?\s*\{").match(
             body, index)
@@ -727,7 +732,7 @@ class Model:
         return self.messages[name]
 
 
-def build_model(pair: Tuple[int, int], src: str, tier_members: Sequence[str]) -> Model:
+def build_model(pair: Tuple[int, int], src: str, scope_members: Sequence[str]) -> Model:
     model = Model(pair, src)
     body = find_struct_body(src, "gps_data_t")
     if body is None:
@@ -744,7 +749,7 @@ def build_model(pair: Tuple[int, int], src: str, tier_members: Sequence[str]) ->
         if member.name in EXCLUDED_MEMBERS:
             skipped.append(member.name)
             continue
-        if member.name not in tier_members:
+        if member.name not in scope_members:
             continue
         if member.name in STANDALONE_MEMBER_NAMES:
             # Generated as its own root below, not as a field here.
@@ -944,7 +949,7 @@ def emit_struct(model: Model, message_name: str, members: List[Member],
 
 
 # --------------------------------------------------------------------------
-# The `set` mask constants (D9)
+# The `set` mask constants
 # --------------------------------------------------------------------------
 
 _STRUCT_TYPEDEFS: Dict[int, Dict[str, str]] = {}
@@ -979,7 +984,7 @@ def mask_constants(src: str) -> List[Tuple[str, str]]:
         out.append((f"SET_{match.group(1)}", str(1 << int(match.group(2)))))
     # UNION_SET is a composite of the arm bits rather than a shift, so it has
     # to be resolved by OR-ing the constants it names. It deliberately keeps
-    # AIS_SET even though AIS is not published (D10): the constant must mean
+    # AIS_SET even though AIS is not published: the constant must mean
     # what gps.h says it means.
     bits = {name: int(value) for name, value in out}
     union = re.search(r"^#define\s+UNION_SET\s+\((.*?)\)", src, re.M | re.S)
@@ -995,7 +1000,7 @@ def mask_constants(src: str) -> List[Tuple[str, str]]:
     # Emitted as SET_HIGHEST_BIT, not gps.h's own SET_HIGH_BIT spelling.
     # gps.h defines SET_HIGH_BIT as a plain macro, so a message constant of
     # that name is destroyed by the preprocessor in any translation unit that
-    # sees gps.h -- the exact hazard D9's rename exists to avoid, which the
+    # sees gps.h -- the exact hazard the rename exists to avoid, which the
     # <NAME>_SET -> SET_<NAME> rule happens not to cover because this one is
     # already spelled SET_*. assert_no_macro_collisions() below is the general
     # guard; this is the one name it forced us to change.
@@ -1059,7 +1064,7 @@ def emit_msg(model: Model, name: str, rev: str,
 def emit_mask_asserts(model: Model, constants) -> List[str]:
     """static_assert every SET_<NAME> against the gps.h macro it came from.
 
-    D9 flips gpsd's `<NAME>_SET` to `SET_<NAME>` so the constants survive the
+    The generator flips gpsd's `<NAME>_SET` to `SET_<NAME>` so the constants survive the
     preprocessor. The flip is mechanical, which makes it exactly the kind of
     thing that can go quietly wrong: a message whose SET_LATLON does not equal
     gps.h's LATLON_SET is worse than useless, because every mask test written
@@ -1074,7 +1079,7 @@ def emit_mask_asserts(model: Model, constants) -> List[str]:
     * Each is wrapped in `#ifdef`. The messages are generated from the last rev
       at a pair, but a build can use an *earlier* rev reporting the same pair,
       where a late-added bit does not exist yet. Naming an undefined macro
-      would be a compile error rather than the graceful degradation D11 gives
+      would be a compile error rather than graceful degradation
       the struct members.
     * SET_HIGHEST_BIT is skipped. It is a count of bits rather than a bit, and
       it is the one value that genuinely moves within an API pair -- gpsd 3.24
@@ -1083,7 +1088,7 @@ def emit_mask_asserts(model: Model, constants) -> List[str]:
     """
     root = versioned(MESSAGE_PREFIX + "Raw", model.pair)
     out = [
-        "// D9: the message's mask constants are gpsd's own bit values under a",
+        "// The message's mask constants are gpsd's own bit values under a",
         "// name the preprocessor leaves alone. Checked here, where both",
         "// spellings are legitimately in scope, so a rename that changes a",
         "// value cannot reach a subscriber.",
@@ -1106,7 +1111,7 @@ def emit_mask_asserts(model: Model, constants) -> List[str]:
 def emit_parser(model: Model, rev: str, constants=()) -> str:
     """Per-pair fill functions, guarded on the exact API pair.
 
-    Every assignment is wrapped in the D11 member-detection idiom: an API pair
+    Every assignment is wrapped in the member-detection idiom: an API pair
     spans a range of header states, so a message generated from the pair's last
     rev can name members an older libgps reporting the same pair lacks.
     """
@@ -1192,7 +1197,7 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
 
     Templated on the source type rather than naming it. Two reasons: the
     anonymous inline structs (gps_fix_t::ecef, ::NED) have no C type name to
-    write down, and deducing T is what lets the D11 has_<member><T> traits
+    write down, and deducing T is what lets the has_<member><T> traits
     resolve against whatever the build's gps.h actually declares.
     """
     is_root = message_name == versioned(MESSAGE_PREFIX + "Raw", model.pair)
@@ -1217,14 +1222,14 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
             if bit is None:
                 # No dispatch rule for this union yet -- rtcm2_t's arms and
                 # subframe_t's pages are selected by mappings that live in
-                # gpsd's C rather than in the header (D16). Left empty rather
+                # gpsd's C rather than in the header. Left empty rather
                 # than filled speculatively: an empty arm honestly says "not
                 # decoded", a filled one would assert a report type.
                 out.append(f"  // {f.name}: union arm, left empty until its "
-                           f"discriminator dispatch lands (D16)")
+                           f"discriminator dispatch lands")
                 continue
 
-            # gps_data_t's report union, selected by the set mask (D5). Only
+            # gps_data_t's report union, selected by the set mask. Only
             # the arm the mask names is touched; reading any other would be
             # reading an inactive union member.
             body = (f"out.{f.name}[0].assign(in.{f.c_expr}, "
@@ -1291,9 +1296,9 @@ def emit_rtcm3_dispatch(model: Model, container: Field) -> List[str]:
 
     lines = [
         f"  if constexpr (has_{container.c_expr}<T>::value) {{",
-        "    // Exactly one arm is valid, named by rtcm3_t::type (D16).",
+        "    // Exactly one arm is valid, named by rtcm3_t::type.",
         "    //",
-        "    // Each arm is guarded the same way a plain member is (D11). An",
+        "    // Each arm is guarded the same way a plain member is. An",
         "    // API pair spans a range of header states, and rtcm3_t gains arms",
         "    // within one: gpsd 3.24 and 3.26.1 both report API 14.0, but only",
         "    // the later one has rtcm3_4076. Without this the generated code",
@@ -1357,7 +1362,7 @@ def emit_rtcm2_dispatch(model: Model, message_name: str) -> List[str]:
         return []
 
     lines = [
-        "  // Exactly one arm is valid, named by rtcm2_t::type (D16).",
+        "  // Exactly one arm is valid, named by rtcm2_t::type.",
         "  switch (in.type) {",
     ]
     for value, arm_name in sorted(RTCM2_TYPE_ARMS.items()):
@@ -1407,7 +1412,7 @@ def emit_subframe_dispatch(model: Model, message_name: str) -> List[str]:
 
     lines = [
         "  // Exactly one arm is valid, named by subframe_num and, for",
-        "  // subframes 4 and 5, by pageid (D16).",
+        "  // subframes 4 and 5, by pageid.",
         "  switch (in.subframe_num) {",
     ]
     for number, arm_name in sorted(SUBFRAME_ARMS.items()):
@@ -1456,7 +1461,7 @@ def ros_header_name(message_name: str) -> str:
     rosidl uses the same camel-to-snake rule as ROS field names, including the
     acronym-run split that turns GPSDBaseline into gpsd_baseline rather than
     gpsdbaseline. Verified against the headers rosidl actually emitted for all
-    seven Tier A messages.
+    seven core fix messages.
     """
     return snake_case(message_name)
 
@@ -1626,15 +1631,16 @@ jobs:
 """
 
 
-def generate(repo: str, tier: str) -> Dict[str, str]:
+def generate(repo: str, scope: str) -> Dict[str, str]:
     """Return {relative path: contents} for every generated file."""
-    tier_members: List[str] = []
-    for key in sorted(TIERS):
-        tier_members += list(TIERS[key])
-        if key == tier:
+    if scope not in SCOPES:
+        raise SystemExit(f"unknown scope {scope!r}; expected one of "
+                         f"{list(SCOPE_ORDER)}")
+    scope_members: List[str] = []
+    for key in SCOPE_ORDER:
+        scope_members += list(SCOPES[key])
+        if key == scope:
             break
-    else:
-        raise SystemExit(f"unknown tier {tier!r}; expected one of {sorted(TIERS)}")
 
     files: Dict[str, str] = {
         "gpsd_client/include/gpsd_client/parsers/generated/gpsd_has_member.hpp":
@@ -1661,7 +1667,7 @@ def generate(repo: str, tier: str) -> Dict[str, str]:
             raise SystemExit(f"{rev}: MAXCHANNELS is {maxchannels}, manifest "
                              f"says {EXPECTED_MAXCHANNELS[pair]}")
 
-        model = build_model(pair, src, tier_members)
+        model = build_model(pair, src, scope_members)
         constants = mask_constants(src)
         assert_no_macro_collisions(constants, src, rev)
         root = versioned("GPSDRaw", pair)
@@ -1718,9 +1724,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--gpsd-repo", default=default_repo,
                         help="gpsd git clone to read gps.h from "
                              f"(default: {default_repo})")
-    parser.add_argument("--tier", default=CHECKED_IN_TIER, choices=sorted(TIERS),
-                        help="highest delivery tier to emit "
-                             f"(default: {CHECKED_IN_TIER}, what the tree holds)")
+    parser.add_argument("--scope", default=CHECKED_IN_SCOPE,
+                        choices=list(SCOPE_ORDER),
+                        help="widest publishing scope to emit "
+                             f"(default: {CHECKED_IN_SCOPE}, what the tree holds)")
     parser.add_argument("--output-root", default=here,
                         help="repository root to write into")
     parser.add_argument("--check", action="store_true",
@@ -1733,7 +1740,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if not os.path.isdir(os.path.join(args.gpsd_repo, ".git")):
         raise SystemExit(f"not a git clone: {args.gpsd_repo}")
 
-    files = generate(args.gpsd_repo, args.tier)
+    files = generate(args.gpsd_repo, args.scope)
 
     if args.list:
         for path in sorted(files):

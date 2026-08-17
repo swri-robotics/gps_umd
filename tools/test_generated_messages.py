@@ -50,7 +50,7 @@ _GENERATED = None
 def generated():
     global _GENERATED
     if _GENERATED is None:
-        _GENERATED = gen.generate(GPSD_REPO, gen.CHECKED_IN_TIER)
+        _GENERATED = gen.generate(GPSD_REPO, gen.CHECKED_IN_SCOPE)
     return _GENERATED
 
 
@@ -164,13 +164,13 @@ class ManualExpectations(unittest.TestCase):
                 self.assertHas(pair, "GPSDFix", field, "core gps_fix_t member")
             for field in ("set", "online", "fix", "dop", "skyview",
                           "skyview_time", "satellites_used", "satellites_visible"):
-                self.assertHas(pair, "GPSDRaw", field, "core Tier A member")
+                self.assertHas(pair, "GPSDRaw", field, "core fix member")
             for field in ("prn", "elevation", "azimuth", "ss", "used", "gnssid"):
                 self.assertHas(pair, "GPSDSatellite", field, "core satellite_t member")
             for field in ("xdop", "ydop", "pdop", "hdop", "vdop", "tdop", "gdop"):
                 self.assertHas(pair, "GPSDDop", field, "dop_t is stable across the range")
 
-    # --- Tier B ----------------------------------------------------------
+    # --- Sensor and device members ----------------------------------------------------------
 
     def test_source_and_watch_arrive_at_api_14(self):
         # "Add fixsource_t, watch_t, set_pending to gps_data_t" (API 14).
@@ -213,13 +213,13 @@ class ManualExpectations(unittest.TestCase):
                 self.assertLacks(pair, "GPSDFixsource", pointer,
                                  "pointer into caller memory, never published")
 
-    def test_tier_b_core_members(self):
+    def test_sensor_scope_core_members(self):
         for pair in ALL_PAIRS:
             for field in ("dev", "policy", "gst", "attitude", "toff", "pps",
                           "q_err", "q_err_time", "devices"):
                 if field in ("gst",) and pair < (10, 0):
                     continue
-                self.assertHas(pair, "GPSDRaw", field, "Tier B member")
+                self.assertHas(pair, "GPSDRaw", field, "sensor-scope member")
 
     def test_header_is_first_field_everywhere(self):
         # The spec: every GPSDRaw carries a ROS header, following GPSFix.msg.
@@ -274,9 +274,9 @@ class ManualExpectations(unittest.TestCase):
     def test_ais_is_absent_everywhere(self):
         # D10. Nothing named ais may appear in any generated message.
         #
-        # Note this passes at Tier A for a weaker reason than it looks: `ais`
-        # is in no tier list, so the tier filter drops it before the exclusion
-        # list is ever consulted. test_exclusion_list_wins_over_tier_membership
+        # Note this passes in the fix scope for a weaker reason than it looks:
+        # `ais` is in no scope list, so the scope filter drops it before the
+        # exclusion list is consulted. test_exclusion_list_wins_over_scope
         # below is what actually exercises the exclusion.
         for path, text in generated().items():
             if path.endswith(".msg"):
@@ -284,19 +284,19 @@ class ManualExpectations(unittest.TestCase):
                     self.assertNotIn("ais", field.lower().split("_"),
                                      f"{path}: AIS is out of scope")
 
-    def test_exclusion_list_wins_over_tier_membership(self):
-        # The real test of EXCLUDED_MEMBERS: hand it a tier that *does* ask for
+    def test_exclusion_list_wins_over_scope(self):
+        # The real test of EXCLUDED_MEMBERS: hand it a scope that does ask for
         # the excluded members and confirm they still never reach a message.
         # Without this, deleting an entry from EXCLUDED_MEMBERS would go
-        # unnoticed until the tier that needs it lands.
+        # unnoticed until the scope that needs it lands.
         pair = (16, 1)
         src = gen.strip_comments(read_gps_h(gen.REFERENCE_REVS[pair]))
-        greedy = tuple(gen.TIER_A_MEMBERS) + gen.EXCLUDED_MEMBERS
+        greedy = tuple(gen.FIX_MEMBERS) + gen.EXCLUDED_MEMBERS
         model = gen.build_model(pair, src, greedy)
         fields = [f.name for f in model.messages[f"GPSDRaw{pair[0]}v{pair[1]}"]]
         for excluded in gen.EXCLUDED_MEMBERS:
             self.assertNotIn(gen.snake_case(excluded), fields,
-                             f"{excluded} was requested by the tier but must "
+                             f"{excluded} was requested by the scope but must "
                              f"still be excluded")
         # Compared as sets: the skip list follows gps.h declaration order, not
         # the order of EXCLUDED_MEMBERS.
@@ -417,11 +417,11 @@ class Completeness(unittest.TestCase):
     # do not exist in an older gps.h are handled per-pair below rather than
     # excluded, so "message absent" and "struct absent" must agree.
     STRUCT_TO_MESSAGE = {
-        # Tier A
+        # Core fix members
         "gps_fix_t": "GPSDFix",
         "satellite_t": "GPSDSatellite",
         "dop_t": "GPSDDop",
-        # Tier B
+        # Sensor and device members
         "devconfig_t": "GPSDDevconfig",
         "gps_policy_t": "GPSDPolicy",
         "gst_t": "GPSDGst",
@@ -453,17 +453,17 @@ class Completeness(unittest.TestCase):
                         f"API {pair[0]}.{pair[1]} ({gen.REFERENCE_REVS[pair]}): "
                         f"{tag}.{member} exists in gps.h but no field in {stem}")
 
-    def test_tier_a_members_of_gps_data_t_reach_the_root_message(self):
+    def test_fix_scope_members_of_gps_data_t_reach_the_root_message(self):
         for pair in ALL_PAIRS:
             src = read_gps_h(gen.REFERENCE_REVS[pair])
             declared = scan_struct_members(src, "gps_data_t")
             fields = message_fields(pair, "GPSDRaw")
             for member in sorted(declared):
-                if member in gen.EXCLUDED_MEMBERS or member not in gen.TIER_A_MEMBERS:
+                if member in gen.EXCLUDED_MEMBERS or member not in gen.FIX_MEMBERS:
                     continue
                 self.assertIn(
                     gen.snake_case(member), fields,
-                    f"API {pair[0]}.{pair[1]}: gps_data_t.{member} is Tier A but "
+                    f"API {pair[0]}.{pair[1]}: gps_data_t.{member} is in the fix scope but "
                     f"has no field in GPSDRaw")
 
     def test_scanner_disagrees_with_nothing_it_should_agree_with(self):

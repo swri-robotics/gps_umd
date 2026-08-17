@@ -117,7 +117,7 @@ namespace gpsd_client
 namespace generated
 {
 
-// D9: the message's mask constants are gpsd's own bit values under a
+// The message's mask constants are gpsd's own bit values under a
 // name the preprocessor leaves alone. Checked here, where both
 // spellings are legitimately in scope, so a rename that changes a
 // value cannot reach a subscriber.
@@ -1029,14 +1029,14 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw10v0& out)
       fill(in.subframe, out.subframe[0]);
     }
   }
-  // attitude: union arm, left empty until its discriminator dispatch lands (D16)
+  // attitude: union arm, left empty until its discriminator dispatch lands
   if constexpr (has_raw<T>::value) {
     if (0 != (in.set & RAW_SET)) {
       out.raw.resize(1);
       fill(in.raw, out.raw[0]);
     }
   }
-  // gst: union arm, left empty until its discriminator dispatch lands (D16)
+  // gst: union arm, left empty until its discriminator dispatch lands
   if constexpr (has_osc<T>::value) {
     if (0 != (in.set & OSCILLATOR_SET)) {
       out.osc.resize(1);
@@ -1527,7 +1527,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframe10v0& out)
     out.is_almanac = in.is_almanac;
   }
   // Exactly one arm is valid, named by subframe_num and, for
-  // subframes 4 and 5, by pageid (D16).
+  // subframes 4 and 5, by pageid.
   switch (in.subframe_num) {
     case 1:
       if constexpr (has_sub1<T>::value) {
@@ -2274,7 +2274,7 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2V10v0& out)
   if constexpr (has_rtk<T>::value) {
     fill(in.rtk, out.rtk);
   }
-  // Exactly one arm is valid, named by rtcm2_t::type (D16).
+  // Exactly one arm is valid, named by rtcm2_t::type.
   switch (in.type) {
     case 1:
       if constexpr (has_gps_ranges<T>::value) {
@@ -2781,9 +2781,9 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3V10v0& out)
     out.length = in.length;
   }
   if constexpr (has_rtcmtypes<T>::value) {
-    // Exactly one arm is valid, named by rtcm3_t::type (D16).
+    // Exactly one arm is valid, named by rtcm3_t::type.
     //
-    // Each arm is guarded the same way a plain member is (D11). An
+    // Each arm is guarded the same way a plain member is. An
     // API pair spans a range of header states, and rtcm3_t gains arms
     // within one: gpsd 3.24 and 3.26.1 both report API 14.0, but only
     // the later one has rtcm3_4076. Without this the generated code
@@ -2940,29 +2940,29 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3Rtcmtypes10v0& ou
 {
   (void)in;
   (void)out;
-  // rtcm3_1001: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1002: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1003: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1004: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1005: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1006: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1007: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1008: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1009: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1010: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1011: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1012: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1013: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1014: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1015: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1016: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1017: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1019: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1020: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1029: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1033: union arm, left empty until its discriminator dispatch lands (D16)
-  // rtcm3_1230: union arm, left empty until its discriminator dispatch lands (D16)
-  // data: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1001: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1002: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1003: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1004: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1005: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1006: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1007: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1008: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1009: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1010: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1011: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1012: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1013: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1014: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1015: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1016: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1017: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1019: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1020: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1029: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1033: union arm, left empty until its discriminator dispatch lands
+  // rtcm3_1230: union arm, left empty until its discriminator dispatch lands
+  // data: union arm, left empty until its discriminator dispatch lands
 }
 
 template <typename T>

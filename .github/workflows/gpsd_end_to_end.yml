@@ -1,13 +1,13 @@
 name: gpsd end to end
 
-# Tier 2: gpsfake replays a recorded receiver log into a real gpsd, the node
+# gpsfake replays a recorded receiver log into a real gpsd, the node
 # connects to it over TCP exactly as it does in production, and the assertions
 # are made against messages that actually arrived on actual topics.
 #
 # Deliberately one version, not ten. The per-version workflows
 # (gpsd_api_<M>v<m>.yml) carry the correctness argument for every supported API
-# pair using tier-1 tests, which need only libgps. What tier 2 adds is proof
-# that the chain outside libgps works at all -- publishers advertised,
+# pair using library-only tests, which need just libgps. What this job adds
+# is proof that the chain outside libgps works at all -- publishers advertised,
 # parameters read, message types resolved at runtime -- and that is not
 # version-specific. It also costs more: gpsfake needs the gpsd daemon and the
 # Python module, so this builds far more of gpsd than the others do.
@@ -55,13 +55,10 @@ jobs:
           # build. See the note in gpsd_api_shared.yml for why the colcon
           # trees are deliberately not cached.
           #
-          # v2: v1 predates python_libdir, so its .gpsd_versions/install holds
-          # the daemon and gpsfake but no gps module -- scons had put that in
-          # the interpreter's site-packages, outside every cached path. A v1
-          # hit therefore restored a prefix that skips the whole suite, which
-          # is why this job passed on the run that populated the cache and
-          # failed on the next one. Bump this key whenever the layout under
-          # prefix changes, not just when the gpsd revision does.
+          # Bump the key whenever the layout under prefix changes, not only
+          # when the gpsd revision does. A restored prefix missing the gps
+          # Python module makes the whole suite skip itself while the build
+          # still reports success.
           path: |
             .gpsd_versions/gpsd
             .gpsd_versions/install
@@ -97,10 +94,9 @@ jobs:
           # If every case skipped, the prerequisites were not met and the job
           # proved nothing.
           #
-          # Read the counts off the <testsuite> attributes rather than counting
-          # tags. pytest writes the whole document on a single line, so
-          # `grep -c` counts lines, not matches -- it returns 1 and 1 for a
-          # perfectly good run and this check then fails on success.
+          # Read the counts off the <testsuite> attributes rather than
+          # counting tags: pytest writes the whole document on one line, so
+          # `grep -c` counts lines rather than matches.
           file=$(grep -l "test_gpsfake_end_to_end" ${results} | head -1)
           total=$(grep -o 'tests="[0-9]*"' "${file}" | head -1 | tr -dc '0-9')
           skipped=$(grep -o 'skipped="[0-9]*"' "${file}" | head -1 | tr -dc '0-9')

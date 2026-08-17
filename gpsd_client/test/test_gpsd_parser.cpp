@@ -13,15 +13,13 @@ namespace
 // two header-dependent details below (where the fix status lives and what the
 // DGPS status macro is called) are isolated here.
 //
-// HAVE_GPS_FIX_STATUS comes from CheckStructHasMember in CMakeLists.txt, and
-// asks the header directly rather than inferring from the version. A
-// `GPSD_API_MAJOR_VERSION >= 10` guard happens to be right -- the status moved
-// from gps_data_t to gps_fix_t on the bump commit itself -- but only by
-// coincidence of that one move: an API pair names a *range* of header states
-// (section 1.7), so version arithmetic is not a test for "has this member" in
-// general, and every other such guard in this package has already been
-// converted. This is the last one, kept in the same style as the STATUS_*
-// probes below.
+// HAVE_GPS_FIX_STATUS comes from CheckStructHasMember in CMakeLists.txt and
+// asks the header directly rather than inferring from the version. gpsd moved
+// the status from gps_data_t to gps_fix_t on the API 10 bump commit itself, so
+// a version comparison happens to work here -- but one API pair spans a range
+// of header states, so version arithmetic does not answer "has this member" in
+// general. See docs/gpsd-quirks.md. Probed in the same style as the STATUS_*
+// macros below.
 void setFixStatus(gps_data_t& data, int status)
 {
 #ifdef HAVE_GPS_FIX_STATUS

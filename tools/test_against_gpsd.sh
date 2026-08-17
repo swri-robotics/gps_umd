@@ -233,11 +233,11 @@ build_and_test_client() {
   local libdir
   libdir=$(libgps_dir "${prefix}") || return 2
 
-  # Tier 2 (gpsfake) skips itself unless it is told where to find a daemon and
+  # The gpsfake end-to-end suite skips itself unless told where to find a daemon and
   # the log corpus. Exported only for a full build, so the ordinary ten-version
   # runs stay exactly as they were.
   if [ -n "${GPSD_FULL_BUILD:-}" ]; then
-    export GPSD_TIER2_PREFIX="${prefix}"
+    export GPSD_E2E_PREFIX="${prefix}"
     export GPSD_REPO="${GPSD_SRC}"
     # The gps module now lives under prefix (see python_libdir above), so this
     # is the same tree the cache restores. Put it ahead of anything else so a

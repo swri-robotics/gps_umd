@@ -520,6 +520,132 @@ class AttitudeReports(unittest.TestCase):
 
 
 @unittest.skipIf(SKIP, SKIP or "")
+class SubframeAndLogAreUnreachableThroughLibgps(unittest.TestCase):
+    """SUBFRAME and LOG never reach a socket client, and this pins that.
+
+    The daemon emits both -- ublox-ned-m8t-sbfrx3 is 151 SUBFRAME reports and a
+    plain JSON watcher receives them -- but ``libgps_json.c`` has no reader for
+    either class. It decodes AIS, ATT, DEVICE, DEVICES, ERROR, GST, IMU, OSC,
+    PPS, RAW, RTCM2, RTCM3, SKY, TOFF, TPV, VERSION and WATCH, and silently
+    ignores everything else. So ``gps_data_t::subframe`` and ``::log`` are only
+    ever populated inside gpsd itself, never in a client.
+
+    That means the message fields exist and are correct, and in production will
+    always be empty. Asserting the emptiness is worth more than deleting the
+    tests: it is the difference between a known property of libgps and a bug in
+    our fill code, and only an end-to-end test can tell those apart.
+
+    If a future libgps learns to parse them these tests fail, which is exactly
+    when someone should look at the subframe dispatch (D16) again.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.session = capture("ublox-ned-m8t-sbfrx3.log")
+        cls.chk = chk_reports("ublox-ned-m8t-sbfrx3.log")
+
+    def test_the_daemon_really_does_emit_subframes_for_this_log(self):
+        # Guards the premise. Without this, the assertions below would also
+        # pass against a log that simply contains no subframes.
+        self.assertTrue(self.chk.get("SUBFRAME"),
+                        "picked a log with no SUBFRAME reports in its .chk")
+
+    def test_subframe_arm_stays_empty(self):
+        raws = self.session.messages.get("/gpsd_raw", [])
+        self.assertTrue(raws, "no raw messages captured")
+        populated = [m for m in raws if m.subframe]
+        self.assertEqual(
+            [], populated,
+            "subframe was populated -- either libgps now parses SUBFRAME, or "
+            "the union arm is being read when it is not the live one")
+        self.assertFalse(any(m.set & type(m).SET_SUBFRAME for m in raws),
+                         "SUBFRAME_SET appeared in the mask of a socket client")
+
+    def test_log_member_stays_unset(self):
+        raws = self.session.messages.get("/gpsd_raw", [])
+        self.assertTrue(raws, "no raw messages captured")
+        # gps_data_t::log is a plain member, not a union arm, so "unset" means
+        # its NaN sentinel survived rather than the arm being absent.
+        self.assertTrue(all(m.log.lat != m.log.lat for m in raws),
+                        "log.lat carried a value; libgps has no LOG reader")
+
+
+@unittest.skipIf(SKIP, SKIP or "")
+class RawMeasurements(unittest.TestCase):
+    """ublox-neo-m8t carries RAW pseudorange measurements."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.session = capture("ublox-neo-m8t.log")
+        cls.chk = chk_reports("ublox-neo-m8t.log")
+
+    def test_raw_arm_carries_measurements(self):
+        raws = self.session.messages.get("/gpsd_raw", [])
+        self.assertTrue(raws, "no raw messages captured")
+        seen = [m.raw[0] for m in raws if m.raw]
+        if not seen:
+            self.skipTest("this replay sampled no RAW report")
+        # Every RAW report in the corpus carries at least one measurement, so
+        # an empty meas[] means the arm was copied without its payload.
+        self.assertTrue(any(len(r.meas) > 0 for r in seen),
+                        "RAW arm published with no measurements in any sample")
+
+
+@unittest.skipIf(SKIP, SKIP or "")
+class OscillatorReports(unittest.TestCase):
+    """isync is the corpus's only OSC log.
+
+    The plan named ericsson-gru04 for this; there is no such log. isync is the
+    only one that produces the class at all.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.session = capture("isync.log")
+        cls.chk = chk_reports("isync.log")
+
+    def test_oscillator_arm_matches_the_chk(self):
+        raws = self.session.messages.get("/gpsd_raw", [])
+        self.assertTrue(raws, "no raw messages captured")
+        seen = [m.osc[0] for m in raws if m.osc]
+        if not seen:
+            self.skipTest("this replay sampled no OSC report")
+        truth = {r["delta"] for r in self.chk.get("OSC", []) if "delta" in r}
+        self.assertTrue(truth)
+        self.assertEqual(set(), {o.delta for o in seen} - truth,
+                         "oscillator delta values gpsd does not report")
+
+
+@unittest.skipIf(SKIP, SKIP or "")
+class ImuReports(unittest.TestCase):
+    """ublox-neo-m8u carries 890 IMU reports.
+
+    imu[] is not a union arm and carries no count -- it is terminated by an
+    empty attitude_t::msg. This is the end-to-end check on that trimming.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.session = capture("ublox-neo-m8u.log")
+        cls.chk = chk_reports("ublox-neo-m8u.log")
+
+    def test_imu_entries_are_trimmed_and_labelled(self):
+        raws = self.session.messages.get("/gpsd_raw", [])
+        self.assertTrue(raws, "no raw messages captured")
+        populated = [m for m in raws if m.imu]
+        if not populated:
+            self.skipTest("this replay sampled no IMU report")
+        truth = {r["msg"] for r in self.chk.get("IMU", []) if "msg" in r}
+        self.assertTrue(truth)
+        for msg in populated:
+            # The terminator rule: every published entry must have a non-empty
+            # msg, or the trim ran past the end of the real data.
+            for entry in msg.imu:
+                self.assertTrue(entry.msg, "published an imu entry with no msg")
+            self.assertEqual(set(), {e.msg for e in msg.imu} - truth)
+
+
+@unittest.skipIf(SKIP, SKIP or "")
 class RtcmTopics(unittest.TestCase):
     """ublox-zed-f9r.log carries RTCM3, which D17 put on its own topic."""
 

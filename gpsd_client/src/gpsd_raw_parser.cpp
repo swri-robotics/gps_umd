@@ -80,6 +80,32 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
   }
 #endif
 
+  /* rawdata_t::meas[] is the third array the generator leaves to us, and the
+   * only one that is neither counted nor terminated: gpsd fills entries at
+   * arbitrary indices and marks the unused ones by leaving svid at 0. Its own
+   * dumper therefore walks all MAXCHANNELS and *skips* the empty ones rather
+   * than stopping at the first (gpsd/gpsd_json.c), and skips svid 255 as well,
+   * which GLONASS uses for "unknown". Copying that rule exactly is the only
+   * way to publish the same set of measurements gpsd would report.
+   *
+   * Only meaningful when this report actually is a RAW one -- meas lives in
+   * the report union, so msg.raw is empty otherwise and there is nothing to
+   * fill.
+   */
+  if (!msg.raw.empty())
+  {
+    const std::size_t max_meas = sizeof(data.raw.meas) / sizeof(data.raw.meas[0]);
+    for (std::size_t i = 0; i < max_meas; ++i)
+    {
+      if (0 == data.raw.meas[i].svid || 255 == data.raw.meas[i].svid)
+      {
+        continue;
+      }
+      msg.raw[0].meas.emplace_back();
+      generated::fill(data.raw.meas[i], msg.raw[0].meas.back());
+    }
+  }
+
   return msg;
 }
 

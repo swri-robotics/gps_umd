@@ -719,7 +719,7 @@ Two implementation notes worth carrying forward:
 - Fill functions are **templated on the source type**. The anonymous structs (`gps_fix_t::ecef`, `::NED`) have no C type name to write down, and deducing `T` is what lets the `has_<member><T>` traits resolve against the build's real `gps.h`. They need forward declarations, since unqualified lookup in a template happens at definition time and ADL cannot reach `gpsd_client::generated`.
 - Arrays of structs (`skyview[]`) are deliberately *not* filled by generated code — only the hand-written parser knows the valid count, and a blind loop would publish `MAXCHANNELS` entries of garbage. Phase 3 wires that up.
 
-### Phase 2 — Messages (`gps_msgs`)
+### Phase 2 — Messages (`gps_msgs`)  *(Tier A + B complete)*
 
 - [x] Generate Tier A for all ten messages
 - [x] Add generated `.msg` files to `MSG_FILES` in [gps_msgs/CMakeLists.txt](../gps_msgs/CMakeLists.txt) — globbed, so regenerating needs no CMake edit
@@ -727,7 +727,7 @@ Two implementation notes worth carrying forward:
 - [x] Confirm `gps_msgs` builds standalone with no libgps present (D1)
 - [x] Assert no generated constant collides with a `gps.h` macro — done in the generator against the full macro namespace, not a name pattern (see phase 3)
 - [x] Compile-test the reverse include order — `test_gpsd_raw_include_order.cpp`, its own target. This is what found the `SET_HIGH_BIT` collision
-- [ ] Extend to Tier B
+- [x] Extend to Tier B — 136 messages, 15 stems; verified building and testing against all ten API pairs
 - [ ] Extend to Tier C
 - [ ] Decide whether `ros1_ros2_mapping.yaml` needs entries (probably not — no ROS 1 counterpart exists)
 
@@ -920,6 +920,8 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-17 | 2/3/4 | **Tier B landed.** 136 generated messages (was 64), 7 new sub-messages. Parser gained `devices.list` (trimmed to `ndevices`) and `imu[]` (terminated by an empty `attitude_t::msg`, the rule gpsd's own dumper uses — there is no count field). New exclusion: pointer members, by type not name. Completeness cross-check and manual expectations extended to all Tier B structs. `colcon test`: **100-102 tests, 0 failures on all ten API pairs**. |
+| 2026-08-17 | — | D12: fixed a live dangling-pointer defect in `client.cpp` found while excluding `fixsource_t`'s pointers. Confirmed with ASAN (`stack-use-after-return` before, clean after). |
 | 2026-08-16 | 6 | Replaced the matrix with one generated workflow per API pair calling a shared reusable workflow, so each version has its own name, badge and re-run. Generated from `REFERENCE_REVS` and covered by two new drift tests; README gained a per-version badge table. |
 | 2026-08-16 | 6 | Phase 6: CI matrix expanded to all ten API pairs plus a fast generator-only job; `test_against_gpsd.sh` now accepts commit SHAs, reports the full API pair, and runs via `colcon test`. Built libgps at all ten reference revs and ran the suite against each — **92 tests, 0 failures on every pair**. Found and fixed a real bug doing so: the `nSat` threshold was wrong for API 13 (see 1.7). |
 | 2026-08-16 | 4 | Phase 4 complete for Tier A: `publish_gpsd_raw` (default false), opt-in publisher + parser, config and README. Verified end to end against a real gpsd daemon fed a recorded receiver log — 10 satellites published, `skyview` trimmed to `satellites_visible`, mask and NaN semantics intact. |

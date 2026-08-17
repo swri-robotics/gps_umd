@@ -259,7 +259,11 @@ def resolve_conditionals(body: str) -> str:
 
 def find_struct_body(src: str, name: str) -> Optional[str]:
     """Return the brace-balanced body of `struct <name> { ... }`."""
-    match = re.search(rf"^struct\s+{re.escape(name)}\s*\{{", src, re.M)
+    # Not anchored to line start: gpsd defines several tagged structs *inside*
+    # other structs (struct gps_rangesat_t inside rtcm2_t, for one), where they
+    # are indented. Requiring `{` after the tag keeps this from matching a mere
+    # reference such as `struct gps_fix_t fix;`.
+    match = re.search(rf"\bstruct\s+{re.escape(name)}\s*\{{", src)
     if match is None:
         return None
     index, depth = match.end(), 1
@@ -283,6 +287,7 @@ class Member:
     array: Optional[str] = None      # array extent as written, or None
     anon_body: Optional[str] = None  # body of an inline anonymous struct
     is_pointer: bool = False         # declared with a '*'
+    struct_tag: Optional[str] = None  # tag of an inline `struct X { ... } m;`
 
 
 
@@ -307,7 +312,8 @@ def split_members(body: str) -> List[Member]:
         # for the rtcm2/rtcm3/subframe/ais/raw/osc/version/error arms, so
         # splicing them in is both correct and what makes the tier filters and
         # the AIS exclusion match by plain member name.
-        inline = re.compile(r"\s*(?:union|struct)\s*\{").match(body, index)
+        inline = re.compile(r"\s*(?:union|struct)(?:\s+(\w+))?\s*\{").match(
+            body, index)
         if inline:
             inner_start = inline.end()
             depth, cursor = 1, inner_start
@@ -323,7 +329,7 @@ def split_members(body: str) -> List[Member]:
                 index = tail + 1
                 continue
 
-        anon = re.compile(r"\s*struct\s*\{").match(body, index)
+        anon = re.compile(r"\s*struct(?:\s+(\w+))?\s*\{").match(body, index)
         if anon:
             inner_start = anon.end()
             depth, cursor = 1, inner_start
@@ -340,8 +346,8 @@ def split_members(body: str) -> List[Member]:
                 if not decl:
                     continue
                 name, array = parse_declarator(decl)
-                members.append(Member(name=name, ctype="struct",
-                                      array=array, anon_body=inner))
+                members.append(Member(name=name, ctype="struct", array=array,
+                                      anon_body=inner, struct_tag=anon.group(1)))
             index = tail + 1
             continue
 
@@ -352,9 +358,14 @@ def split_members(body: str) -> List[Member]:
         index = semi + 1
         if not statement:
             continue
-        if "(" in statement:          # function pointer (update_fd)
-            name = re.search(r"\(\s*\*\s*(\w+)\s*\)", statement)
-            members.append(Member(name=name.group(1) if name else "?",
+        # Only a real function pointer: `void (*update_fd)(int, bool)`.
+        # Testing for a bare "(" also caught array extents that are
+        # expressions, e.g. rtcm2_t's
+        #   char message[(RTCM2_WORDS_MAX - 2) * sizeof(isgps30bits_t)]
+        # which is an ordinary member and must fall through to be parsed.
+        func_ptr = re.search(r"\(\s*\*\s*(\w+)\s*\)\s*\(", statement)
+        if func_ptr:
+            members.append(Member(name=func_ptr.group(1),
                                   ctype="function_pointer"))
             continue
 
@@ -551,9 +562,21 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
 
     # Inline anonymous struct: name the message after parent + member.
     if member.anon_body is not None:
-        base = message_base_name(parent).replace("GPSD", "", 1)
-        sub = versioned(f"GPSD{base}{member.name[:1].upper()}{member.name[1:]}",
-                        model.pair)
+        if member.struct_tag:
+            # `struct gps_rangesat_t { ... } sat[15];` -- defined inline but
+            # tagged, so name it as if it were declared at file scope.
+            sub = versioned(message_base_name(member.struct_tag), model.pair)
+        else:
+            base = message_base_name(parent).replace("GPSD", "", 1)
+            sub = versioned(
+                f"GPSD{base}{member.name[:1].upper()}{member.name[1:]}",
+                model.pair)
+        if sub in model.messages:
+            # Already emitted from another use of the same tag.
+            fields.append(Field(ros_type=sub + ("[]" if member.array else ""),
+                                name=name, kind="struct", c_expr=member.name,
+                                array=bool(member.array)))
+            return
         emit_struct(model, sub, split_members(resolve_conditionals(member.anon_body)),
                     f"{parent}.{member.name}")
         fields.append(Field(ros_type=sub + ("[]" if member.array else ""),

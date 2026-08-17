@@ -89,6 +89,10 @@ against: `gps_extended_msgs/GPSDRaw<MAJOR>v<MINOR>`, from `GPSD_API_MAJOR_VERSIO
 selected at startup. All of the message types are always built, so `gps_extended_msgs`
 has no dependency on gpsd; only `gpsd_client` cares which libgps is present.
 
+Ten API versions are covered, 9.0 through 16.1. There is no `GPSDRaw15v0`:
+`GPSD_API_MAJOR_VERSION` went from 14 straight to 16, and no gpsd revision ever
+carried 15. The gap is in gpsd, not in this package.
+
 These live in their own package rather than in `gps_msgs`. There are roughly
 900 of them and they take minutes to build, whereas `gps_msgs` is the small,
 long-released package carrying `GPSFix` and `GPSStatus`; keeping them apart
@@ -96,7 +100,9 @@ leaves that build unchanged for everyone who does not want the raw data.
 
 The messages and their parsers are generated from gpsd's own `gps.h` by
 `tools/generate_raw_msgs.py`; see `docs/gpsd-raw-messages-plan.md` for the
-design and the reasoning behind the version handling.
+design and the reasoning behind the version handling, and
+`docs/adding-a-gpsd-api-version.md` for what to do when gpsd bumps its API
+again.
 
 Points worth knowing before subscribing:
 

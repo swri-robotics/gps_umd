@@ -1015,12 +1015,23 @@ this sweep. Testing three of them and extrapolating would have shipped that bug.
 
 ### Phase 7 — Docs
 
-- [ ] README: `publish_gpsd_raw` row in the parameter table, and a `gpsd_raw` section
-- [ ] Document that API 15 does not exist and why there is no `GPSDRaw15v0` (section 1.2)
-- [ ] Document that AIS is not carried, and that `set & SET_AIS` is how a consumer detects an AIS report the message omits (D10)
-- [ ] Document the `SET_<NAME>` constants and why they are not spelled `<NAME>_SET` (D9) — users coming from the gpsd docs will look for the gpsd spelling
-- [ ] `gps_msgs/CHANGELOG.rst` and `gpsd_client/CHANGELOG.rst`
-- [ ] Document the "how to add the next API version" procedure — this will happen again
+- [x] README: `publish_gpsd_raw` row in the parameter table, and a `gpsd_raw` section
+- [x] README: `publish_gpsd_rtcm` row and the "RTCM is on its own topics" section (D17)
+- [x] README: the "empty `skyview` alongside a non-zero `satellites_used`" note — it reads as a bug in this package and is not
+- [x] Document that API 15 does not exist and why there is no `GPSDRaw15v0` (section 1.2)
+- [x] Document that AIS is not carried, and that `set & SET_AIS` is how a consumer detects an AIS report the message omits (D10)
+- [x] Document the `SET_<NAME>` constants and why they are not spelled `<NAME>_SET` (D9) — users coming from the gpsd docs will look for the gpsd spelling
+- [x] ~~`CHANGELOG.rst` entries~~ — **not ours to write.** The `CHANGELOG.rst`
+      files are maintained by a separate release tool that generates them from
+      commit history; hand-written entries would be clobbered or duplicated by
+      it. Nothing to do here. Put the explanation in the commit messages
+      instead, since that is what the tool reads.
+- [x] Document the "how to add the next API version" procedure — this will
+      happen again. `docs/adding-a-gpsd-api-version.md`, written around the
+      hazards rather than the happy path: an API pair naming a *range* of header
+      states (§1.7), union arms needing gpsd's writer code rather than their own
+      names (D16), and tests that assume a field exists — the failure that has
+      recurred at every single sweep.
 
 ---
 
@@ -1049,6 +1060,7 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-17 | 7 | Phase 7 docs: `docs/adding-a-gpsd-api-version.md` (the maintenance procedure, written around the recurring hazards rather than the happy path), README note that API 15 never existed. No changelog entries: `CHANGELOG.rst` is generated from commit history by a separate release tool, so hand-editing it is wrong — write the detail into the commit messages instead. The revision-finding commands in the new doc are the fast forms: a per-tag blob read for released pairs, and a *tag-bounded* pickaxe for unreleased ones — unbounded `git log -G`/`-L` over gpsd's history runs for minutes. Verified the rule reproduces the manifest: `e5279ef52` is exactly the parent of `29991d6f`, the commit that moved `status` and bumped to 10.0. |
 | 2026-08-17 | 4 | D17: RTCM split onto its own topics (`gpsd_rtcm2`, `gpsd_rtcm3`) behind `publish_gpsd_rtcm`, each with its own Header; removed from `GPSDRaw`, whose mask still reports them. 53 tests locally. |
 | 2026-08-17 | 3 | All three Tier C unions now dispatch: `rtcm2_t` (curated type table) and `subframe_t` (two-level, subframe_num then pageid) join the mask and rtcm3 dispatches. Found dead arms — `rtcm2_18`..`rtcm2_24` and `sub4` are declared in gps.h and written by no gpsd code; filling them would have published uninitialised union bytes. 51 tests locally. |
 | 2026-08-17 | 3 | Ten-version sweep clean with the Tier C dispatch: 107-110 tests per pair, 0 failures on all ten (the count rises with version as the guarded imu/msm/source tests switch on). |

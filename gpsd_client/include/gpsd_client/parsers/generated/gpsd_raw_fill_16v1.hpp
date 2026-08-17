@@ -1000,13 +1000,48 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw16v1& out)
   if constexpr (has_gst<T>::value) {
     fill(in.gst, out.gst);
   }
-  // rtcm2: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3: union arm, left empty until the discriminator dispatch lands (D16)
-  // subframe: union arm, left empty until the discriminator dispatch lands (D16)
-  // raw: union arm, left empty until the discriminator dispatch lands (D16)
-  // osc: union arm, left empty until the discriminator dispatch lands (D16)
-  // version: union arm, left empty until the discriminator dispatch lands (D16)
-  // error: union arm, left empty until the discriminator dispatch lands (D16)
+  if constexpr (has_rtcm2<T>::value) {
+    if (0 != (in.set & RTCM2_SET)) {
+      out.rtcm2.resize(1);
+      fill(in.rtcm2, out.rtcm2[0]);
+    }
+  }
+  if constexpr (has_rtcm3<T>::value) {
+    if (0 != (in.set & RTCM3_SET)) {
+      out.rtcm3.resize(1);
+      fill(in.rtcm3, out.rtcm3[0]);
+    }
+  }
+  if constexpr (has_subframe<T>::value) {
+    if (0 != (in.set & SUBFRAME_SET)) {
+      out.subframe.resize(1);
+      fill(in.subframe, out.subframe[0]);
+    }
+  }
+  if constexpr (has_raw<T>::value) {
+    if (0 != (in.set & RAW_SET)) {
+      out.raw.resize(1);
+      fill(in.raw, out.raw[0]);
+    }
+  }
+  if constexpr (has_osc<T>::value) {
+    if (0 != (in.set & OSCILLATOR_SET)) {
+      out.osc.resize(1);
+      fill(in.osc, out.osc[0]);
+    }
+  }
+  if constexpr (has_version<T>::value) {
+    if (0 != (in.set & VERSION_SET)) {
+      out.version.resize(1);
+      fill(in.version, out.version[0]);
+    }
+  }
+  if constexpr (has_error<T>::value) {
+    if (0 != (in.set & ERROR_SET)) {
+      out.error.resize(1);
+      out.error[0].assign(in.error, strnlen(in.error, sizeof(in.error)));
+    }
+  }
   if constexpr (has_attitude<T>::value) {
     fill(in.attitude, out.attitude);
   }
@@ -1599,21 +1634,21 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2V16v1& out)
   if constexpr (has_rtk<T>::value) {
     fill(in.rtk, out.rtk);
   }
-  // gps_ranges: union arm, left empty until the discriminator dispatch lands (D16)
-  // reference: union arm, left empty until the discriminator dispatch lands (D16)
-  // conhealth: union arm, left empty until the discriminator dispatch lands (D16)
-  // almanac: union arm, left empty until the discriminator dispatch lands (D16)
-  // xmitter: union arm, left empty until the discriminator dispatch lands (D16)
-  // gpstime: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm2_18: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm2_19: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm2_20: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm2_21: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm2_22: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm2_24: union arm, left empty until the discriminator dispatch lands (D16)
-  // glonass_ranges: union arm, left empty until the discriminator dispatch lands (D16)
-  // message: union arm, left empty until the discriminator dispatch lands (D16)
-  // words: union arm, left empty until the discriminator dispatch lands (D16)
+  // gps_ranges: union arm, left empty until its discriminator dispatch lands (D16)
+  // reference: union arm, left empty until its discriminator dispatch lands (D16)
+  // conhealth: union arm, left empty until its discriminator dispatch lands (D16)
+  // almanac: union arm, left empty until its discriminator dispatch lands (D16)
+  // xmitter: union arm, left empty until its discriminator dispatch lands (D16)
+  // gpstime: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm2_18: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm2_19: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm2_20: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm2_21: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm2_22: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm2_24: union arm, left empty until its discriminator dispatch lands (D16)
+  // glonass_ranges: union arm, left empty until its discriminator dispatch lands (D16)
+  // message: union arm, left empty until its discriminator dispatch lands (D16)
+  // words: union arm, left empty until its discriminator dispatch lands (D16)
 }
 
 template <typename T>
@@ -2058,7 +2093,156 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3V16v1& out)
     out.length = in.length;
   }
   if constexpr (has_rtcmtypes<T>::value) {
-    fill(in.rtcmtypes, out.rtcmtypes);
+    // Exactly one arm is valid, named by rtcm3_t::type (D16).
+    switch (in.type) {
+      case 1001:
+        out.rtcmtypes.rtcm3_1001.resize(1);
+        fill(in.rtcmtypes.rtcm3_1001, out.rtcmtypes.rtcm3_1001[0]);
+        break;
+      case 1002:
+        out.rtcmtypes.rtcm3_1002.resize(1);
+        fill(in.rtcmtypes.rtcm3_1002, out.rtcmtypes.rtcm3_1002[0]);
+        break;
+      case 1003:
+        out.rtcmtypes.rtcm3_1003.resize(1);
+        fill(in.rtcmtypes.rtcm3_1003, out.rtcmtypes.rtcm3_1003[0]);
+        break;
+      case 1004:
+        out.rtcmtypes.rtcm3_1004.resize(1);
+        fill(in.rtcmtypes.rtcm3_1004, out.rtcmtypes.rtcm3_1004[0]);
+        break;
+      case 1005:
+        out.rtcmtypes.rtcm3_1005.resize(1);
+        fill(in.rtcmtypes.rtcm3_1005, out.rtcmtypes.rtcm3_1005[0]);
+        break;
+      case 1006:
+        out.rtcmtypes.rtcm3_1006.resize(1);
+        fill(in.rtcmtypes.rtcm3_1006, out.rtcmtypes.rtcm3_1006[0]);
+        break;
+      case 1007:
+        out.rtcmtypes.rtcm3_1007.resize(1);
+        fill(in.rtcmtypes.rtcm3_1007, out.rtcmtypes.rtcm3_1007[0]);
+        break;
+      case 1008:
+        out.rtcmtypes.rtcm3_1008.resize(1);
+        fill(in.rtcmtypes.rtcm3_1008, out.rtcmtypes.rtcm3_1008[0]);
+        break;
+      case 1009:
+        out.rtcmtypes.rtcm3_1009.resize(1);
+        fill(in.rtcmtypes.rtcm3_1009, out.rtcmtypes.rtcm3_1009[0]);
+        break;
+      case 1010:
+        out.rtcmtypes.rtcm3_1010.resize(1);
+        fill(in.rtcmtypes.rtcm3_1010, out.rtcmtypes.rtcm3_1010[0]);
+        break;
+      case 1011:
+        out.rtcmtypes.rtcm3_1011.resize(1);
+        fill(in.rtcmtypes.rtcm3_1011, out.rtcmtypes.rtcm3_1011[0]);
+        break;
+      case 1012:
+        out.rtcmtypes.rtcm3_1012.resize(1);
+        fill(in.rtcmtypes.rtcm3_1012, out.rtcmtypes.rtcm3_1012[0]);
+        break;
+      case 1013:
+        out.rtcmtypes.rtcm3_1013.resize(1);
+        fill(in.rtcmtypes.rtcm3_1013, out.rtcmtypes.rtcm3_1013[0]);
+        break;
+      case 1014:
+        out.rtcmtypes.rtcm3_1014.resize(1);
+        fill(in.rtcmtypes.rtcm3_1014, out.rtcmtypes.rtcm3_1014[0]);
+        break;
+      case 1015:
+        out.rtcmtypes.rtcm3_1015.resize(1);
+        fill(in.rtcmtypes.rtcm3_1015, out.rtcmtypes.rtcm3_1015[0]);
+        break;
+      case 1019:
+        out.rtcmtypes.rtcm3_1019.resize(1);
+        fill(in.rtcmtypes.rtcm3_1019, out.rtcmtypes.rtcm3_1019[0]);
+        break;
+      case 1020:
+        out.rtcmtypes.rtcm3_1020.resize(1);
+        fill(in.rtcmtypes.rtcm3_1020, out.rtcmtypes.rtcm3_1020[0]);
+        break;
+      case 1021:
+        out.rtcmtypes.rtcm3_1021.resize(1);
+        fill(in.rtcmtypes.rtcm3_1021, out.rtcmtypes.rtcm3_1021[0]);
+        break;
+      case 1023:
+        out.rtcmtypes.rtcm3_1023.resize(1);
+        fill(in.rtcmtypes.rtcm3_1023, out.rtcmtypes.rtcm3_1023[0]);
+        break;
+      case 1025:
+        out.rtcmtypes.rtcm3_1025.resize(1);
+        fill(in.rtcmtypes.rtcm3_1025, out.rtcmtypes.rtcm3_1025[0]);
+        break;
+      case 1029:
+        out.rtcmtypes.rtcm3_1029.resize(1);
+        fill(in.rtcmtypes.rtcm3_1029, out.rtcmtypes.rtcm3_1029[0]);
+        break;
+      case 1033:
+        out.rtcmtypes.rtcm3_1033.resize(1);
+        fill(in.rtcmtypes.rtcm3_1033, out.rtcmtypes.rtcm3_1033[0]);
+        break;
+      case 1230:
+        out.rtcmtypes.rtcm3_1230.resize(1);
+        fill(in.rtcmtypes.rtcm3_1230, out.rtcmtypes.rtcm3_1230[0]);
+        break;
+      case 4076:
+        out.rtcmtypes.rtcm3_4076.resize(1);
+        fill(in.rtcmtypes.rtcm3_4076, out.rtcmtypes.rtcm3_4076[0]);
+        break;
+      case 1071:
+      case 1072:
+      case 1073:
+      case 1074:
+      case 1075:
+      case 1076:
+      case 1077:
+      case 1081:
+      case 1082:
+      case 1083:
+      case 1084:
+      case 1085:
+      case 1086:
+      case 1087:
+      case 1091:
+      case 1092:
+      case 1093:
+      case 1094:
+      case 1095:
+      case 1096:
+      case 1097:
+      case 1101:
+      case 1102:
+      case 1103:
+      case 1104:
+      case 1105:
+      case 1106:
+      case 1107:
+      case 1111:
+      case 1112:
+      case 1113:
+      case 1114:
+      case 1115:
+      case 1116:
+      case 1117:
+      case 1121:
+      case 1122:
+      case 1123:
+      case 1124:
+      case 1125:
+      case 1126:
+      case 1127:
+        out.rtcmtypes.rtcm3_msm.resize(1);
+        fill(in.rtcmtypes.rtcm3_msm, out.rtcmtypes.rtcm3_msm[0]);
+        break;
+      default:
+        // gpsd keeps the undecoded payload here.
+        out.rtcmtypes.data.assign(
+            std::begin(in.rtcmtypes.data),
+            std::end(in.rtcmtypes.data));
+        break;
+    }
   }
 }
 
@@ -2067,32 +2251,32 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm3Rtcmtypes16v1& ou
 {
   (void)in;
   (void)out;
-  // rtcm3_1001: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1002: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1003: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1004: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1005: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1006: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1007: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1008: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1009: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1010: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1011: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1012: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1013: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1014: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1015: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1019: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1020: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1021: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1023: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1025: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1029: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1033: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_1230: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_msm: union arm, left empty until the discriminator dispatch lands (D16)
-  // rtcm3_4076: union arm, left empty until the discriminator dispatch lands (D16)
-  // data: union arm, left empty until the discriminator dispatch lands (D16)
+  // rtcm3_1001: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1002: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1003: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1004: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1005: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1006: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1007: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1008: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1009: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1010: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1011: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1012: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1013: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1014: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1015: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1019: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1020: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1021: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1023: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1025: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1029: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1033: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_1230: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_msm: union arm, left empty until its discriminator dispatch lands (D16)
+  // rtcm3_4076: union arm, left empty until its discriminator dispatch lands (D16)
+  // data: union arm, left empty until its discriminator dispatch lands (D16)
 }
 
 template <typename T>
@@ -3244,16 +3428,16 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframe16v1& out)
   if constexpr (has_orbit1<T>::value) {
     fill(in.orbit1, out.orbit1);
   }
-  // sub1: union arm, left empty until the discriminator dispatch lands (D16)
-  // sub2: union arm, left empty until the discriminator dispatch lands (D16)
-  // sub3: union arm, left empty until the discriminator dispatch lands (D16)
-  // sub4: union arm, left empty until the discriminator dispatch lands (D16)
-  // sub4_13: union arm, left empty until the discriminator dispatch lands (D16)
-  // sub4_17: union arm, left empty until the discriminator dispatch lands (D16)
-  // sub4_18: union arm, left empty until the discriminator dispatch lands (D16)
-  // sub4_25: union arm, left empty until the discriminator dispatch lands (D16)
-  // sub5: union arm, left empty until the discriminator dispatch lands (D16)
-  // sub5_25: union arm, left empty until the discriminator dispatch lands (D16)
+  // sub1: union arm, left empty until its discriminator dispatch lands (D16)
+  // sub2: union arm, left empty until its discriminator dispatch lands (D16)
+  // sub3: union arm, left empty until its discriminator dispatch lands (D16)
+  // sub4: union arm, left empty until its discriminator dispatch lands (D16)
+  // sub4_13: union arm, left empty until its discriminator dispatch lands (D16)
+  // sub4_17: union arm, left empty until its discriminator dispatch lands (D16)
+  // sub4_18: union arm, left empty until its discriminator dispatch lands (D16)
+  // sub4_25: union arm, left empty until its discriminator dispatch lands (D16)
+  // sub5: union arm, left empty until its discriminator dispatch lands (D16)
+  // sub5_25: union arm, left empty until its discriminator dispatch lands (D16)
 }
 
 template <typename T>

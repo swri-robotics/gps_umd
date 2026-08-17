@@ -250,6 +250,104 @@ TEST(GpsdRawParser, PointerMembersAreNotPublished)
 }
 #endif  // fixsource_t reached gps_data_t in API 14
 
+// --- Tier C union dispatch (D16) -----------------------------------------
+
+TEST(GpsdRawParser, ReportUnionFillsOnlyTheArmTheMaskNames)
+{
+  // gps_data_t packs its report arms into a union; the set mask says which is
+  // live. Filling any other would be reading an inactive union member, so the
+  // arms are 0-or-1 arrays and only the named one is ever non-empty.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  data.rtcm3.type = 1005;
+  data.set = RTCM3_SET;
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+  ASSERT_EQ(msg.rtcm3.size(), 1u) << "RTCM3_SET was set";
+  EXPECT_EQ(msg.rtcm3[0].type, 1005u);
+
+  // Every other arm stays empty -- that is what says "not this kind of report".
+  EXPECT_TRUE(msg.rtcm2.empty());
+  EXPECT_TRUE(msg.subframe.empty());
+  EXPECT_TRUE(msg.version.empty());
+  EXPECT_TRUE(msg.error.empty());
+}
+
+TEST(GpsdRawParser, NoReportBitMeansNoArm)
+{
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  data.rtcm3.type = 1005;
+  data.set = 0;                 // nothing reported
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+  EXPECT_TRUE(msg.rtcm3.empty())
+      << "an arm must not be filled just because the struct holds stale bytes";
+}
+
+TEST(GpsdRawParser, ErrorArmIsAStringFromTheMask)
+{
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  snprintf(data.error, sizeof(data.error), "no such device");
+  data.set = ERROR_SET;
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+  ASSERT_EQ(msg.error.size(), 1u);
+  EXPECT_EQ(msg.error[0], "no such device");
+}
+
+TEST(GpsdRawParser, Rtcm3TypeSelectsItsArm)
+{
+  // The inner union: rtcm3_t::type names the arm, and the arm names encode
+  // the type (rtcm3_1005 <-> 1005), so the mapping is generated, not curated.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  data.set = RTCM3_SET;
+  data.rtcm3.type = 1005;
+  data.rtcm3.rtcmtypes.rtcm3_1005.station_id = 42;
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+  ASSERT_EQ(msg.rtcm3.size(), 1u);
+  ASSERT_EQ(msg.rtcm3[0].rtcmtypes.rtcm3_1005.size(), 1u);
+  EXPECT_EQ(msg.rtcm3[0].rtcmtypes.rtcm3_1005[0].station_id, 42u);
+  // rtcm3_1001 exists in every supported version; 1230 only from API 12, so
+  // pick a sibling that is always present for the "others stay empty" check.
+  EXPECT_TRUE(msg.rtcm3[0].rtcmtypes.rtcm3_1001.empty());
+  EXPECT_TRUE(msg.rtcm3[0].rtcmtypes.rtcm3_1003.empty());
+}
+
+#if GPSD_API_MAJOR_VERSION >= 13
+TEST(GpsdRawParser, Rtcm3MsmTypesShareOneArm)
+{
+  // ~43 Multiple Signal Message types fold into rtcm3_msm, exactly as gpsd's
+  // own dumper folds them into one handler.
+  for (unsigned type : {1071u, 1077u, 1097u, 1127u})
+  {
+    gps_data_t data = gpsd_client::test::makeEmptyData();
+    data.set = RTCM3_SET;
+    data.rtcm3.type = type;
+    data.rtcm3.rtcmtypes.rtcm3_msm.station_id = 7;
+
+    auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+    ASSERT_EQ(msg.rtcm3.size(), 1u);
+    ASSERT_EQ(msg.rtcm3[0].rtcmtypes.rtcm3_msm.size(), 1u) << "type " << type;
+    EXPECT_EQ(msg.rtcm3[0].rtcmtypes.rtcm3_msm[0].station_id, 7u);
+  }
+}
+#endif  // rtcm3_msm was added in API 13
+
+TEST(GpsdRawParser, UnknownRtcm3TypeFallsBackToRawBytes)
+{
+  // gpsd keeps whatever it could not decode in `data`, so that is the default
+  // arm rather than a type of its own.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  data.set = RTCM3_SET;
+  data.rtcm3.type = 9999;       // not a type gpsd decodes
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+  ASSERT_EQ(msg.rtcm3.size(), 1u);
+  EXPECT_TRUE(msg.rtcm3[0].rtcmtypes.rtcm3_1005.empty());
+  EXPECT_EQ(msg.rtcm3[0].rtcmtypes.data.size(),
+            sizeof(data.rtcm3.rtcmtypes.data));
+}
+
 int main(int argc, char** argv)
 {
   testing::InitGoogleTest(&argc, argv);

@@ -543,6 +543,24 @@ Only rtcm3's 23 numeric arms are mechanical. rtcm2's and subframe's mappings are
 semantic knowledge living in gpsd's C, so they belong in an explicit table in
 the generator, cited to the switch they came from — not re-derived by guesswork.
 
+**Implemented so far:**
+
+- [x] **`gps_data_t`'s report union**, on the `set` mask. This is the one that
+  matters most: without it no Tier C data reached a subscriber at all. `osc` is
+  selected by `OSCILLATOR_SET`, not `OSC_SET`, so the arm→bit map is written
+  out rather than derived from member names.
+- [x] **`rtcm3_t`'s arm union**, on `type`. The 23 `rtcm3_<TYPE>` arms are
+  generated from their own names; the MSM ranges and the `data` fallback come
+  from the table above. Emitted in the *parent's* fill, because the
+  discriminator is a sibling of the union and so is invisible inside the
+  union's own `fill()`.
+- [ ] **`rtcm2_t`** — 13 arms, mapping not derivable from names.
+- [ ] **`subframe_t`** — two-level, `subframe_num` then `pageid`.
+
+The two unimplemented unions emit a comment naming what is missing rather than
+filling speculatively; an empty arm honestly says "not decoded", a filled one
+would assert a report type.
+
 ---
 
 ## 3. Message inventory
@@ -989,6 +1007,7 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-17 | 3 | D16 dispatch implemented for the two mechanical unions: `gps_data_t`'s report union (set mask) and `rtcm3_t`'s arm union (type, with MSM ranges and raw fallback). Six new tests cover arm selection, the empty-when-unset case, the string arm, MSM folding and the unknown-type fallback. `rtcm2_t` and `subframe_t` still emit the placeholder comment. |
 | 2026-08-17 | 2 | Union arms are now 0-or-1 arrays consistently, whether or not gpsd named the union — `rtcm2_t`'s and `gps_data_t`'s are anonymous and were being spliced in as plain fields, so representation depended on an accident of gpsd's declaration style. Recorded the three union discriminators as D16. |
 | 2026-08-17 | 2 | **Tier C generated, and the messages moved to a new `gps_extended_msgs` package** (D13), keeping the `GPSD` message prefix, after measuring Tier C at 8m48s — too much to impose on the released `gps_msgs`. Tier C needed six new generator capabilities: inline *tagged* structs, enums, unions with a declarator, struct typedefs, `isgps30bits_t`, and a function-pointer test that was misfiring on a parenthesised array extent. Union arms are 0-or-1 arrays. Also D14 (rosidl name normalisation) and D15 (orphan removal), both found by breaking the build. |
 | 2026-08-17 | 2/3/4 | **Tier B landed.** 136 generated messages (was 64), 7 new sub-messages. Parser gained `devices.list` (trimmed to `ndevices`) and `imu[]` (terminated by an empty `attitude_t::msg`, the rule gpsd's own dumper uses — there is no count field). New exclusion: pointer members, by type not name. Completeness cross-check and manual expectations extended to all Tier B structs. `colcon test`: **100-102 tests, 0 failures on all ten API pairs**. |

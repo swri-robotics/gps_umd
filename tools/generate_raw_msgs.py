@@ -177,6 +177,38 @@ TIER_C_MEMBERS = (
 
 TIERS = {"A": TIER_A_MEMBERS, "B": TIER_B_MEMBERS, "C": TIER_C_MEMBERS}
 
+# gps_data_t's report union: which set-mask bit selects each arm.
+#
+# Mostly <NAME>_SET, but not reliably -- `osc` is selected by OSCILLATOR_SET --
+# so the mapping is written out rather than derived from the member name.
+#
+# There is deliberately no `ais` entry: AIS is not published (D10). AIS_SET
+# stays in the mask and in the message constants, so a consumer can still see
+# that gpsd reported an AIS message this message does not carry.
+REPORT_UNION_BITS = {
+    "rtcm2": "RTCM2_SET",
+    "rtcm3": "RTCM3_SET",
+    "subframe": "SUBFRAME_SET",
+    "raw": "RAW_SET",
+    "osc": "OSCILLATOR_SET",
+    "version": "VERSION_SET",
+    "error": "ERROR_SET",
+}
+
+# rtcm3_t's arm union, selected by rtcm3_t::type.
+#
+# 23 of the arms are named rtcm3_<TYPE>, so their mapping is derived from the
+# name rather than listed. The three that are not:
+#
+#   rtcm3_msm    ~43 Multiple Signal Message types, in six per-constellation
+#                blocks of seven (GPS, GLONASS, Galileo, SBAS, QZSS, BeiDou).
+#                gpsd falls all of them through to one handler (gpsd_json.c).
+#   rtcm3_4076   type 4076.
+#   data         the raw payload, which gpsd fills for anything it did not
+#                decode -- so it is the default arm, not a type of its own.
+RTCM3_MSM_RANGES = ((1071, 1077), (1081, 1087), (1091, 1097),
+                    (1101, 1107), (1111, 1117), (1121, 1127))
+
 # The tier the checked-in generated files are produced at, and the default for
 # --tier. Single source of truth: the CLI, the drift check and the tests all
 # read it, so moving the tree to the next tier is a one-line change here
@@ -1017,6 +1049,7 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
     write down, and deducing T is what lets the D11 has_<member><T> traits
     resolve against whatever the build's gps.h actually declares.
     """
+    is_root = message_name == versioned(MESSAGE_PREFIX + "Raw", model.pair)
     out = [
         "template <typename T>",
         f"inline void fill(const T& in, {PACKAGE}::msg::{message_name}& out)",
@@ -1028,15 +1061,30 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
         if f.kind == "header":
             continue
         if f.union_arm:
-            # Union arms are 0-or-1 arrays and only one is ever valid, so
-            # filling one means first deciding *which* -- from rtcm3_t::type,
-            # rtcm2_t::type, or subframe_t::subframe_num/pageid depending on
-            # the union (see D16 in docs/gpsd-raw-messages-plan.md). That
-            # dispatch is not implemented yet, so arms are left empty rather
-            # than filled speculatively: an empty arm honestly says "not
-            # decoded", while a filled one would assert a report type.
-            out.append(f"  // {f.name}: union arm, left empty until the "
-                       f"discriminator dispatch lands (D16)")
+            bit = REPORT_UNION_BITS.get(f.c_expr) if is_root else None
+            if bit is None:
+                # No dispatch rule for this union yet -- rtcm2_t's arms and
+                # subframe_t's pages are selected by mappings that live in
+                # gpsd's C rather than in the header (D16). Left empty rather
+                # than filled speculatively: an empty arm honestly says "not
+                # decoded", a filled one would assert a report type.
+                out.append(f"  // {f.name}: union arm, left empty until its "
+                           f"discriminator dispatch lands (D16)")
+                continue
+
+            # gps_data_t's report union, selected by the set mask (D5). Only
+            # the arm the mask names is touched; reading any other would be
+            # reading an inactive union member.
+            body = (f"out.{f.name}[0].assign(in.{f.c_expr}, "
+                    f"strnlen(in.{f.c_expr}, sizeof(in.{f.c_expr})));"
+                    if f.kind == "string"
+                    else f"fill(in.{f.c_expr}, out.{f.name}[0]);")
+            out.append(f"  if constexpr (has_{f.c_expr}<T>::value) {{")
+            out.append(f"    if (0 != (in.set & {bit})) {{")
+            out.append(f"      out.{f.name}.resize(1);")
+            out.append(f"      {body}")
+            out.append("    }")
+            out.append("  }")
             continue
 
         if f.kind == "struct" and f.array:
@@ -1058,6 +1106,12 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
         elif f.kind == "string":
             assign = [f"out.{f.name}.assign(in.{f.c_expr}, strnlen(in.{f.c_expr}, "
                       f"sizeof(in.{f.c_expr})));"]
+        elif f.kind == "struct" and f.c_expr == "rtcmtypes":
+            # The union container. Dispatch here rather than delegating,
+            # because the discriminator (type) is a sibling of the union and
+            # so is invisible inside the union's own fill().
+            out += emit_rtcm3_dispatch(model, f)
+            continue
         elif f.kind == "struct":
             assign = [f"fill(in.{f.c_expr}, out.{f.name});"]
         elif f.array:
@@ -1070,6 +1124,52 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
         out.append("  }")
     out += ["}", ""]
     return out
+
+
+def emit_rtcm3_dispatch(model: Model, container: Field) -> List[str]:
+    """switch on rtcm3_t::type, filling exactly the arm it names."""
+    arms = model.messages.get(container.ros_type.rstrip("[]"), [])
+    by_field = {a.name: a for a in arms}
+
+    lines = [
+        f"  if constexpr (has_{container.c_expr}<T>::value) {{",
+        "    // Exactly one arm is valid, named by rtcm3_t::type (D16).",
+        f"    switch (in.type) {{",
+    ]
+    for arm in arms:
+        match = re.fullmatch(r"rtcm3_(\d+)", arm.name)
+        if not match:
+            continue
+        lines.append(f"      case {match.group(1)}:")
+        lines.append(f"        out.{container.c_expr}.{arm.name}.resize(1);")
+        lines.append(f"        fill(in.{container.c_expr}.{arm.c_expr}, "
+                     f"out.{container.c_expr}.{arm.name}[0]);")
+        lines.append("        break;")
+
+    if "rtcm3_msm" in by_field:
+        arm = by_field["rtcm3_msm"]
+        for low, high in RTCM3_MSM_RANGES:
+            for value in range(low, high + 1):
+                lines.append(f"      case {value}:")
+        lines.append(f"        out.{container.c_expr}.{arm.name}.resize(1);")
+        lines.append(f"        fill(in.{container.c_expr}.{arm.c_expr}, "
+                     f"out.{container.c_expr}.{arm.name}[0]);")
+        lines.append("        break;")
+
+    if "data" in by_field:
+        arm = by_field["data"]
+        lines.append("      default:")
+        lines.append("        // gpsd keeps the undecoded payload here.")
+        lines.append(f"        out.{container.c_expr}.{arm.name}.assign(")
+        lines.append(f"            std::begin(in.{container.c_expr}.{arm.c_expr}),")
+        lines.append(f"            std::end(in.{container.c_expr}.{arm.c_expr}));")
+        lines.append("        break;")
+    else:
+        lines.append("      default:")
+        lines.append("        break;")
+
+    lines += ["    }", "  }"]
+    return lines
 
 
 def ros_header_name(message_name: str) -> str:

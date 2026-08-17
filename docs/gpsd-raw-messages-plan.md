@@ -25,6 +25,7 @@ block at the top of that file documents what each bump added.
 
 | API pair | gpsd release(s) shipping it | Bump commit | Notes |
 |---|---|---|---|
+| 2026-08-17 | 6 | **First real CI run**, and it earned its keep. Ten API workflows plus `gpsd_generator` are green; `gpsd end to end` is the last red one and both its causes are fixed locally. Four bugs found that the local sweep structurally could not: the shared-message build never included `gps_msgs` (hidden by a stale underlay on `AMENT_PREFIX_PATH`); the `rtcm3_t` union arms had no D11 guard, which only fails against a mid-pair libgps such as a distro's; the tier-2 pytest was never registered because the CMake regex anchored `[0-9]+$` against a line ending in a `//` comment; and the CI guard counted lines on a single-line XML, so it would have failed on a healthy run. Added gpsd 3.24 and 3.25 to the sweep as *non-reference* revs, and converted every version-keyed guard in the tests to `check_struct_has_member` probes. |
 | 9.0 | 3.20 | `e2c26993` (2019-07-05) | Oldest version `gpsd_client` supports |
 | 9.1 | **none** | `8da63ed3` (2020-01-11) | Adds `gps_data_t::leap_seconds` |
 | 10.0 | 3.21 | `29991d6f` (2020-03-23) | `status` moves `gps_data_t` → `gps_fix_t` |
@@ -902,7 +903,7 @@ Two implementation notes worth carrying forward:
 - [x] Compile-test the reverse include order — `test_gpsd_raw_include_order.cpp`, its own target. This is what found the `SET_HIGH_BIT` collision
 - [x] Extend to Tier B — 136 messages, 15 stems; verified building and testing against all ten API pairs
 - [x] Extend to Tier C — 905 messages, 90 per API pair. **Structure only: the union arms are generated and build, but the parser does not yet populate them (D16)**
-- [ ] Decide whether `ros1_ros2_mapping.yaml` needs entries (probably not — no ROS 1 counterpart exists)
+- [x] Decide whether `ros1_ros2_mapping.yaml` needs entries — moot: **the file has been deleted**. It mapped ROS 1 message types to ROS 2 ones, and these messages have no ROS 1 counterpart and never will. Removing it also meant removing the two things that named it — the `install(FILES ...)` rule in `gps_msgs/CMakeLists.txt`, which broke that package's build outright, and the `<ros1_bridge mapping_rules=.../>` export in its `package.xml`.
 
 ### Phase 3 — Parsers (`gpsd_client`)  *(complete for Tier A)*
 
@@ -1016,8 +1017,9 @@ See section 5 for the data-generation strategy behind these.
 - [x] Add a per-job assertion that the built libgps reports the API pair the matrix claims, and that it maps to the expected `GPSDRaw<M>v<m>`
 - [x] Cache key bumped to `-v3` (the matrix now keys on API pairs and includes SHAs)
 - [x] **Build and test against all ten pairs locally** — libgps built at every reference revision and the full suite run against each. This is what the matrix will do on CI, and it is how the API-13 `nSat` bug below was found
-- [ ] **Verify on real CI** — the workflow itself has not run on GitHub
-- [ ] Watch job count/time: ten source builds of gpsd. The heavy job is already gated to `ros2-devel` pushes; the new `generator` job runs on every push and PR, which is the fast feedback path
+- [x] **Verify on real CI — the ten per-version workflows and `gpsd_generator`.** All eleven green on `per_api_version_messages`. Two real bugs surfaced that no local run could have: the shared-message restructure never built `gps_msgs` (masked locally by a stale `install/` on `AMENT_PREFIX_PATH`), and the `rtcm3_t` union arms were emitted without their D11 guards, which only breaks against a libgps sitting mid-pair — which is exactly what a distro ships
+- [ ] **Verify on real CI — the `gpsd end to end` job.** The only one still red. Both causes found and fixed locally: the pytest test was never registered (the CMake version regex anchored on `[0-9]+$`, and gpsd writes a trailing `// comment`), and the guard step counted lines rather than matches on a single-line XML, so it would have failed even on a healthy run. Awaiting the next push to confirm
+- [x] Watch job count/time — the ten source builds of gpsd are no longer the cost; ~900 generated messages were, at roughly eight minutes a job. Now built once and cached across all eleven workflows, keyed on the message sources (see `gpsd_api_shared.yml`). Only `gpsd_client` is rebuilt per version
 
 Matrix:
 

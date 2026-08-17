@@ -287,6 +287,96 @@ TEST(GpsdRawParser, ATerminatedCharArrayStopsAtTheTerminator)
   EXPECT_EQ("/dev/ttyS0", msg.dev.path);
 }
 
+// --- Time transfer: TOFF, PPS and qErr ------------------------------------
+//
+// These three are reachable *only* from tier 1. gpsd's whole 196-log corpus
+// contains no TOFF or PPS report, because they do not come from the receiver's
+// data stream at all -- they are produced by the daemon from a PPS signal on a
+// real serial line. gpsfake replays recorded device output, so it can never
+// generate one. If these are not covered here they are not covered anywhere.
+//
+// toff, pps, qErr and qErr_time sit outside gps_data_t's report union and have
+// been present since API 9, so no guard is needed. Note that gpsd's UNION_SET
+// macro nonetheless lists TOFF_SET and PPS_SET, which is why the mask alone is
+// not a safe guide to what is a union arm -- the struct is.
+
+TEST(GpsdRawParser, ToffReportReachesTheMessage)
+{
+  // Hand-written rather than built by a fixture helper: TOFF has no builder
+  // because nothing else needs one. The assertions are all on decoded values,
+  // per the note on unpack() -- a typo here would surface as a wrong number,
+  // not a parse failure.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  gpsd_client::test::unpack(data,
+      R"({"class":"TOFF","device":"/dev/ttyS0",)"
+      R"("real_sec":1700000000,"real_nsec":250000000,)"
+      R"("clock_sec":1700000000,"clock_nsec":250000123})");
+
+  ASSERT_TRUE(data.set & TOFF_SET) << "libgps did not report a TOFF";
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+
+  EXPECT_TRUE(msg.set & gpsd_client::GpsdRawMsg::SET_TOFF);
+  EXPECT_EQ(msg.toff.real.sec, 1700000000);
+  EXPECT_EQ(msg.toff.real.nanosec, 250000000u);
+  EXPECT_EQ(msg.toff.clock.sec, 1700000000);
+  // The point of TOFF: the offset between the two clocks. Asserting both
+  // halves separately is what catches a real/clock mix-up.
+  EXPECT_EQ(msg.toff.clock.nanosec, 250000123u);
+}
+
+TEST(GpsdRawParser, PpsReportReachesTheMessageIncludingQErr)
+{
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  gpsd_client::test::unpack(data,
+      R"({"class":"PPS","device":"/dev/ttyS0",)"
+      R"("real_sec":1700000001,"real_nsec":0,)"
+      R"("clock_sec":1700000000,"clock_nsec":999999000,)"
+      R"("precision":-20,"qErr":-1234})");
+
+  ASSERT_TRUE(data.set & PPS_SET) << "libgps did not report a PPS";
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+
+  EXPECT_TRUE(msg.set & gpsd_client::GpsdRawMsg::SET_PPS);
+  EXPECT_EQ(msg.pps.real.sec, 1700000001);
+  EXPECT_EQ(msg.pps.clock.sec, 1700000000);
+  EXPECT_EQ(msg.pps.clock.nanosec, 999999000u);
+
+  // qErr rides in on the PPS report but lives in its own member, not in pps.
+  // It is signed picoseconds, so a negative value is the interesting case: a
+  // narrower or unsigned field would mangle it.
+  EXPECT_EQ(msg.q_err, -1234);
+}
+
+// gpsd reads PPS's "precision" and discards it -- there is a FIXME saying so
+// in libgps_json.c. It reaches no struct member, so there is nothing for the
+// generator to map and nothing to assert here; the message-side guarantee
+// that no field exists without a gps.h member behind it lives in
+// tools/test_generated_messages.py (Completeness).
+
+TEST(GpsdRawParser, AToffDoesNotDisturbThePpsMembers)
+{
+  // toff and pps are separate members, and each report memsets only its own.
+  // A TOFF arriving after a PPS must not blank the PPS values -- which is the
+  // sort of thing a copy-paste between the two fill paths would cause.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  gpsd_client::test::unpack(data,
+      R"({"class":"PPS","device":"/dev/ttyS0","real_sec":11,"real_nsec":0,)"
+      R"("clock_sec":22,"clock_nsec":0,"qErr":7})");
+  gpsd_client::test::unpack(data,
+      R"({"class":"TOFF","device":"/dev/ttyS0","real_sec":33,"real_nsec":0,)"
+      R"("clock_sec":44,"clock_nsec":0})");
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+
+  EXPECT_EQ(msg.toff.real.sec, 33);
+  EXPECT_EQ(msg.toff.clock.sec, 44);
+  EXPECT_EQ(msg.pps.real.sec, 11);
+  EXPECT_EQ(msg.pps.clock.sec, 22);
+  EXPECT_EQ(msg.q_err, 7);
+}
+
 // --- Tier C union dispatch (D16) -----------------------------------------
 
 TEST(GpsdRawParser, ReportUnionFillsOnlyTheArmTheMaskNames)

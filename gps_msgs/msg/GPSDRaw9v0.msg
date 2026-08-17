@@ -57,3 +57,12 @@ GPSDDop9v0 dop
 builtin_interfaces/Time skyview_time
 int32 satellites_visible
 GPSDSatellite9v0[] skyview
+GPSDDevconfig9v0 dev
+GPSDPolicy9v0 policy
+GPSDRawDevices9v0 devices
+GPSDAttitude9v0 attitude
+GPSDGst9v0 gst
+GPSDTimedelta9v0 toff
+GPSDTimedelta9v0 pps
+int64 q_err
+builtin_interfaces/Time q_err_time

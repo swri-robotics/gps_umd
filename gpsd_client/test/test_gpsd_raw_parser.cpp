@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstdio>
 #include <memory>
 
 #include <gpsd_client/gpsd_parser_factory.hpp>
@@ -168,6 +169,86 @@ TEST(GpsdRawParser, FixStatusIsCarriedWhereverThisVersionKeepsIt)
   EXPECT_EQ(msg.status, kStatusGps);
 #endif
 }
+
+// --- Tier B arrays -------------------------------------------------------
+
+// gps_data_t has carried `devices` since API 9, so this needs no guard --
+// unlike the imu[] and fixsource_t tests below, which arrived later.
+TEST(GpsdRawParser, DeviceListIsTrimmedToNdevices)
+{
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  const std::size_t capacity =
+      sizeof(data.devices.list) / sizeof(data.devices.list[0]);
+
+  data.devices.ndevices = 2;
+  snprintf(data.devices.list[0].path, sizeof(data.devices.list[0].path),
+           "/dev/ttyS0");
+  snprintf(data.devices.list[1].path, sizeof(data.devices.list[1].path),
+           "/dev/ttyS1");
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+  ASSERT_EQ(msg.devices.list.size(), 2u);
+  EXPECT_LT(msg.devices.list.size(), capacity);
+  EXPECT_EQ(msg.devices.list[0].path, "/dev/ttyS0");
+  EXPECT_EQ(msg.devices.list[1].path, "/dev/ttyS1");
+  EXPECT_EQ(msg.devices.ndevices, 2);
+
+  // Same garbage-clamping as skyview: ndevices is a plain int.
+  data.devices.ndevices = -1;
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).devices.list.size(), 0u);
+  data.devices.ndevices = static_cast<int>(capacity) + 100;
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).devices.list.size(),
+            capacity);
+}
+
+#if GPSD_API_MAJOR_VERSION >= 12
+TEST(GpsdRawParser, ImuIsTerminatedByAnEmptyMsg)
+{
+  /* imu[] carries no count. gpsd's own JSON dumper walks it until
+   * attitude_t::msg is empty, and the u-blox driver stamps msg on every entry
+   * it fills, so that terminator is the only authority on how many are real.
+   */
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  const std::size_t max_imu = sizeof(data.imu) / sizeof(data.imu[0]);
+
+  // Nothing stamped: nothing published, rather than ten empty entries.
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu.size(), 0u);
+
+  snprintf(data.imu[0].msg, sizeof(data.imu[0].msg), "UBX-ESF-RAW");
+  snprintf(data.imu[1].msg, sizeof(data.imu[1].msg), "UBX-ESF-RAW");
+  data.imu[1].gyro_x = 1.5;
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+  ASSERT_EQ(msg.imu.size(), 2u);
+  EXPECT_EQ(msg.imu[0].msg, "UBX-ESF-RAW");
+  EXPECT_DOUBLE_EQ(msg.imu[1].gyro_x, 1.5);
+
+  // A gap terminates: entry 3 is stamped but unreachable past the empty 2.
+  snprintf(data.imu[3].msg, sizeof(data.imu[3].msg), "UBX-ESF-RAW");
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu.size(), 2u);
+
+  // All ten stamped: bounded by the array, never past it.
+  for (std::size_t i = 0; i < max_imu; ++i)
+  {
+    snprintf(data.imu[i].msg, sizeof(data.imu[i].msg), "UBX-ESF-RAW");
+  }
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu.size(), max_imu);
+}
+#endif
+
+#if GPSD_API_MAJOR_VERSION >= 14
+TEST(GpsdRawParser, PointerMembersAreNotPublished)
+{
+  // fixsource_t's server/port/device are const char* into caller memory --
+  // gps_open() stores the host argument verbatim, and gpsd_client passes a
+  // c_str() that dangles once start() returns. spec carries the same
+  // information as a real array and is what gets published.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  snprintf(data.source.spec, sizeof(data.source.spec), "localhost:2947");
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+  EXPECT_EQ(msg.source.spec, "localhost:2947");
+}
+#endif  // fixsource_t reached gps_data_t in API 14
 
 int main(int argc, char** argv)
 {

@@ -85,15 +85,28 @@ namespace gpsd_client
                     GPSD_API_MINOR_VERSION);
       }
 
-      std::string host = "localhost";
+      /* These must be members, not locals. gps_open() stores the host and
+       * port pointers verbatim in gps_data_t::source (libgps_core.c) and never
+       * copies them, so passing a local's c_str() leaves gpsd's own view of
+       * where the data came from pointing at freed stack memory as soon as
+       * this function returns.
+       *
+       * libgps does not read them back, so this was dormant -- but source is
+       * part of every report handed to the parsers, and gpsd's own clients do
+       * read source.server/port, so anything reaching for them would have been
+       * undefined behaviour. Owning the strings for the node's lifetime costs
+       * nothing and removes the trap.
+       *
+       * Neither may be reassigned after gpsmm is constructed: that would
+       * reallocate and dangle the pointers again.
+       */
+      host_ = "localhost";
       int port = atoi(DEFAULT_GPSD_PORT);
-      this->get_parameter_or("host", host, host);
+      this->get_parameter_or("host", host_, host_);
       this->get_parameter_or("port", port, port);
+      port_ = std::to_string(port);
 
-      char port_s[12];
-      snprintf(port_s, sizeof(port_s), "%d", port);
-
-      gps_ = std::make_unique<gpsmm>(host.c_str(), port_s);
+      gps_ = std::make_unique<gpsmm>(host_.c_str(), port_.c_str());
       if (gps_->stream(WATCH_ENABLE) == nullptr)
       {
         RCLCPP_ERROR(this->get_logger(), "Failed to open GPSd");
@@ -156,6 +169,13 @@ namespace gpsd_client
     rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr navsatfix_pub_;
     /// Null unless publish_gpsd_raw is set; doubles as the enabled flag.
     rclcpp::Publisher<GpsdRawMsg>::SharedPtr gpsd_raw_pub_;
+
+    /* Declared before gps_ on purpose. Members are destroyed in reverse
+     * declaration order, so these outlive the gpsmm that holds pointers into
+     * them. See the note in start().
+     */
+    std::string host_;
+    std::string port_;
 
     std::unique_ptr<gpsmm> gps_;
     std::unique_ptr<GpsdParser> parser_;

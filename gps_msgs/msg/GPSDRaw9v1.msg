@@ -52,6 +52,7 @@ std_msgs/Header header
 uint64 set
 builtin_interfaces/Time online
 GPSDFix9v1 fix
+GPSDLog9v1 log
 int32 status
 int32 leap_seconds
 int32 satellites_used
@@ -59,3 +60,12 @@ GPSDDop9v1 dop
 builtin_interfaces/Time skyview_time
 int32 satellites_visible
 GPSDSatellite9v1[] skyview
+GPSDDevconfig9v1 dev
+GPSDPolicy9v1 policy
+GPSDRawDevices9v1 devices
+GPSDAttitude9v1 attitude
+GPSDGst9v1 gst
+GPSDTimedelta9v1 toff
+GPSDTimedelta9v1 pps
+int64 q_err
+builtin_interfaces/Time q_err_time

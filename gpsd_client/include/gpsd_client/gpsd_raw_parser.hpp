@@ -42,6 +42,12 @@ private:
   /// gpsd) entries of uninitialised satellites.
   static std::size_t skyviewCount(const gps_data_t& data);
 
+  /// Number of populated entries in gps_data_t::devices.list.
+  ///
+  /// Same reasoning as skyviewCount(): ndevices is a plain int and the array
+  /// is MAXUSERDEVS long regardless of how much of it means anything.
+  static std::size_t deviceCount(const gps_data_t& data);
+
   ParserContext context_;
 };
 

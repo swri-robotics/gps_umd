@@ -176,6 +176,12 @@ TIER_C_MEMBERS = (
 
 TIERS = {"A": TIER_A_MEMBERS, "B": TIER_B_MEMBERS, "C": TIER_C_MEMBERS}
 
+# The tier the checked-in generated files are produced at, and the default for
+# --tier. Single source of truth: the CLI, the drift check and the tests all
+# read it, so moving the tree to the next tier is a one-line change here
+# followed by a regenerate.
+CHECKED_IN_TIER = "B"
+
 
 import argparse
 import os
@@ -276,6 +282,8 @@ class Member:
     ctype: str                       # 'double', 'struct gps_fix_t', ...
     array: Optional[str] = None      # array extent as written, or None
     anon_body: Optional[str] = None  # body of an inline anonymous struct
+    is_pointer: bool = False         # declared with a '*'
+
 
 
 @dataclass
@@ -358,17 +366,20 @@ def split_members(body: str) -> List[Member]:
         head = re.match(r"^(.*?)([A-Za-z_]\w*)\s*(\[[^\]]*\])?$", chunks[0].strip())
         if not head:
             raise SystemExit(f"cannot parse struct member: {statement!r}")
-        ctype = head.group(1).strip().rstrip("*").strip()
+        raw_type = head.group(1).strip()
+        ctype = raw_type.rstrip("*").strip()
         if not ctype:
             raise SystemExit(f"cannot determine type of member: {statement!r}")
         members.append(Member(name=head.group(2), ctype=ctype,
-                              array=(head.group(3)[1:-1] if head.group(3) else None)))
+                              array=(head.group(3)[1:-1] if head.group(3) else None),
+                              is_pointer=raw_type.endswith("*")))
         for decl in chunks[1:]:
             decl = decl.strip()
             if not decl:
                 continue
             name, array = parse_declarator(decl)
-            members.append(Member(name=name, ctype=ctype, array=array))
+            members.append(Member(name=name, ctype=ctype, array=array,
+                                  is_pointer=decl.lstrip().startswith("*")))
     return members
 
 
@@ -451,6 +462,7 @@ SCALAR_TYPES = {
     "gps_mask_t": "uint64",     # verbatim, undecoded
     "gnssid_t": "uint8",
     "gps_fd_t": "int32",
+    "watch_t": "uint32",        # typedef uint32_t; a WATCH_* bitmask
     "socket_t": "int32",
     "timestamp_t": "float64",   # pre-API-9 leftover
 }
@@ -514,6 +526,22 @@ def build_model(pair: Tuple[int, int], src: str, tier_members: Sequence[str]) ->
 
 
 def add_field(model: Model, fields: List[Field], member: Member, parent: str) -> None:
+    if member.is_pointer:
+        """Pointers are never published, whatever they point at.
+
+        The motivating case is fixsource_t, whose server/server_ip/port/device
+        are `const char *` aimed at the caller's own memory: gps_open() stores
+        the host and port arguments verbatim (libgps/libgps_core.c), and
+        gpsd_client passes `host.c_str()` from a std::string local to start(),
+        so those pointers dangle as soon as start() returns. Dereferencing them
+        to build a message would be undefined behaviour in this very package.
+
+        Nothing is lost here: fixsource_t::spec carries the same information as
+        a real char array, and it is published.
+        """
+        model.skipped.setdefault(parent, []).append(member.name)
+        return
+
     name = snake_case(member.name)
     if any(existing.name == name for existing in fields):
         raise SystemExit(
@@ -1043,8 +1071,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--gpsd-repo", default=default_repo,
                         help="gpsd git clone to read gps.h from "
                              f"(default: {default_repo})")
-    parser.add_argument("--tier", default="A", choices=sorted(TIERS),
-                        help="highest delivery tier to emit (default: A)")
+    parser.add_argument("--tier", default=CHECKED_IN_TIER, choices=sorted(TIERS),
+                        help="highest delivery tier to emit "
+                             f"(default: {CHECKED_IN_TIER}, what the tree holds)")
     parser.add_argument("--output-root", default=here,
                         help="repository root to write into")
     parser.add_argument("--check", action="store_true",

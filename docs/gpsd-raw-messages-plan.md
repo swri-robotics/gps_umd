@@ -282,6 +282,15 @@ tiers below are delivery order, not a further reduction in scope:
 Non-goals, permanently excluded (not "information reported" — they are process-local):
 `gps_fd`, `update_fd` (function pointer), `privdata`, `set_pending`.
 
+**Pointer members are excluded as a class**, by type rather than by name. The
+motivating case is `fixsource_t`, whose `server`/`server_ip`/`port`/`device`
+are `const char *`: `gps_open()` stores the caller's host and port pointers
+verbatim and never copies them (`libgps/libgps_core.c`). `fixsource_t::spec` is
+a real `char[512]` carrying the same information and *is* published, so nothing
+is lost.
+
+That exclusion also surfaced a live defect in this package — see D12.
+
 ### D10 — AIS is out of scope
 
 The `ais` union arm (`struct ais_t`) is **not** represented in any `GPSDRaw*`
@@ -428,6 +437,42 @@ API version cannot reach:
 
 The header-audit test (5.4 #2) remains the backstop: it reads the *build's*
 gps.h, so it still fails loudly if a member exists and nothing maps it.
+
+### D12 — `gpsd_client` must own the host and port strings
+
+Found while adding Tier B. `client.cpp` built the gpsmm connection from
+*locals*:
+
+```cpp
+std::string host = "localhost";     // dies when start() returns
+char port_s[12];
+gps_ = std::make_unique<gpsmm>(host.c_str(), port_s);
+```
+
+`gpsmm` forwards to `gps_open()`, which stores both pointers in
+`gps_data_t::source` and never copies them. Once `start()` returned, gpsd's own
+record of where its data came from pointed at freed stack memory, for the whole
+life of the node.
+
+It was dormant: libgps never reads those fields back, and this project
+deliberately does not publish them (D6). But gpsd's own clients — `cgps`,
+`gpspipe`, `gps2udp` — all read `source.server`/`source.port`, so it is a
+perfectly ordinary thing to reach for, and `source` is part of every report
+handed to the parsers.
+
+Confirmed rather than assumed, with AddressSanitizer against real libgps and no
+daemon (the pointers are stored before the connection is attempted):
+
+```
+OLD (locals):  ERROR: AddressSanitizer: stack-use-after-return
+               READ of size 10 ...
+NEW (members): source.server = localhost
+               source.port   = 2947
+```
+
+**Fix:** `host_` and `port_` are members, declared *before* `gps_` so that
+reverse-order destruction leaves them alive longer than the gpsmm holding
+pointers into them, and never reassigned after the connection is built.
 
 ---
 

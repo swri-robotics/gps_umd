@@ -50,7 +50,7 @@ _GENERATED = None
 def generated():
     global _GENERATED
     if _GENERATED is None:
-        _GENERATED = gen.generate(GPSD_REPO, "A")
+        _GENERATED = gen.generate(GPSD_REPO, gen.CHECKED_IN_TIER)
     return _GENERATED
 
 
@@ -169,6 +169,57 @@ class ManualExpectations(unittest.TestCase):
                 self.assertHas(pair, "GPSDSatellite", field, "core satellite_t member")
             for field in ("xdop", "ydop", "pdop", "hdop", "vdop", "tdop", "gdop"):
                 self.assertHas(pair, "GPSDDop", field, "dop_t is stable across the range")
+
+    # --- Tier B ----------------------------------------------------------
+
+    def test_source_and_watch_arrive_at_api_14(self):
+        # "Add fixsource_t, watch_t, set_pending to gps_data_t" (API 14).
+        for pair in ALL_PAIRS:
+            if pair >= (14, 0):
+                self.assertHas(pair, "GPSDRaw", "source", "fixsource_t added at API 14")
+                self.assertHas(pair, "GPSDRaw", "watch", "watch_t added at API 14")
+            else:
+                self.assertLacks(pair, "GPSDRaw", "source", "not present before API 14")
+                self.assertLacks(pair, "GPSDRaw", "watch", "not present before API 14")
+
+    def test_imu_arrives_at_api_12(self):
+        # "add imu[], and matching IMU_SET flag" (API 12). attitude_t::msg
+        # arrived with it, which is what the parser uses to find the count.
+        for pair in ALL_PAIRS:
+            if pair >= (12, 0):
+                self.assertHas(pair, "GPSDRaw", "imu", "imu[] added at API 12")
+                self.assertHas(pair, "GPSDAttitude", "msg",
+                               "attitude_t::msg terminates imu[]; added at API 12")
+            else:
+                self.assertLacks(pair, "GPSDRaw", "imu", "imu[] added at API 12")
+
+    def test_devices_present_in_every_version(self):
+        # Unlike source/watch/imu, gps_data_t has carried devices since API 9,
+        # which is why the parser fills it without a version guard.
+        for pair in ALL_PAIRS:
+            self.assertHas(pair, "GPSDRaw", "devices", "present since API 9")
+            self.assertHas(pair, "GPSDRawDevices", "ndevices", "the list's count")
+            self.assertHas(pair, "GPSDRawDevices", "list", "the device array")
+
+    def test_fixsource_publishes_spec_but_no_pointers(self):
+        # server/server_ip/port/device are const char* aimed at caller memory
+        # that dangles once gpsd_client's start() returns; spec is a real array
+        # carrying the same information.
+        for pair in ALL_PAIRS:
+            if pair < (14, 0):
+                continue
+            self.assertHas(pair, "GPSDFixsource", "spec", "a real char array")
+            for pointer in ("server", "server_ip", "port", "device"):
+                self.assertLacks(pair, "GPSDFixsource", pointer,
+                                 "pointer into caller memory, never published")
+
+    def test_tier_b_core_members(self):
+        for pair in ALL_PAIRS:
+            for field in ("dev", "policy", "gst", "attitude", "toff", "pps",
+                          "q_err", "q_err_time", "devices"):
+                if field in ("gst",) and pair < (10, 0):
+                    continue
+                self.assertHas(pair, "GPSDRaw", field, "Tier B member")
 
     def test_header_is_first_field_everywhere(self):
         # The spec: every GPSDRaw carries a ROS header, following GPSFix.msg.
@@ -341,11 +392,17 @@ def scan_struct_members(src, tag):
         if depth > 0:
             continue          # inside an inline struct/union body
         parts = statement.split(",")
-        head = re.match(r"^.*?\b([A-Za-z_]\w*)\s*(\[[^\]]*\])?$", parts[0])
-        if head and len(parts[0].split()) >= 2:
-            names.add(head.group(1))
+        head = re.match(r"^(.*?)\b([A-Za-z_]\w*)\s*(\[[^\]]*\])?$", parts[0])
+        # Pointer members are never published -- fixsource_t's server/port/
+        # device are const char* into caller memory that dangles once
+        # gpsd_client's start() returns. Mirrored here so the completeness
+        # check does not demand a field the generator deliberately omits.
+        if head and len(parts[0].split()) >= 2 and not head.group(1).rstrip().endswith("*"):
+            names.add(head.group(2))
         for extra in parts[1:]:
-            extra = extra.strip().lstrip("*")
+            extra = extra.strip()
+            if extra.startswith("*"):
+                continue
             simple = re.match(r"^([A-Za-z_]\w*)\s*(\[[^\]]*\])?$", extra)
             if simple:
                 names.add(simple.group(1))
@@ -356,10 +413,22 @@ def scan_struct_members(src, tag):
 class Completeness(unittest.TestCase):
     """Every member gps.h declares must reach the message, or be excluded."""
 
+    # Every struct reachable from a published gps_data_t member. Structs that
+    # do not exist in an older gps.h are handled per-pair below rather than
+    # excluded, so "message absent" and "struct absent" must agree.
     STRUCT_TO_MESSAGE = {
+        # Tier A
         "gps_fix_t": "GPSDFix",
         "satellite_t": "GPSDSatellite",
         "dop_t": "GPSDDop",
+        # Tier B
+        "devconfig_t": "GPSDDevconfig",
+        "gps_policy_t": "GPSDPolicy",
+        "gst_t": "GPSDGst",
+        "attitude_t": "GPSDAttitude",
+        "gps_log_t": "GPSDLog",
+        "timedelta_t": "GPSDTimedelta",
+        "fixsource_t": "GPSDFixsource",
     }
 
     def test_every_struct_member_reaches_its_message(self):
@@ -367,8 +436,16 @@ class Completeness(unittest.TestCase):
             src = read_gps_h(gen.REFERENCE_REVS[pair])
             for tag, stem in self.STRUCT_TO_MESSAGE.items():
                 fields = message_fields(pair, stem)
-                self.assertIsNotNone(fields, f"API {pair}: {stem} not generated")
-                for member in sorted(scan_struct_members(src, tag)):
+                declared = scan_struct_members(src, tag)
+                if fields is None:
+                    # No message is only acceptable when gps.h has no such
+                    # struct at this revision. Otherwise a struct was dropped.
+                    self.assertEqual(
+                        declared, set(),
+                        f"API {pair[0]}.{pair[1]}: {tag} exists in gps.h but "
+                        f"{stem} was not generated")
+                    continue
+                for member in sorted(declared):
                     if member in gen.EXCLUDED_MEMBERS:
                         continue
                     self.assertIn(
@@ -406,8 +483,11 @@ class Completeness(unittest.TestCase):
         for pair in ALL_PAIRS:
             src = read_gps_h(gen.REFERENCE_REVS[pair])
             for tag, stem in self.STRUCT_TO_MESSAGE.items():
+                fields = message_fields(pair, stem)
+                if fields is None:
+                    continue
                 declared = {gen.snake_case(m) for m in scan_struct_members(src, tag)}
-                for field in message_fields(pair, stem):
+                for field in fields:
                     self.assertIn(
                         field, declared,
                         f"API {pair[0]}.{pair[1]}: {stem}.{field} has no "

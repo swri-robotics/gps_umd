@@ -304,6 +304,7 @@ class Member:
     is_pointer: bool = False         # declared with a '*'
     struct_tag: Optional[str] = None  # tag of an inline `struct X { ... } m;`
     is_union: bool = False           # inline union with a declarator
+    union_arm: bool = False          # spliced in from an anonymous union
 
 
 
@@ -375,7 +376,16 @@ def split_members(body: str) -> List[Member]:
                 cursor += 1
             tail = body.index(";", cursor)
             if not body[cursor:tail].strip():
-                members += split_members(body[inner_start:cursor - 1])
+                spliced = split_members(body[inner_start:cursor - 1])
+                if inline.group(0).lstrip().startswith("union"):
+                    # Only one of these is ever valid, exactly as for a named
+                    # union, so they get the same 0-or-1 array treatment. Both
+                    # gps_data_t's report union and rtcm2_t's arm union are
+                    # declarator-less, so without this the representation would
+                    # depend on whether gpsd happened to name the union.
+                    for member in spliced:
+                        member.union_arm = True
+                members += spliced
                 index = tail + 1
                 continue
 
@@ -627,7 +637,14 @@ def build_model(pair: Tuple[int, int], src: str, tier_members: Sequence[str]) ->
             continue
         if member.name not in tier_members:
             continue
+        before = len(fields)
         add_field(model, fields, member, parent="gps_data_t")
+        if member.union_arm:
+            for f in fields[before:]:
+                if not f.ros_type.endswith("[]"):
+                    f.ros_type += "[]"
+                f.array = True
+                f.union_arm = True
         mapped.append(member.name)
     model.mapped["gps_data_t"] = mapped
     model.skipped["gps_data_t"] = skipped
@@ -784,7 +801,7 @@ def emit_struct(model: Model, message_name: str, members: List[Member],
             continue
         before = len(fields)
         add_field(model, fields, member, parent=parent)
-        if as_union:
+        if as_union or member.union_arm:
             for f in fields[before:]:
                 # An arm that is already an array (rtcm3's raw `data`) needs no
                 # wrapping: ROS forbids nested arrays, and its emptiness
@@ -1010,6 +1027,18 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
     for f in model.messages[message_name]:
         if f.kind == "header":
             continue
+        if f.union_arm:
+            # Union arms are 0-or-1 arrays and only one is ever valid, so
+            # filling one means first deciding *which* -- from rtcm3_t::type,
+            # rtcm2_t::type, or subframe_t::subframe_num/pageid depending on
+            # the union (see D16 in docs/gpsd-raw-messages-plan.md). That
+            # dispatch is not implemented yet, so arms are left empty rather
+            # than filled speculatively: an empty arm honestly says "not
+            # decoded", while a filled one would assert a report type.
+            out.append(f"  // {f.name}: union arm, left empty until the "
+                       f"discriminator dispatch lands (D16)")
+            continue
+
         if f.kind == "struct" and f.array:
             # Variable-length arrays of structs are filled by the hand-written
             # parser, which is the only place that knows the valid count

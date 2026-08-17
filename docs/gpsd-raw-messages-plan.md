@@ -525,6 +525,24 @@ generator was corrected.
 is scoped to the directories the generator owns and to its own naming, so it
 can never propose deleting a hand-written file.
 
+### D16 — Union dispatch: what selects each arm
+
+The 0-or-1 array representation (D13's neighbour) says *how* an arm is
+published; this records *which* arm is live, since the generated fill has to
+switch on something. All three discriminators were read out of gpsd's own JSON
+dumper rather than inferred, the same way the `imu[]` terminator was.
+
+| Union | Discriminator | Arm selection |
+|---|---|---|
+| `gps_data_t` report union | `set` mask | `RTCM2_SET`, `RTCM3_SET`, `SUBFRAME_SET`, `RAW_SET`, `OSCILLATOR_SET`, `VERSION_SET`, `ERROR_SET` — already the plan's D5 |
+| `rtcm3_t.rtcmtypes` | `rtcm3_t.type` | 23 arms are named `rtcm3_<TYPE>`, so the mapping is **derivable from the name**. Plus `rtcm3_msm` for ~43 MSM types (1071-1077, 1081-1087, 1091-1097, 1101-1107, 1111-1117, 1121-1127), `rtcm3_4076` for 4076, and `data` as the raw fallback |
+| `rtcm2_t` (anonymous) | `rtcm2_t.type` | 13 arms, mapping **not** derivable from names: type 1/9 → `gps_ranges`, 3 → `reference`, 4 → `?`, 5 → `conhealth`, 6 → idle, 7 → `almanac`, 16 → `message`, 31 → `glonass_ranges`, 18-24 → `rtcm2_18`…`rtcm2_24`. Needs an explicit table |
+| `subframe_t` | `subframe_num`, then `pageid` | Two-level: 1→`sub1`, 2→`sub2`, 3→`sub3`; 4 and 5 share one pageid space ("pageid is unique to all of subframes 4 and 5, handle as one" — gpsd_json.c), so 51→`sub5_25`, 52→`sub4_13`, … with `sub4`/`sub5` generic |
+
+Only rtcm3's 23 numeric arms are mechanical. rtcm2's and subframe's mappings are
+semantic knowledge living in gpsd's C, so they belong in an explicit table in
+the generator, cited to the switch they came from — not re-derived by guesswork.
+
 ---
 
 ## 3. Message inventory
@@ -779,7 +797,7 @@ Two implementation notes worth carrying forward:
 - [x] Assert no generated constant collides with a `gps.h` macro — done in the generator against the full macro namespace, not a name pattern (see phase 3)
 - [x] Compile-test the reverse include order — `test_gpsd_raw_include_order.cpp`, its own target. This is what found the `SET_HIGH_BIT` collision
 - [x] Extend to Tier B — 136 messages, 15 stems; verified building and testing against all ten API pairs
-- [ ] Extend to Tier C
+- [x] Extend to Tier C — 905 messages, 90 per API pair. **Structure only: the union arms are generated and build, but the parser does not yet populate them (D16)**
 - [ ] Decide whether `ros1_ros2_mapping.yaml` needs entries (probably not — no ROS 1 counterpart exists)
 
 ### Phase 3 — Parsers (`gpsd_client`)  *(complete for Tier A)*
@@ -971,6 +989,7 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-17 | 2 | Union arms are now 0-or-1 arrays consistently, whether or not gpsd named the union — `rtcm2_t`'s and `gps_data_t`'s are anonymous and were being spliced in as plain fields, so representation depended on an accident of gpsd's declaration style. Recorded the three union discriminators as D16. |
 | 2026-08-17 | 2 | **Tier C generated, and the messages moved to a new `gps_extended_msgs` package** (D13), keeping the `GPSD` message prefix, after measuring Tier C at 8m48s — too much to impose on the released `gps_msgs`. Tier C needed six new generator capabilities: inline *tagged* structs, enums, unions with a declarator, struct typedefs, `isgps30bits_t`, and a function-pointer test that was misfiring on a parenthesised array extent. Union arms are 0-or-1 arrays. Also D14 (rosidl name normalisation) and D15 (orphan removal), both found by breaking the build. |
 | 2026-08-17 | 2/3/4 | **Tier B landed.** 136 generated messages (was 64), 7 new sub-messages. Parser gained `devices.list` (trimmed to `ndevices`) and `imu[]` (terminated by an empty `attitude_t::msg`, the rule gpsd's own dumper uses — there is no count field). New exclusion: pointer members, by type not name. Completeness cross-check and manual expectations extended to all Tier B structs. `colcon test`: **100-102 tests, 0 failures on all ten API pairs**. |
 | 2026-08-17 | — | D12: fixed a live dangling-pointer defect in `client.cpp` found while excluding `fixsource_t`'s pointers. Confirmed with ASAN (`stack-use-after-return` before, clean after). |

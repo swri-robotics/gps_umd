@@ -94,7 +94,7 @@ if(BUILD_TESTING)
 
   # The JSON fixture harness mirrors gps_open()'s initialization, which calls
   # gps_clear_gst()/gps_clear_log(). Not every supported libgps declares those,
-  # and availability does not track GPSD_API_MAJOR_VERSION: gpsd 3.24 and
+  # and availability does not track GPSD_API_MAJOR_VERSION: GPSd 3.24 and
   # 3.26.1 are both API 14.0, yet only 3.26.1 declares gps_clear_gst(). Probe
   # for them instead.
   include(CheckCXXSymbolExists)
@@ -105,7 +105,7 @@ if(BUILD_TESTING)
   # Struct members, probed rather than inferred from the API version.
   #
   # One API pair spans a range of header states, so a version comparison does
-  # not answer "does this member exist". Within API 14.0 alone, gpsd 3.24 has
+  # not answer "does this member exist". Within API 14.0 alone, GPSd 3.24 has
   # neither gps_data_t::source nor rtcm3_4076, 3.25 has source only, and
   # 3.26.1 has both. See docs/gpsd-quirks.md.
   #
@@ -170,9 +170,9 @@ if(BUILD_TESTING)
     target_compile_definitions(${target} PRIVATE ${GPSD_FEATURE_DEFINES})
   endforeach()
 
-  # End-to-end: gpsfake -> real gpsd -> this node -> ROS topics.
+  # End-to-end: gpsfake -> real GPSd -> this node -> ROS topics.
   #
-  # Skips itself unless pointed at a gpsd built with the daemon and Python
+  # Skips itself unless pointed at a GPSd built with the daemon and Python
   # module (GPSD_E2E_PREFIX) and a source checkout for the log corpus
   # (GPSD_REPO), neither of which exists on the build farm. See the test's
   # docstring for how to run it.
@@ -184,7 +184,7 @@ if(BUILD_TESTING)
   # number does not determine it.
   find_file(GPSD_HEADER gps.h PATHS ${libgps_INCLUDE_DIRS} NO_DEFAULT_PATH)
   if(GPSD_HEADER)
-    # gpsd writes these with a trailing comment:
+    # GPSd writes these with a trailing comment:
     #
     #     #define GPSD_API_MAJOR_VERSION  16      // bump on incompatible changes
     #

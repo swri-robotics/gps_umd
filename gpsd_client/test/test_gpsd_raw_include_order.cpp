@@ -43,7 +43,7 @@ TEST(GpsdRawIncludeOrder, GeneratedConstantsSurviveGpsHFirst)
   // SET_HIGHEST_BIT is a *count*, not a bit, and it is the one constant that
   // legitimately disagrees with the build's gps.h. Messages are generated from
   // the last rev of an API pair, and a pair spans a range of header states:
-  // GPSDRaw14v0 comes from gpsd 3.26.1 (SET_HIGH_BIT 45) but gpsd 3.24 reports
+  // GPSDRaw14v0 comes from GPSd 3.26.1 (SET_HIGH_BIT 45) but GPSd 3.24 reports
   // the same API 14.0 with 44, because EOF_SET landed mid-pair. So the message
   // can only ever know about at least as many bits as this build.
   EXPECT_GE(gpsd_client::GpsdRawMsg::SET_HIGHEST_BIT,

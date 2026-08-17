@@ -9,7 +9,7 @@
 namespace gpsd_client
 {
 
-/// Produces the GpsdParser matching the gpsd API this package was built
+/// Produces the GpsdParser matching the GPSd API this package was built
 /// against.
 ///
 /// Note: only one libgps is present at build time and the layout of

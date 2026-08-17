@@ -42,10 +42,10 @@ bool GpsdParserBase::hasValidVariance(const gps_data_t& data)
  * ROS messages' integer values for status.status in the mapping helpers
  * below.
  *
- * gpsd renamed STATUS_DGPS_FIX to STATUS_DGPS in 3.25. The rename was clean
+ * GPSd renamed STATUS_DGPS_FIX to STATUS_DGPS in 3.25. The rename was clean
  * -- no release defines both -- so the spelling has to be selected by the
  * preprocessor here, since it is used as a case label. The other STATUS_
- * macros are defined by every gpsd we support (API >= 9, enforced in
+ * macros are defined by every GPSd we support (API >= 9, enforced in
  * gpsd_parser.hpp) and need no feature detection.
  */
 #ifdef STATUS_DGPS_FIX
@@ -244,7 +244,7 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
   fix.longitude = data.fix.longitude;
   fix.altitude = data.fix.altitude;
 
-  /* gpsd reports status=OK even when there is no current fix, as long as
+  /* GPSd reports status=OK even when there is no current fix, as long as
    * there has been a fix previously. Throw out these fake results, which
    * have NaN variance.
    */

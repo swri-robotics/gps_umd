@@ -2,7 +2,7 @@
 """Unit tests for generate_raw_msgs.py.
 
 These feed known gps.h fragments to the parser rather than the real header, so
-they pin the behaviour that matters without needing a gpsd checkout. Run with:
+they pin the behaviour that matters without needing a GPSd checkout. Run with:
 
     python3 -m unittest discover -s tools -p 'test_*.py'
 """
@@ -20,7 +20,7 @@ _SPEC.loader.exec_module(gen)
 
 class SnakeCase(unittest.TestCase):
     def test_gpsd_member_names(self):
-        # gpsd mixes conventions freely; all of these are real member names.
+        # GPSd mixes conventions freely; all of these are real member names.
         self.assertEqual(gen.snake_case("PRN"), "prn")
         self.assertEqual(gen.snake_case("altHAE"), "alt_hae")
         self.assertEqual(gen.snake_case("altMSL"), "alt_msl")
@@ -132,7 +132,7 @@ class MaskConstants(unittest.TestCase):
     def test_names_are_flipped_to_avoid_gps_h_macros(self):
         constants = dict(gen.mask_constants(self.SRC))
         # rosidl emits constants as static constexpr members and gps.h defines
-        # LATLON_SET etc. as global macros, so the gpsd spelling is unusable.
+        # LATLON_SET etc. as global macros, so the GPSd spelling is unusable.
         self.assertIn("SET_LATLON", constants)
         self.assertNotIn("LATLON_SET", constants)
         self.assertEqual(constants["SET_ONLINE"], str(1 << 1))

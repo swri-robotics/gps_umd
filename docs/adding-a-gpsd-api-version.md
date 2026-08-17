@@ -1,6 +1,6 @@
-# Adding a new gpsd API version
+# Adding a new GPSd API version
 
-gpsd bumps `GPSD_API_MAJOR_VERSION` / `GPSD_API_MINOR_VERSION` every year or
+GPSd bumps `GPSD_API_MAJOR_VERSION` / `GPSD_API_MINOR_VERSION` every year or
 two, and each bump needs a new `GPSDRaw<MAJOR>v<MINOR>` and its parser. This is
 the procedure. It is short because the generator does most of it; the parts
 that need judgement are called out, and every one of them has bitten this
@@ -8,11 +8,11 @@ package at least once.
 
 Read [gpsd-raw-message-structure.md](gpsd-raw-message-structure.md) and
 [gpsd-quirks.md](gpsd-quirks.md) first if you have not — this document assumes
-the message layout and the gpsd behaviours they describe.
+the message layout and the GPSd behaviours they describe.
 
 ## 0. The one thing to internalise
 
-**An API pair names a *range* of header states, not one state.** gpsd bumps the
+**An API pair names a *range* of header states, not one state.** GPSd bumps the
 version when a breaking change begins, then keeps adding fields under the same
 number until the next bump. So "API 13" is not a fixed `gps.h`; `nSat` is absent
 at the start of API 13 and present at the end of it.
@@ -43,7 +43,7 @@ for tag in $(git tag -l 'release-3.*' | sort -V); do
 done
 ```
 
-(`gps.h` moved into `include/` partway through gpsd's history, hence the
+(`gps.h` moved into `include/` partway through GPSd's history, hence the
 fallback.) If the new pair appears there, the newest tag carrying it is your
 reference rev, and you are done with this step.
 
@@ -100,7 +100,7 @@ The generator refuses to guess. Expect it to stop with a `SystemExit` on any of:
 
 * **an unmapped C type** — add it to the type map, with a test; silently
   dropping a member would lose data with no trace
-* **a colliding ROS field name** — two gpsd members that snake_case to the same
+* **a colliding ROS field name** — two GPSd members that snake_case to the same
   thing
 * **an unknown `#ifdef`** — it resolves the conditionals it knows and refuses
   the rest rather than guessing which arm is live
@@ -125,9 +125,9 @@ adds one, add it to the relevant dispatch table:
 | `rtcm3_t` | `RTCM3_MSM_RANGES` and the type map | `rtcm3.type` |
 | `subframe_t` | `SUBFRAME_ARMS`, `SUBFRAME_PAGE_ARMS` | `subframe_num` / `pageid` |
 
-Derive the mapping from **gpsd's own writer code**, not from the arm's name.
+Derive the mapping from **GPSd's own writer code**, not from the arm's name.
 Several arms — `rtcm2_18` through `rtcm2_24`, and `subframe_t::sub4` — are
-declared in `gps.h` and written by nothing in gpsd. Mapping them by name pattern
+declared in `gps.h` and written by nothing in GPSd. Mapping them by name pattern
 would publish uninitialised union bytes. There are tests pinning them empty;
 leave them that way unless you find the code that fills them.
 
@@ -136,7 +136,7 @@ leave them that way unless you find the code that fills them.
 The generator being self-consistent proves nothing about whether it read the
 right header. `ManualExpectations` in
 [tools/test_generated_messages.py](../tools/test_generated_messages.py) is the
-independent check: one test per real gpsd change, each stating *what* changed
+independent check: one test per real GPSd change, each stating *what* changed
 and *why* the message must reflect it.
 
 Add at least one for the new pair — whatever the bump was actually for. If the

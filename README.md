@@ -26,16 +26,16 @@ Depending on the GPS receiver, GPSd is capable of providing a great deal of info
 
 | API | GPSd revision | Message | Status |
 |---|---|---|---|
-| **9.0** | `3.20` | `GPSDRaw9v0` | [![gpsd API 9.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml) |
-| **9.1** | `e5279ef52` *(unreleased)* | `GPSDRaw9v1` | [![gpsd API 9.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml) |
-| **10.0** | `3.21` | `GPSDRaw10v0` | [![gpsd API 10.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml) |
-| **10.1** | `42f816d59` *(unreleased)* | `GPSDRaw10v1` | [![gpsd API 10.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml) |
-| **11.0** | `3.22` | `GPSDRaw11v0` | [![gpsd API 11.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml) |
-| **12.0** | `3.23.1` | `GPSDRaw12v0` | [![gpsd API 12.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml) |
-| **13.0** | `264e808c6` *(unreleased)* | `GPSDRaw13v0` | [![gpsd API 13.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml) |
-| **14.0** | `3.26.1` | `GPSDRaw14v0` | [![gpsd API 14.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml) |
-| **16.0** | `3.27.3` | `GPSDRaw16v0` | [![gpsd API 16.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml) |
-| **16.1** | `3.27.5` | `GPSDRaw16v1` | [![gpsd API 16.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml) |
+| **9.0** | `3.20` | `GPSDRaw9v0` | [![GPSd API 9.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml) |
+| **9.1** | `e5279ef52` *(unreleased)* | `GPSDRaw9v1` | [![GPSd API 9.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml) |
+| **10.0** | `3.21` | `GPSDRaw10v0` | [![GPSd API 10.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml) |
+| **10.1** | `42f816d59` *(unreleased)* | `GPSDRaw10v1` | [![GPSd API 10.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml) |
+| **11.0** | `3.22` | `GPSDRaw11v0` | [![GPSd API 11.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml) |
+| **12.0** | `3.23.1` | `GPSDRaw12v0` | [![GPSd API 12.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml) |
+| **13.0** | `264e808c6` *(unreleased)* | `GPSDRaw13v0` | [![GPSd API 13.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml) |
+| **14.0** | `3.26.1` | `GPSDRaw14v0` | [![GPSd API 14.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml) |
+| **16.0** | `3.27.3` | `GPSDRaw16v0` | [![GPSd API 16.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml) |
+| **16.1** | `3.27.5` | `GPSDRaw16v1` | [![GPSd API 16.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml) |
 
 Three GPSd API versions are not matched to a GPSd version. These GPSd versions are given as their commit hash instead. To add more version of the GPSd API, see: [docs/adding-a-gpsd-api-version.md](docs/adding-a-gpsd-api-version.md).
 
@@ -46,14 +46,14 @@ The `gpsd_client::GPSDClientComponent` node accepts the following parameters. So
 
 Parameter | Type | Default | Description
 :-------- | :--- | :------ | :----------
-`host` | string | `localhost` | Hostname or address of the gpsd server to connect to.
-`port` | int | `2947` | TCP port of the gpsd server.
+`host` | string | `localhost` | Hostname or address of the GPSd server to connect to.
+`port` | int | `2947` | TCP port of the GPSd server.
 `frame_id` | string | `gps` | `frame_id` set on the header of published `GPSFix` and `NavSatFix` messages.
-`publish_rate` | int | `10` | How often, in Hz, to poll gpsd and publish. Values `<= 0` are rejected with a warning and fall back to 1 Hz.
+`publish_rate` | int | `10` | How often, in Hz, to poll GPSd and publish. Values `<= 0` are rejected with a warning and fall back to 1 Hz.
 `use_gps_time` | bool | `true` | Stamp `NavSatFix` messages with the time reported by the GPS receiver instead of the current ROS time.
-`check_fix_by_variance` | bool | `false` | Discard fixes whose reported variances (`epx`/`epy`/`epv`) are not finite. gpsd reports a status of OK even when there is no current fix, as long as there was one previously; this rejects those stale results.
-`override_augmentation_source` | bool | `false` | When gpsd reports a DGPS fix, always report it as an SBAS fix, whether or not a satellite with an SBAS ID was used in the solution. Useful for receivers that apply SBAS corrections without listing the SBAS satellite in their skyview. Affects both `NavSatFix` and `GPSFix` status.
-`publish_gpsd_raw` | bool | `false` | Also publish a near-verbatim mirror of gpsd's `gps_data_t` on `gpsd_raw`, in a message named after the libgps API this package was built against (see below). Off by default: the message is much larger than `GPSFix`, and neither the publisher nor its parser is created unless this is set.
+`check_fix_by_variance` | bool | `false` | Discard fixes whose reported variances (`epx`/`epy`/`epv`) are not finite. GPSd reports a status of OK even when there is no current fix, as long as there was one previously; this rejects those stale results.
+`override_augmentation_source` | bool | `false` | When GPSd reports a DGPS fix, always report it as an SBAS fix, whether or not a satellite with an SBAS ID was used in the solution. Useful for receivers that apply SBAS corrections without listing the SBAS satellite in their skyview. Affects both `NavSatFix` and `GPSFix` status.
+`publish_gpsd_raw` | bool | `false` | Also publish a near-verbatim mirror of GPSd's `gps_data_t` on `gpsd_raw`, in a message named after the libgps API this package was built against (see below). Off by default: the message is much larger than `GPSFix`, and neither the publisher nor its parser is created unless this is set.
 `publish_gpsd_rtcm` | bool | `false` | Publish RTCM2 and RTCM3 differential corrections on `gpsd_rtcm2` and `gpsd_rtcm3`. Separate from `gpsd_raw` and separately switchable: the two RTCM families are about half of all the generated message types, and a consumer of corrections is rarely the one that wants a fix.
 
 These node defaults can be overriden by setting a parameter. The file `gpsd_client/config/gpsd_client.yaml` contains these parameters as well. The launch file `gpsd_client-launch.py` can load these YAML files for convenience.
@@ -61,7 +61,7 @@ These node defaults can be overriden by setting a parameter. The file `gpsd_clie
 Raw GPSd Details
 -----------------
 
-With `publish_gpsd_raw` set, `gpsd_client` publishes everything gpsd reports on
+With `publish_gpsd_raw` set, `gpsd_client` publishes everything GPSd reports on
 `gpsd_raw`, as close to verbatim as a ROS message allows. The type is named
 after the GPSd C API the package compiled against —
 `gps_extended_msgs/GPSDRaw<MAJOR>v<MINOR>` — and the node logs which one it

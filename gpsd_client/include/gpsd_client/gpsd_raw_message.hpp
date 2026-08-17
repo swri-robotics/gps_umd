@@ -11,7 +11,7 @@
 #include <gps.h>
 
 #if GPSD_API_MAJOR_VERSION < 9
-#error "gpsd_client requires gpsd API version >= 9 (gpsd >= 3.20)"
+#error "gpsd_client requires GPSd API version >= 9 (GPSd >= 3.20)"
 #endif
 
 #if GPSD_API_MAJOR_VERSION == 9 && GPSD_API_MINOR_VERSION == 0
@@ -49,7 +49,7 @@
 // available message; its fields are a subset of what the build's
 // gps.h declares, and every generated assignment is member-guarded,
 // so this compiles -- it just cannot carry members added later.
-#warning "Untested gpsd API version; falling back to the API 16.1 raw message"
+#warning "Untested GPSd API version; falling back to the API 16.1 raw message"
 #define GPSD_RAW_FILL_MAJOR 16
 #define GPSD_RAW_FILL_MINOR 1
 #endif

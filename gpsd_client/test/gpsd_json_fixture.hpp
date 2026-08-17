@@ -1,7 +1,7 @@
 #ifndef GPSD_CLIENT__TEST__GPSD_JSON_FIXTURE_HPP_
 #define GPSD_CLIENT__TEST__GPSD_JSON_FIXTURE_HPP_
 
-/// Library-only test harness: build gps_data_t from gpsd's own JSON.
+/// Library-only test harness: build gps_data_t from GPSd's own JSON.
 ///
 /// gps.h publicly declares
 ///
@@ -17,7 +17,7 @@
 /// buys two things:
 ///
 ///  1. Fields land wherever *that* libgps puts them. The fix status is the
-///     standing example -- gpsd 3.20 parses TPV "status" into gps_data_t.status
+///     standing example -- GPSd 3.20 parses TPV "status" into gps_data_t.status
 ///     while 3.21+ parses it into gps_data_t.fix.status -- so fixtures need no
 ///     #if for it, unlike hand-built structs.
 ///  2. Version-dependent decode quirks are exercised rather than bypassed. See
@@ -41,34 +41,34 @@ namespace test
 ///
 /// gps_open() does more than zero the struct: it clears the fix, DOP and
 /// attitude sub-structs, which sets their members to NAN rather than 0.0
-/// (libgps/libgps_core.c). gpsd uses NAN as its "unknown" sentinel throughout,
+/// (libgps/libgps_core.c). GPSd uses NAN as its "unknown" sentinel throughout,
 /// so a zero-filled gps_data_t misrepresents "unknown" as "exactly zero" and
 /// makes tests agree with a parser that a live client would disagree with.
 ///
 /// gps_clear_gst() and gps_clear_log() are not available in every supported
 /// libgps, and -- unlike most differences here -- their availability does not
-/// track the API version: gpsd 3.24 and 3.26.1 are both API 14.0, yet only
+/// track the API version: GPSd 3.24 and 3.26.1 are both API 14.0, yet only
 /// 3.26.1 declares gps_clear_gst(). They are therefore detected by CMake
 /// (check_cxx_symbol_exists) rather than guarded on GPSD_API_MAJOR_VERSION.
 gps_data_t makeEmptyData();
 
-/// Feed one or more gpsd JSON reports into @p data.
+/// Feed one or more GPSd JSON reports into @p data.
 ///
 /// Multiple concatenated JSON objects in a single string are supported, exactly
-/// as they arrive on the wire (gpsd packs several reports into one write, which
+/// as they arrive on the wire (GPSd packs several reports into one write, which
 /// is why gps_unpack loops over segments).
 ///
 /// Reports accumulate into @p data, mirroring a live session: a TPV followed by
 /// a SKY leaves both the fix and the skyview populated.
 ///
 /// Returns gps_unpack's status, but do not mistake that for validation.
-/// **No released gpsd propagates parse errors out of gps_unpack()**: through
+/// **No released GPSd propagates parse errors out of gps_unpack()**: through
 /// 3.27.5 its inner loop merely breaks on a failed segment and the function
 /// returns 0 regardless (libgps/libgps_sock.c). Truncated JSON, a string where
 /// a number belongs, and an unknown class all come back 0. Even the `set` mask
 /// is no help -- the TPV branch assigns STATUS_SET before checking whether the
 /// parse succeeded -- so libgps offers no reliable malformed-input signal at
-/// all. gpsd master has since added error propagation, hence returning the
+/// all. GPSd master has since added error propagation, hence returning the
 /// status rather than void: it will start being meaningful on some future
 /// release.
 ///
@@ -88,7 +88,7 @@ struct Satellite
   bool used = false;
   /// GNSSID_GPS, GNSSID_SBAS, ... (gps.h). Numeric because the JSON is numeric.
   int gnssid = GNSSID_GPS;
-  /// gpsd ignores gnssid and sigid when svid is zero, so default it to the PRN.
+  /// GPSd ignores gnssid and sigid when svid is zero, so default it to the PRN.
   int svid = -1;
 };
 
@@ -107,7 +107,7 @@ struct Dop
 /// The fields of a TPV report this harness emits. NAN (the default for the
 /// doubles) means "omit the key", so a fixture only states what it cares about.
 ///
-/// Restricted to keys accepted by every supported libgps: gpsd 3.20 and 3.21
+/// Restricted to keys accepted by every supported libgps: GPSd 3.20 and 3.21
 /// have no catch-all t_ignore entry in their TPV/SKY attribute tables and will
 /// fail to parse an object containing a key they do not know.
 struct Tpv
@@ -134,10 +134,10 @@ struct Tpv
   double epc = 0.0 / 0.0;
 };
 
-/// Render @p tpv as a gpsd TPV report.
+/// Render @p tpv as a GPSd TPV report.
 std::string tpvJson(const Tpv& tpv);
 
-/// Render a gpsd SKY report.
+/// Render a GPSd SKY report.
 ///
 /// Emits the "nSat" key only when the libgps being built against tolerates it.
 /// This is not cosmetic, and the boundary is not where the version numbers
@@ -145,7 +145,7 @@ std::string tpvJson(const Tpv& tpv);
 /// return that clears SATELLITE_SET and leaves satellites_visible at 0 --
 /// every satellite in the report is silently discarded. But nSat landed
 /// *mid*-API-13, a day before the bump to 14, so keying on API >= 14 loses
-/// every satellite when building against the end of API 13. Meanwhile gpsd
+/// every satellite when building against the end of API 13. Meanwhile GPSd
 /// 3.20/3.21 reject unknown keys outright, so it cannot simply always be
 /// emitted either. See the implementation for the resulting rule.
 ///

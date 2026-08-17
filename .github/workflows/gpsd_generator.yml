@@ -1,9 +1,9 @@
 name: gpsd generator
 
-# The fast half of the gpsd tooling checks: everything that needs only gpsd's
-# git history, and no gpsd build at all. Kept separate from the heavy jobs so it
+# The fast half of the GPSd tooling checks: everything that needs only GPSd's
+# git history, and no GPSd build at all. Kept separate from the heavy jobs so it
 # can run on every push and pull request, carry its own badge, and be re-run on
-# its own without dragging ten source builds of gpsd along with it.
+# its own without dragging ten source builds of GPSd along with it.
 #
 # The heavy half is one workflow per API version, gpsd_api_<M>v<m>.yml, all
 # calling the reusable gpsd_api_shared.yml. Unlike this workflow they do not run
@@ -51,7 +51,7 @@ jobs:
         if: always()
         run: |
           {
-            echo "## gpsd generator"
+            echo "## GPSd generator"
             echo
             echo "| Check | Result |"
             echo "|---|---|"

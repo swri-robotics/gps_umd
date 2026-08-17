@@ -9,7 +9,7 @@
 namespace gpsd_client
 {
 
-/// Converts a gpsd report into the raw message for this build's libgps API.
+/// Converts a GPSd report into the raw message for this build's libgps API.
 ///
 /// Unlike GpsdParser -- whose GPSFix/NavSatFix output is a curated,
 /// version-independent view -- this is a near-verbatim copy of gps_data_t into
@@ -58,7 +58,7 @@ private:
   /// stale report can leave negative or larger than the array, so it is
   /// clamped to [0, MAXCHANNELS] rather than trusted. Publishing the whole
   /// fixed array instead would emit MAXCHANNELS (140 or 184, depending on the
-  /// gpsd) entries of uninitialised satellites.
+  /// GPSd) entries of uninitialised satellites.
   static std::size_t skyviewCount(const gps_data_t& data);
 
   /// Number of populated entries in gps_data_t::devices.list.

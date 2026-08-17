@@ -3,7 +3,7 @@
 
 #include <gps.h>
 
-// This parser only compiles against gpsd API 9: it reads the fix status from
+// This parser only compiles against GPSd API 9: it reads the fix status from
 // gps_data_t::status, which was removed (moved into gps_fix_t) in API 10.
 #if GPSD_API_MAJOR_VERSION == 9
 
@@ -12,7 +12,7 @@
 namespace gpsd_client
 {
 
-/// Parser for gpsd API version 9 (gpsd 3.20).
+/// Parser for GPSd API version 9 (GPSd 3.20).
 class GpsdParserV9 : public GpsdParserBase
 {
 public:

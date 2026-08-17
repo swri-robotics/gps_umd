@@ -22,7 +22,7 @@
 namespace
 {
 
-// gpsd renamed STATUS_FIX to STATUS_GPS in 3.23; the value (1) never changed.
+// GPSd renamed STATUS_FIX to STATUS_GPS in 3.23; the value (1) never changed.
 #ifdef STATUS_GPS
 constexpr int kStatusGps = STATUS_GPS;
 #else
@@ -130,7 +130,7 @@ TEST(GpsdRawParser, SkyviewCountIsClampedAgainstGarbage)
 
 TEST(GpsdRawParser, PreservesNanRatherThanZeroing)
 {
-  // gpsd uses NaN for "unknown" throughout. A raw message that reported 0.0
+  // GPSd uses NaN for "unknown" throughout. A raw message that reported 0.0
   // instead would be asserting a measurement that was never made.
   gps_data_t data = gpsd_client::test::makeEmptyData();
   gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
@@ -142,7 +142,7 @@ TEST(GpsdRawParser, PreservesNanRatherThanZeroing)
 
 TEST(GpsdRawParser, CarriesTheSetMaskVerbatim)
 {
-  // The mask is copied undecoded, so a consumer can tell that gpsd
+  // The mask is copied undecoded, so a consumer can tell that GPSd
   // reported something this message does not carry -- AIS above all.
   gps_data_t data = gpsd_client::test::makeEmptyData();
   data.set = LATLON_SET | AIS_SET;
@@ -206,7 +206,7 @@ TEST(GpsdRawParser, DeviceListIsTrimmedToNdevices)
 #ifdef HAVE_GPS_DATA_IMU
 TEST(GpsdRawParser, ImuIsTerminatedByAnEmptyMsg)
 {
-  /* imu[] carries no count. gpsd's own JSON dumper walks it until
+  /* imu[] carries no count. GPSd's own JSON dumper walks it until
    * attitude_t::msg is empty, and the u-blox driver stamps msg on every entry
    * it fills, so that terminator is the only authority on how many are real.
    */
@@ -238,7 +238,7 @@ TEST(GpsdRawParser, ImuIsTerminatedByAnEmptyMsg)
 #endif
 
 /* Probed by CMake, not keyed on the API version: gps_data_t::source arrived
- * *within* API 14.0 -- gpsd 3.24 does not have it, 3.25 does, and both report
+ * *within* API 14.0 -- GPSd 3.24 does not have it, 3.25 does, and both report
  * 14.0. A version guard here compiled fine against the reference rev and broke
  * against a distro libgps. See CheckStructHasMember in CMakeLists.txt.
  */
@@ -255,12 +255,12 @@ TEST(GpsdRawParser, PointerMembersAreNotPublished)
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
   EXPECT_EQ(msg.source.spec, "localhost:2947");
 }
-#endif  // HAVE_GPS_DATA_SOURCE -- added during API 14.0, at gpsd 3.25
+#endif  // HAVE_GPS_DATA_SOURCE -- added during API 14.0, at GPSd 3.25
 
 TEST(GpsdRawParser, AnUnterminatedCharArrayStopsAtTheEndOfTheArray)
 {
-  // gpsd's char[N] members carry no guarantee of a NUL: a driver that fills
-  // the array exactly leaves no room for one, and gpsd's own code reads these
+  // GPSd's char[N] members carry no guarantee of a NUL: a driver that fills
+  // the array exactly leaves no room for one, and GPSd's own code reads these
   // with bounded calls for that reason. Constructing the ROS string from a
   // plain strlen would run past the array into whatever the struct puts next
   // -- reading uninitialised bytes at best, off the end of the object at
@@ -289,24 +289,24 @@ TEST(GpsdRawParser, ATerminatedCharArrayStopsAtTheTerminator)
 
 // --- Time transfer: TOFF, PPS and qErr ------------------------------------
 //
-// These three are reachable only from the library-only tests. gpsd's whole 196-log corpus
+// These three are reachable only from the library-only tests. GPSd's whole 196-log corpus
 // contains no TOFF or PPS report, because they do not come from the receiver's
 // data stream at all -- they are produced by the daemon from a PPS signal on a
 // real serial line. gpsfake replays recorded device output, so it can never
 // generate one. If these are not covered here they are not covered anywhere.
 //
 // toff, pps, qErr and qErr_time sit outside gps_data_t's report union and have
-// been present since API 9, so no guard is needed. Note that gpsd's UNION_SET
+// been present since API 9, so no guard is needed. Note that GPSd's UNION_SET
 // macro nonetheless lists TOFF_SET and PPS_SET, which is why the mask alone is
 // not a safe guide to what is a union arm -- the struct is.
 
 /* The TOFF tests populate gps_data_t directly rather than calling unpack(),
  * which every other test here uses.
  *
- * On gpsd 3.20 through 3.24, libgps dispatches the TOFF class to
+ * On GPSd 3.20 through 3.24, libgps dispatches the TOFF class to
  * json_pps_read() instead of json_toff_read(). A TOFF report decodes into
  * gps_data_t::pps, ::toff stays zeroed, and TOFF_SET goes up regardless.
- * gpsd 3.25 fixes this. See docs/gpsd-quirks.md.
+ * GPSd 3.25 fixes this. See docs/gpsd-quirks.md.
  *
  * No guard expresses that boundary: 3.24 and 3.25 share API 14.0, and both
  * toff and pps exist in every supported version, so only the runtime routing
@@ -362,7 +362,7 @@ TEST(GpsdRawParser, PpsReportReachesTheMessageIncludingQErr)
   EXPECT_EQ(msg.q_err, -1234);
 }
 
-// gpsd reads PPS's "precision" and discards it -- there is a FIXME saying so
+// GPSd reads PPS's "precision" and discards it -- there is a FIXME saying so
 // in libgps_json.c. It reaches no struct member, so there is nothing for the
 // generator to map and nothing to assert here; the message-side guarantee
 // that no field exists without a gps.h member behind it lives in
@@ -488,7 +488,7 @@ TEST(GpsdRawParser, Rtcm3TypeSelectsItsArm)
 #ifdef HAVE_RTCM3_MSM
 TEST(GpsdRawParser, Rtcm3MsmTypesShareOneArm)
 {
-  // ~43 Multiple Signal Message types fold into rtcm3_msm, exactly as gpsd's
+  // ~43 Multiple Signal Message types fold into rtcm3_msm, exactly as GPSd's
   // own dumper folds them into one handler.
   for (unsigned type : {1071u, 1077u, 1097u, 1127u})
   {
@@ -507,11 +507,11 @@ TEST(GpsdRawParser, Rtcm3MsmTypesShareOneArm)
 
 TEST(GpsdRawParser, UnknownRtcm3TypeFallsBackToRawBytes)
 {
-  // gpsd keeps whatever it could not decode in `data`, so that is the default
+  // GPSd keeps whatever it could not decode in `data`, so that is the default
   // arm rather than a type of its own.
   gps_data_t data = gpsd_client::test::makeEmptyData();
   data.set = RTCM3_SET;
-  data.rtcm3.type = 9999;       // not a type gpsd decodes
+  data.rtcm3.type = 9999;       // not a type GPSd decodes
 
   auto msg = makeParser()->parseRtcm3(data, rclcpp::Time(0, 0));
   ASSERT_TRUE(msg.has_value());
@@ -523,7 +523,7 @@ TEST(GpsdRawParser, Rtcm2TypeSelectsItsArm)
 {
   // rtcm2_t's union is anonymous, so its arms sit alongside the discriminator
   // rather than one level down. The names give no hint of the type, so the
-  // mapping is a curated table read off gpsd's own dumper.
+  // mapping is a curated table read off GPSd's own dumper.
   gps_data_t data = gpsd_client::test::makeEmptyData();
   data.set = RTCM2_SET;
   data.rtcm2.type = 14;                 // GPS time of week
@@ -558,7 +558,7 @@ TEST(GpsdRawParser, Rtcm2UndecodedTypeKeepsRawWords)
 {
   gps_data_t data = gpsd_client::test::makeEmptyData();
   data.set = RTCM2_SET;
-  data.rtcm2.type = 99;                 // not a type gpsd decodes
+  data.rtcm2.type = 99;                 // not a type GPSd decodes
 
   auto msg = makeParser()->parseRtcm2(data, rclcpp::Time(0, 0));
   ASSERT_TRUE(msg.has_value());
@@ -571,7 +571,7 @@ TEST(GpsdRawParser, Rtcm2UndecodedTypeKeepsRawWords)
 TEST(GpsdRawParser, Rtcm2DeadArmsAreNeverFilled)
 {
   /* rtcm2_18 .. rtcm2_24 are declared in gps.h and written by nothing in
-   * gpsd -- no driver, no daemon code. For types 18-22 gpsd fills `rtk` and
+   * GPSd -- no driver, no daemon code. For types 18-22 GPSd fills `rtk` and
    * `ref_sta`, which are not union members at all and so are published as
    * ordinary fields. Filling a dead arm would copy uninitialised union bytes
    * and assert a decode that never happened.
@@ -579,13 +579,13 @@ TEST(GpsdRawParser, Rtcm2DeadArmsAreNeverFilled)
   gps_data_t data = gpsd_client::test::makeEmptyData();
   data.set = RTCM2_SET;
   data.rtcm2.type = 18;
-  data.rtcm2.rtk.nentries = 5;          // what gpsd would really fill
+  data.rtcm2.rtk.nentries = 5;          // what GPSd would really fill
 
   auto msg = makeParser()->parseRtcm2(data, rclcpp::Time(0, 0));
   ASSERT_TRUE(msg.has_value());
   EXPECT_TRUE(msg->rtcm2_18.empty());
   EXPECT_TRUE(msg->rtcm2_19.empty());
-  // ... while the field gpsd actually populates comes through as usual.
+  // ... while the field GPSd actually populates comes through as usual.
   EXPECT_EQ(msg->rtk.nentries, 5u);
 }
 #endif  // HAVE_RTCM2_18 -- probed, not version-keyed (see CMakeLists.txt)
@@ -607,7 +607,7 @@ TEST(GpsdRawParser, SubframeNumberSelectsItsArm)
 
 TEST(GpsdRawParser, SubframePageSelectsWithinFourAndFive)
 {
-  /* Subframes 4 and 5 share one pageid space -- gpsd's own comment says
+  /* Subframes 4 and 5 share one pageid space -- GPSd's own comment says
    * "pageid is unique to all of subframes 4 and 5, handle as one" -- so the
    * page, not the subframe number, picks the arm. Page 56 is subframe 4's
    * ionosphere/UTC page.
@@ -639,7 +639,7 @@ TEST(GpsdRawParser, SubframePageSelectsWithinFourAndFive)
 TEST(GpsdRawParser, SubframeAlmanacGoesToSub5)
 {
   // With is_almanac set, the payload is the generic almanac rather than a
-  // specific page -- and gpsd keeps that in sub5.
+  // specific page -- and GPSd keeps that in sub5.
   gps_data_t data = gpsd_client::test::makeEmptyData();
   data.set = SUBFRAME_SET;
   data.subframe.subframe_num = 5;
@@ -654,7 +654,7 @@ TEST(GpsdRawParser, SubframeAlmanacGoesToSub5)
 
 TEST(GpsdRawParser, SubframeDeadArmIsNeverFilled)
 {
-  // sub4 is declared in gps.h and written by nothing in gpsd, exactly like
+  // sub4 is declared in gps.h and written by nothing in GPSd, exactly like
   // rtcm2_18..24. No subframe_num or pageid may route to it.
   for (uint8_t page : {51, 52, 55, 56, 63, 99})
   {

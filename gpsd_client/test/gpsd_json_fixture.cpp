@@ -51,7 +51,7 @@ gps_data_t makeEmptyData()
 
 int unpack(gps_data_t& data, const std::string& json)
 {
-  /* gps_unpack() took a mutable char* through gpsd 3.24 and a const char*
+  /* gps_unpack() took a mutable char* through GPSd 3.24 and a const char*
    * from 3.25 on. Both are API 14.0, so the difference cannot be keyed on
    * GPSD_API_MAJOR_VERSION -- and const_cast'ing away the older signature
    * would be a bet that no libgps in the supported range writes through the
@@ -121,11 +121,11 @@ std::string skyJson(const std::vector<Satellite>& satellites,
    * not when nSat became meaningful, because the two do not line up with
    * version bumps:
    *
-   *   - gpsd 3.20/3.21 (API 9, 10) have no catch-all t_ignore in their SKY
+   *   - GPSd 3.20/3.21 (API 9, 10) have no catch-all t_ignore in their SKY
    *     attribute table and reject the unknown key outright, losing the whole
    *     report. So nSat must be omitted there -- those versions count the
    *     satellites array themselves.
-   *   - gpsd 3.22 (API 11) added t_ignore, so from there on an unrecognised
+   *   - GPSd 3.22 (API 11) added t_ignore, so from there on an unrecognised
    *     nSat is harmlessly skipped.
    *   - nSat itself landed mid-API-13, one day before the bump to 14, and
    *     from then on its absence makes libgps discard every satellite.
@@ -202,7 +202,7 @@ gps_data_t makeThreeDFixFromJson()
   gps_data_t data = makeEmptyData();
   unpack(data, tpvJson(tpv) + skyJson(satellites, dop));
 
-  // gpsd only reports online-ness on the socket, never in a report body, so a
+  // GPSd only reports online-ness on the socket, never in a report body, so a
   // JSON-built fixture has to say so explicitly.
   data.online.tv_sec = 100;
 

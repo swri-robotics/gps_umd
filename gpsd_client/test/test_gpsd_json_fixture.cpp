@@ -23,7 +23,7 @@ using gpsd_client::test::Dop;
 using gpsd_client::test::Satellite;
 using gpsd_client::test::Tpv;
 
-// gpsd renamed STATUS_FIX to STATUS_GPS in 3.23 and STATUS_DGPS_FIX to
+// GPSd renamed STATUS_FIX to STATUS_GPS in 3.23 and STATUS_DGPS_FIX to
 // STATUS_DGPS in 3.25. The numeric values did not change (1 and 2), but the
 // spellings must still be resolved by the preprocessor.
 #ifdef STATUS_GPS
@@ -93,12 +93,12 @@ TEST(JsonFixture, EmptyDataUsesNanSentinels)
 
 TEST(JsonFixture, UnpackCannotReportMalformedJson)
 {
-  // Pins a libgps limitation rather than a desirable behavior: through gpsd
+  // Pins a libgps limitation rather than a desirable behavior: through GPSd
   // 3.27.5, gps_unpack() breaks out of its segment loop on a parse failure and
   // still returns 0. Fixtures therefore cannot rely on the status to catch a
   // typo -- hence the builders, and hence asserting on decoded values.
   //
-  // gpsd master has added error propagation. When a release ships it, this
+  // GPSd master has added error propagation. When a release ships it, this
   // test starts failing, which is the intended signal to tighten unpack().
   gps_data_t data = gpsd_client::test::makeEmptyData();
 
@@ -139,7 +139,7 @@ TEST(JsonFixture, TpvPopulatesFix)
 
 TEST(JsonFixture, SkyPopulatesSkyview)
 {
-  // Regression guard for the nSat quirk documented in skyJson(): from gpsd
+  // Regression guard for the nSat quirk documented in skyJson(): from GPSd
   // 3.24 on, a SKY report without "nSat" is decoded as "no satellites" and
   // every entry here would silently vanish.
   Dop dop;
@@ -167,7 +167,7 @@ TEST(JsonFixture, SkyPopulatesSkyview)
 
 TEST(JsonFixture, ConcatenatedReportsAccumulate)
 {
-  // gpsd packs several reports into one write; gps_unpack loops over the
+  // GPSd packs several reports into one write; gps_unpack loops over the
   // segments, and state accumulates across them exactly as in a live session.
   Tpv tpv;
   tpv.mode = MODE_3D;
@@ -186,7 +186,7 @@ TEST(JsonFixture, ConcatenatedReportsAccumulate)
 
 TEST(JsonFixture, StatusLandsWhereThisVersionKeepsIt)
 {
-  // The payoff for going through libgps: gpsd 3.20 parses "status" into
+  // The payoff for going through libgps: GPSd 3.20 parses "status" into
   // gps_data_t.status and 3.21+ into gps_data_t.fix.status. The fixture says
   // nothing about which, and the parser reads the right one either way.
   Tpv tpv;

@@ -3,13 +3,10 @@
   <name>gps_extended_msgs</name>
   <version>3.1.1</version>
   <description>
-    Messages mirroring everything gpsd reports, one message type per gpsd C API
-    version. Generated from gpsd's own gps.h by tools/generate_raw_msgs.py.
-    Kept separate from gps_msgs, which carries the small, stable GPSFix and
-    GPSStatus types.
+    Messages mirroring everything GPSd produces for every API version
   </description>
 
-  <author>P. J. Reed</author>
+  <author>David Anthony</author>
   <maintainer email="swri-robotics@swri.org">Southwest Research Institute</maintainer>
   <license>BSD</license>
   <url type="website">http://ros.org/wiki/gps_umd</url>

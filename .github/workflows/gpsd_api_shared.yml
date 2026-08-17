@@ -1,6 +1,6 @@
 name: gpsd API version (shared)
 
-# The actual build-and-test logic for one gpsd C API (MAJOR, MINOR) pair.
+# The actual build-and-test logic for one GPSd C API (MAJOR, MINOR) pair.
 #
 # This is a reusable workflow: it is never triggered directly, only called by
 # the thin per-version workflows (gpsd_api_9v0.yml, gpsd_api_16v1.yml, ...). Its own name is
@@ -83,7 +83,7 @@ jobs:
       - name: Cache gpsd build
         uses: actions/cache@v4
         with:
-          # Cache only the expensive, image-independent artifacts: the gpsd
+          # Cache only the expensive, image-independent artifacts: the GPSd
           # clone and the libgps install scons builds from it.
           #
           # Deliberately NOT .gpsd_versions/colcon -- those are CMake build
@@ -139,11 +139,11 @@ jobs:
         shell: bash
         run: |
           {
-            echo "## gpsd API ${{ inputs.api }}"
+            echo "## GPSd API ${{ inputs.api }}"
             echo
             echo "| | |"
             echo "|---|---|"
-            echo "| gpsd revision | \`${{ inputs.gpsd }}\` |"
+            echo "| GPSd revision | \`${{ inputs.gpsd }}\` |"
             echo "| Raw message | \`${{ inputs.msg }}\` |"
             echo "| Build + tests | ${{ steps.run.outcome }} |"
             echo "| Message selection | ${{ steps.selection.outcome }} |"

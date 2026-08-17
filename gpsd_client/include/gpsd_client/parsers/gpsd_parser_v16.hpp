@@ -3,8 +3,8 @@
 
 #include <gps.h>
 
-// Supports gpsd APIs 10 through 16. Per project convention, parsers are named
-// after the highest API version they support: when a newer gpsd API is
+// Supports GPSd APIs 10 through 16. Per project convention, parsers are named
+// after the highest API version they support: when a newer GPSd API is
 // verified compatible, extend this guard and rename the class accordingly.
 #if GPSD_API_MAJOR_VERSION >= 10
 
@@ -13,7 +13,7 @@
 namespace gpsd_client
 {
 
-/// Parser for gpsd API versions 10-16 (gpsd 3.21 - 3.27).
+/// Parser for GPSd API versions 10-16 (GPSd 3.21 - 3.27).
 class GpsdParserV16 : public GpsdParserBase
 {
 public:

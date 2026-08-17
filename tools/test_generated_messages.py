@@ -3,7 +3,7 @@
 
 This is the counterpart to test_generate_raw_msgs.py. That file exercises the
 parser against synthetic fragments; it would happily pass while the generator
-emitted a message that had nothing to do with the gpsd version it claims. These
+emitted a message that had nothing to do with the GPSd version it claims. These
 tests close that gap in two independent ways:
 
 1. **Manual expectations** (ManualExpectations below). Hand-written tables of
@@ -11,7 +11,7 @@ tests close that gap in two independent ways:
    from the gps.h changelog and from this project's own established facts. They
    encode *why* a field appears where it does -- gps_data_t::status moving into
    gps_fix_t at API 10, leap_seconds arriving at 9.1, baseline_t at 13.0 -- so a
-   regression names the specific gpsd change it broke.
+   regression names the specific GPSd change it broke.
 
 2. **An independent completeness cross-check** (Completeness below). Struct
    members are re-extracted from the real gps.h by a deliberately separate,
@@ -19,7 +19,7 @@ tests close that gap in two independent ways:
    the generated message. Reusing the generator's own parser here would be
    circular: it could drop a member and the test would agree with it.
 
-Both need the gpsd clone, so they are integration tests and skip cleanly when
+Both need the GPSd clone, so they are integration tests and skip cleanly when
 it is absent. Run with:
 
     python3 -m unittest discover -s tools -p 'test_*.py'
@@ -71,11 +71,11 @@ def message_constants(pair, stem="GPSDRaw"):
 ALL_PAIRS = sorted(gen.REFERENCE_REVS)
 
 
-@unittest.skipUnless(_HAVE_REPO, f"no gpsd clone at {GPSD_REPO}")
+@unittest.skipUnless(_HAVE_REPO, f"no GPSd clone at {GPSD_REPO}")
 class ManualExpectations(unittest.TestCase):
     """Hand-written per-version expectations, with the reason for each.
 
-    Every entry states a specific gpsd change. If one of these fails, the
+    Every entry states a specific GPSd change. If one of these fails, the
     message is no longer a faithful picture of that API version.
     """
 
@@ -136,7 +136,7 @@ class ManualExpectations(unittest.TestCase):
         late_14 = ("jam", "temp", "wtemp", "ant_stat", "clockbias", "clockdrift")
         for field in late_14:
             self.assertHas((14, 0), "GPSDFix", field,
-                           "added mid-pair within API 14.0 (gpsd 3.25/3.26)")
+                           "added mid-pair within API 14.0 (GPSd 3.25/3.26)")
             self.assertLacks((13, 0), "GPSDFix", field, "not present at API 13")
 
     def test_api_16_gps_fix_t_additions(self):
@@ -409,7 +409,7 @@ def scan_struct_members(src, tag):
     return names
 
 
-@unittest.skipUnless(_HAVE_REPO, f"no gpsd clone at {GPSD_REPO}")
+@unittest.skipUnless(_HAVE_REPO, f"no GPSd clone at {GPSD_REPO}")
 class Completeness(unittest.TestCase):
     """Every member gps.h declares must reach the message, or be excluded."""
 
@@ -494,7 +494,7 @@ class Completeness(unittest.TestCase):
                         f"corresponding member in {tag}")
 
 
-@unittest.skipUnless(_HAVE_REPO, f"no gpsd clone at {GPSD_REPO}")
+@unittest.skipUnless(_HAVE_REPO, f"no GPSd clone at {GPSD_REPO}")
 class FieldTypes(unittest.TestCase):
     """Field *types*, not just names.
 
@@ -662,7 +662,7 @@ def scan_member_types(src, tag):
 _REPO_ROOT = os.path.dirname(_HERE)
 
 
-@unittest.skipUnless(_HAVE_REPO, f"no gpsd clone at {GPSD_REPO}")
+@unittest.skipUnless(_HAVE_REPO, f"no GPSd clone at {GPSD_REPO}")
 class CheckedInFilesAreUpToDate(unittest.TestCase):
     """The colcon-test equivalent of `generate_raw_msgs.py --check`.
 
@@ -750,7 +750,7 @@ class CheckedInFilesAreUpToDate(unittest.TestCase):
             self.assertNotRegex(path, r"gpsd_api_15v", "API 15 never existed")
 
 
-@unittest.skipUnless(_HAVE_REPO, f"no gpsd clone at {GPSD_REPO}")
+@unittest.skipUnless(_HAVE_REPO, f"no GPSd clone at {GPSD_REPO}")
 class GeneratedParserCode(unittest.TestCase):
     """Cheap guards on the emitted C++.
 

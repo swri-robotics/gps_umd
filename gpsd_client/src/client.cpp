@@ -121,7 +121,7 @@ namespace gpsd_client
       {
         gpsd_raw_pub_ = create_publisher<GpsdRawMsg>("gpsd_raw", 1);
         RCLCPP_INFO(this->get_logger(),
-                    "Publishing raw gpsd reports on gpsd_raw as %s "
+                    "Publishing raw GPSd reports on gpsd_raw as %s "
                     "(libgps API %d.%d)",
                     GPSD_RAW_MESSAGE_NAME, GPSD_API_MAJOR_VERSION,
                     GPSD_API_MINOR_VERSION);
@@ -129,12 +129,12 @@ namespace gpsd_client
 
       /* These must be members, not locals. gps_open() stores the host and
        * port pointers verbatim in gps_data_t::source (libgps_core.c) and never
-       * copies them, so passing a local's c_str() leaves gpsd's own view of
+       * copies them, so passing a local's c_str() leaves GPSd's own view of
        * where the data came from pointing at freed stack memory as soon as
        * this function returns.
        *
        * libgps does not read them back, so this was dormant -- but source is
-       * part of every report handed to the parsers, and gpsd's own clients do
+       * part of every report handed to the parsers, and GPSd's own clients do
        * read source.server/port, so anything reaching for them would have been
        * undefined behaviour. Owning the strings for the node's lifetime costs
        * nothing and removes the trap.
@@ -196,12 +196,12 @@ namespace gpsd_client
      *
      * A fix is state, so the fix topics publish the latest value every cycle.
      * Differential corrections are a stream of discrete messages that each
-     * matter once, and gpsd's mask handling breaks both ways under sampling.
+     * matter once, and GPSd's mask handling breaks both ways under sampling.
      * libgps assigns gps_data_t::set only when a parse succeeds, so a cycle
      * that reads nothing new republishes the previous correction; a cycle that
      * reads several keeps only the last and overwrites the rest in the union.
      *
-     * The mask cannot identify the current report either. gpsd's TPV handler
+     * The mask cannot identify the current report either. GPSd's TPV handler
      * assigns `set` outright and clears RTCM3_SET, but its SKY handler only
      * ORs SATELLITE_SET in and leaves UNION_SET alone, so RTCM3_SET and its
      * union arm outlive every SKY report until something later clears them.
@@ -272,12 +272,12 @@ namespace gpsd_client
 
       /* Carries the same report and timestamp as the other two topics, so a
        * subscriber can line all three up. check_fix_by_variance does not gate
-       * this one: that filter hides gpsd's stale-fix behaviour from NavSatFix
+       * this one: that filter hides GPSd's stale-fix behaviour from NavSatFix
        * consumers, and applying it here would make "raw" a filtered topic.
        */
       if (gpsd_raw_pub_)
       {
-        RCLCPP_DEBUG(this->get_logger(), "Publishing raw gpsd report...");
+        RCLCPP_DEBUG(this->get_logger(), "Publishing raw GPSd report...");
         gpsd_raw_pub_->publish(raw_parser_->parseRaw(gps_data_, now));
       }
 

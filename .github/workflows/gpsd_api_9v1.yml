@@ -3,7 +3,7 @@
 # Builds gpsd_client against libgps at the revision this project generates
 # GPSDRaw9v1 from, and runs the full test suite against it.
 #
-# This API pair shipped in no gpsd release, so the revision below
+# This API pair shipped in no GPSd release, so the revision below
 # is a bare commit: the last commit at which the pair was current.
 #
 # All the logic is in the reusable gpsd_api_shared.yml; this file exists so
@@ -16,7 +16,7 @@ on:
   pull_request:
     paths:
       # Only the things that can change what this version builds or publishes.
-      # A docs-only change should not rebuild gpsd from source.
+      # A docs-only change should not rebuild GPSd from source.
       - 'gps_extended_msgs/**'
       - 'gpsd_client/**'
       - 'tools/generate_raw_msgs.py'

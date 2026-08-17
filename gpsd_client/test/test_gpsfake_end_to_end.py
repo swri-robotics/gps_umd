@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""End-to-end tests: gpsfake -> real gpsd -> gpsd_client -> ROS topics.
+"""End-to-end tests: gpsfake -> real GPSd -> gpsd_client -> ROS topics.
 
 The other suites in this package stop at libgps: they hand JSON to
 ``gps_unpack()`` and inspect the resulting ``gps_data_t``. That covers parsing
@@ -8,23 +8,23 @@ socket and never publishes a message, so it cannot catch a fault in the parts
 between those -- a publisher that is never advertised, a parameter that is not
 read, a message type that fails to resolve at runtime.
 
-This suite closes that gap the way gpsd's own test suite does. ``gpsfake``
-replays a recorded receiver log into a real ``gpsd``; the node connects over
+This suite closes that gap the way GPSd's own test suite does. ``gpsfake``
+replays a recorded receiver log into a real ``GPSd``; the node connects over
 TCP through ``gpsmm`` exactly as it does in production; and the assertions are
 made against messages that actually arrived on actual topics.
 
-The ground truth is gpsd's, not ours. Every log in ``test/daemon`` ships with a
-``.log.chk`` holding the JSON gpsd is expected to emit for it, so a published
-position can be checked against what gpsd says that log means. A disagreement
+The ground truth is GPSd's, not ours. Every log in ``test/daemon`` ships with a
+``.log.chk`` holding the JSON GPSd is expected to emit for it, so a published
+position can be checked against what GPSd says that log means. A disagreement
 means one of the two is wrong, which is the whole point.
 
 Not run by default -- see the skip conditions below. Two things must be true,
 and neither holds on the ROS build farm:
 
-  * a gpsd built with the daemon *and* the Python module (``gpsd=True
+  * a GPSd built with the daemon *and* the Python module (``gpsd=True
     python=True``). ``tools/test_against_gpsd.sh`` deliberately builds neither,
     since every other suite needs only libgps.
-  * gpsd's log corpus, i.e. a source checkout.
+  * GPSd's log corpus, i.e. a source checkout.
 
 Point ``GPSD_E2E_PREFIX`` at the install prefix of such a build and
 ``GPSD_REPO`` at the matching source clone::
@@ -63,7 +63,7 @@ EXPECTED_RAW_MSG = os.environ.get("GPSD_EXPECTED_RAW_MSG", "")
 
 
 def _find(*relative):
-    """First existing path under the gpsd prefix, or ''."""
+    """First existing path under the GPSd prefix, or ''."""
     for rel in relative:
         candidate = os.path.join(E2E_PREFIX, rel)
         if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
@@ -76,7 +76,7 @@ GPSFAKE = _find("bin/gpsfake") if E2E_PREFIX else ""
 
 
 def _python_module_dir():
-    """Where the gpsd build put the 'gps' Python module.
+    """Where the GPSd build put the 'gps' Python module.
 
     Resolve it by import rather than by path, but require the one belonging
     to this build rather than a system gpsfake of another version.
@@ -110,16 +110,16 @@ DAEMON_VERSION = _daemon_version()
 def skip_reason():
     """Why this suite cannot run here, or None if it can."""
     if not E2E_PREFIX:
-        return ("GPSD_E2E_PREFIX is unset -- needs a gpsd built with "
+        return ("GPSD_E2E_PREFIX is unset -- needs a GPSd built with "
                 "gpsd=True python=True")
     if not DAEMON:
-        return f"no gpsd daemon under {E2E_PREFIX} (sbin/gpsd, bin/gpsd)"
+        return f"no GPSd daemon under {E2E_PREFIX} (sbin/gpsd, bin/gpsd)"
     if not GPSFAKE:
         return f"no gpsfake under {E2E_PREFIX}/bin"
     if GPS_PY_VERSION is None:
         return "the 'gps' Python module is not importable"
     if not GPSD_REPO:
-        return "GPSD_REPO is unset -- needs gpsd's test/daemon log corpus"
+        return "GPSD_REPO is unset -- needs GPSd's test/daemon log corpus"
     if not os.path.isdir(LOG_DIR):
         return f"no log corpus at {LOG_DIR}"
     if DAEMON_VERSION and GPS_PY_VERSION != DAEMON_VERSION:
@@ -145,7 +145,7 @@ SKIP = skip_reason()
 
 
 def chk_reports(log_name):
-    """The JSON reports gpsd is expected to emit for a log, by class.
+    """The JSON reports GPSd is expected to emit for a log, by class.
 
     A .chk file interleaves the raw sentences with the JSON, so the JSON lines
     are picked out rather than the file being parsed as a whole.
@@ -168,7 +168,7 @@ def chk_reports(log_name):
 # 6 decimal places is ~10cm: far tighter than any error that matters here, and
 # loose enough to absorb the rounding in the .chk's printed form. It is chosen
 # to catch the failures that are actually plausible -- swapped lat/lon, degrees
-# vs. radians, a field copied from its neighbour -- not to audit gpsd's math.
+# vs. radians, a field copied from its neighbour -- not to audit GPSd's math.
 PLACES = 6
 
 
@@ -424,7 +424,7 @@ class EndToEnd(unittest.TestCase):
             seen.add((rounded(msg.latitude), rounded(msg.longitude)))
         self.assertTrue(seen, "no /fix message ever carried a position")
 
-        # Every position published must be one gpsd derived from this log.
+        # Every position published must be one GPSd derived from this log.
         # Catches a swapped lat/lon or a unit error, neither of which the
         # "did anything publish" test above would notice.
         self.assertEqual(set(), seen - truth,
@@ -460,7 +460,7 @@ class EndToEnd(unittest.TestCase):
         self.assertNotIn("/gpsd_rtcm3", self.session.topic_types)
 
     def test_nan_survives_to_the_topic(self):
-        # gpsd's "unknown" sentinel must not be flattened to 0.0 anywhere in
+        # GPSd's "unknown" sentinel must not be flattened to 0.0 anywhere in
         # the chain -- including by message serialization, which no unit test
         # in this package exercises.
         raws = self.raws()
@@ -492,7 +492,7 @@ class GstReports(unittest.TestCase):
         if not seen:
             self.skipTest("this replay sampled no GST report")
         self.assertEqual(set(), seen - truth,
-                         "gst.lat_err_deviation values gpsd does not report")
+                         "gst.lat_err_deviation values GPSd does not report")
 
 
 @unittest.skipIf(SKIP, SKIP or "")
@@ -535,7 +535,7 @@ class AttitudeReports(unittest.TestCase):
             with self.subTest(field=field):
                 truth = {rounded(r[field]) for r in reports if field in r}
                 self.assertTrue(truth, f"no ATT report carries {field}")
-                # NaN is gpsd's "unset"; compare only what was actually filled.
+                # NaN is GPSd's "unset"; compare only what was actually filled.
                 seen = {rounded(getattr(m.attitude, field)) for m in raws
                         if getattr(m.attitude, field) == getattr(m.attitude, field)}
                 self.assertTrue(
@@ -545,7 +545,7 @@ class AttitudeReports(unittest.TestCase):
                     f"{self.session.diagnostics()}")
                 self.assertEqual(
                     set(), seen - truth,
-                    f"attitude.{field} values published that gpsd does not report")
+                    f"attitude.{field} values published that GPSd does not report")
 
     def test_attitude_tracks_the_replay(self):
         """Every field must move, not just be present once.
@@ -554,7 +554,7 @@ class AttitudeReports(unittest.TestCase):
         that ran once would satisfy the subset check above forever. This
         separates "filled and held" from "tracked".
 
-        The threshold takes half the distinct values gpsd reports, a 2x margin
+        The threshold takes half the distinct values GPSd reports, a 2x margin
         over full coverage. gpsfake replays without -1, so the log cycles, and
         one cycle (71 sentences x CYCLE, ~10.6s) fits inside the capture window
         with room to spare -- a full pass arrives whatever phase collection
@@ -590,7 +590,7 @@ class SubframeAndLogAreUnreachableThroughLibgps(unittest.TestCase):
     either class. It decodes AIS, ATT, DEVICE, DEVICES, ERROR, GST, IMU, OSC,
     PPS, RAW, RTCM2, RTCM3, SKY, TOFF, TPV, VERSION and WATCH, and silently
     ignores everything else. So ``gps_data_t::subframe`` and ``::log`` are only
-    ever populated inside gpsd itself, never in a client.
+    ever populated inside GPSd itself, never in a client.
 
     That means the message fields exist and are correct, and in production will
     always be empty. Asserting the emptiness is worth more than deleting the
@@ -675,7 +675,7 @@ class OscillatorReports(unittest.TestCase):
         truth = {r["delta"] for r in self.chk.get("OSC", []) if "delta" in r}
         self.assertTrue(truth)
         self.assertEqual(set(), {o.delta for o in seen} - truth,
-                         "oscillator delta values gpsd does not report")
+                         "oscillator delta values GPSd does not report")
 
 
 @unittest.skipIf(SKIP, SKIP or "")
@@ -730,7 +730,7 @@ class RtcmTopics(unittest.TestCase):
         """Each RTCM report should reach the topic once, not once per cycle.
 
         This is a regression test for a specific defect. gps_data_t::set is not
-        per-report for every class: gpsd's SKY handler ORs its bits in without
+        per-report for every class: GPSd's SKY handler ORs its bits in without
         clearing UNION_SET, so RTCM3_SET and the union arm behind it survive
         every SKY report until something later clears them. Publishing RTCM on
         the node's timer therefore republished whatever RTCM report came last,

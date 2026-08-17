@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Generate the GPSDRaw<MAJOR>v<MINOR> messages and their parsers from gps.h.
 
-Ground truth is gpsd's ``include/gps.h`` at a pinned commit per API pair (see
+Ground truth is GPSd's ``include/gps.h`` at a pinned commit per API pair (see
 REFERENCE_REVS). Nothing here reads the build host's installed libgps: the
 messages live in ``gps_extended_msgs``, a pure interface package that must
 never gain a libgps dependency. Regenerating is a
@@ -18,11 +18,11 @@ absent members are detected in C++ rather than assumed.
 Why a commit and not an API version
 -----------------------------------
 
-An API pair names a *range* of header states, not one state. gpsd bumps the
+An API pair names a *range* of header states, not one state. GPSd bumps the
 version when a change begins and then keeps adding under the same number until
 the next bump. Both of these are real:
 
-  * API 14.0 covers gpsd 3.24 through 3.26.1, and ``gps_fix_t`` gains
+  * API 14.0 covers GPSd 3.24 through 3.26.1, and ``gps_fix_t`` gains
     ant_stat, clockbias, clockdrift, jam, temp and wtemp across that range.
   * API 16.1 covers 3.27.5 (MAXCHANNELS 184) and master (230).
 
@@ -40,7 +40,7 @@ Type mapping
 
 Applied uniformly so generated output can be checked against a stated rule.
 
-  gpsd C type              ROS 2 field                      Note
+  GPSd C type              ROS 2 field                      Note
   -----------------------  -------------------------------  --------------------
   double                   float64
   float                    float32
@@ -62,7 +62,7 @@ Applied uniformly so generated output can be checked against a stated rule.
   struct X                 GPSD<X><MAJOR>v<MINOR>
   struct X arr[N]          GPSD<X><MAJOR>v<MINOR>[]         unbounded
   C union                  mask + all arms, one populated
-  NaN sentinel             float64 NaN preserved            gpsd uses NaN for
+  NaN sentinel             float64 NaN preserved            GPSd uses NaN for
                                                             "unknown"; never zero
 
 Fixed C arrays become unbounded ROS arrays truncated to the valid count
@@ -73,7 +73,7 @@ wasteful.
 
 The ``set`` bitmask constants are emitted as uint64 message constants, renamed
 ``<NAME>_SET`` -> ``SET_<NAME>``. The rename is forced: rosidl emits
-constants as ``static constexpr`` members, gps.h defines the gpsd spellings as
+constants as ``static constexpr`` members, gps.h defines the GPSd spellings as
 global macros, and a member named STATUS_SET in a header parsed after gps.h is
 destroyed by the preprocessor. gps.h defines no SET_* macros, so the flipped
 form is collision-free. ``UNION_SET`` becomes ``SET_UNION`` and keeps AIS_SET in
@@ -105,7 +105,7 @@ EXCLUDED_MEMBERS = (
     "set_pending",
 )
 
-# API (major, minor) -> the gpsd revision the message is generated from.
+# API (major, minor) -> the GPSd revision the message is generated from.
 #
 # Released pairs use the *last* release carrying that pair, so the message is
 # the superset of what any libgps reporting the pair provides (see below for how
@@ -119,7 +119,7 @@ EXCLUDED_MEMBERS = (
 # a single commit and was never 15, even though gps.h has a "15" changelog
 # stanza. Those entries describe what a build reports as API 16.
 #
-# gpsd 3.27, 3.27.1 and 3.27.2 are out of scope (they shipped
+# GPSd 3.27, 3.27.1 and 3.27.2 are out of scope (they shipped
 # api_version_major = 0 in SConscript). Nothing is lost: all three are API 16.0,
 # represented here by 3.27.3.
 # Branches whose *pushes* run the heavy per-API-version jobs. A push to one of
@@ -132,7 +132,7 @@ EXCLUDED_MEMBERS = (
 # unaffected: they run on a path filter regardless of branch.
 #
 # A branch that is not listed still gets the fast checks (gpsd_generator.yml and
-# the per-distro workflows run on every push); it only skips the ten gpsd
+# the per-distro workflows run on every push); it only skips the ten GPSd
 # source builds.
 #
 # Note this is the only way to exercise these before merging. GitHub only
@@ -212,7 +212,7 @@ SCOPES = {
 #
 # There is deliberately no `ais` entry: AIS is not published. AIS_SET
 # stays in the mask and in the message constants, so a consumer can still see
-# that gpsd reported an AIS message this message does not carry.
+# that GPSd reported an AIS message this message does not carry.
 REPORT_UNION_BITS = {
     "rtcm2": "RTCM2_SET",
     "rtcm3": "RTCM3_SET",
@@ -230,14 +230,14 @@ REPORT_UNION_BITS = {
 #
 #   rtcm3_msm    ~43 Multiple Signal Message types, in six per-constellation
 #                blocks of seven (GPS, GLONASS, Galileo, SBAS, QZSS, BeiDou).
-#                gpsd falls all of them through to one handler (gpsd_json.c).
+#                GPSd falls all of them through to one handler (gpsd_json.c).
 #   rtcm3_4076   type 4076.
-#   data         the raw payload, which gpsd fills for anything it did not
+#   data         the raw payload, which GPSd fills for anything it did not
 #                decode -- so it is the default arm, not a type of its own.
 RTCM3_MSM_RANGES = ((1071, 1077), (1081, 1087), (1091, 1097),
                     (1101, 1107), (1111, 1117), (1121, 1127))
 
-# rtcm2_t's arm union, selected by rtcm2_t::type. Read off gpsd's own dumper
+# rtcm2_t's arm union, selected by rtcm2_t::type. Read off GPSd's own dumper
 # (the switch in gpsd_json.c) and cross-checked against what driver_rtcm2.c
 # actually writes; unlike rtcm3's, these arm names give no hint of the type.
 RTCM2_TYPE_ARMS = {
@@ -251,16 +251,16 @@ RTCM2_TYPE_ARMS = {
     16: "message",          # ASCII special message
     31: "glonass_ranges",
     # Deliberately absent:
-    #   3, 18-22   gpsd fills ref_sta / rtk, which are *not* union members and
+    #   3, 18-22   GPSd fills ref_sta / rtk, which are *not* union members and
     #              so are already published as ordinary fields.
     #   6          an idle no-op message with no payload.
-    #   rtcm2_18 .. rtcm2_24 are declared in gps.h and never written by gpsd --
+    #   rtcm2_18 .. rtcm2_24 are declared in gps.h and never written by GPSd --
     #              no driver or daemon code touches them. Filling one would
     #              copy uninitialised union bytes, so they stay empty always.
-    # `words` is the default arm: gpsd keeps the undecoded 30-bit words there.
+    # `words` is the default arm: GPSd keeps the undecoded 30-bit words there.
 }
 
-# subframe_t's arm union, selected in two levels. From gpsd's own dumper:
+# subframe_t's arm union, selected in two levels. From GPSd's own dumper:
 # subframes 1-3 map straight to an arm, while 4 and 5 share a single pageid
 # space -- "pageid is unique to all of subframes 4 and 5, handle as one"
 # (gpsd_json.c) -- and within those, is_almanac says whether the payload is the
@@ -273,19 +273,19 @@ SUBFRAME_PAGE_ARMS = {
     56: "sub4_18",      # subframe 4, page 18 (ionosphere / UTC)
     63: "sub4_25",      # subframe 4, page 25
 }
-# `sub4` is declared in gps.h and never written by gpsd -- no driver or daemon
+# `sub4` is declared in gps.h and never written by GPSd -- no driver or daemon
 # code references it, the same as rtcm2_18..24. It stays empty always.
 
 # Structs published on their own topic rather than inside GPSDRaw.
 #
-# RTCM2 and RTCM3 are by far the largest things gpsd decodes -- 452 of the ~905
+# RTCM2 and RTCM3 are by far the largest things GPSd decodes -- 452 of the ~905
 # generated messages between them -- and they are of interest to a quite
 # different audience from a position fix. Carrying them inside every raw report
 # would put that weight on the wire for everyone, so they get their own message
 # root (with its own std_msgs/Header) and their own opt-in topic.
 #
 # The SET_RTCM2 / SET_RTCM3 constants stay in GPSDRaw and `set` is still copied
-# verbatim, so a consumer of the raw topic can still see that gpsd reported an
+# verbatim, so a consumer of the raw topic can still see that GPSd reported an
 # RTCM message -- and go look at the RTCM topic for it. Same contract as AIS.
 STANDALONE_ROOTS = ("rtcm2_t", "rtcm3_t")
 
@@ -388,7 +388,7 @@ def resolve_conditionals(body: str) -> str:
 
 def find_struct_body(src: str, name: str) -> Optional[str]:
     """Return the brace-balanced body of `struct <name> { ... }`."""
-    # Not anchored to line start: gpsd defines several tagged structs *inside*
+    # Not anchored to line start: GPSd defines several tagged structs *inside*
     # other structs (struct gps_rangesat_t inside rtcm2_t, for one), where they
     # are indented. Requiring `{` after the tag keeps this from matching a mere
     # reference such as `struct gps_fix_t fix;`.
@@ -459,7 +459,7 @@ def split_members(body: str) -> List[Member]:
         # The enumerator *names* are not carried into the message -- ROS
         # constants are per-message and these live several structs deep, where
         # names from different enums would collide. The numeric value is what
-        # gpsd puts on the wire; gps.h remains the reference for what it means.
+        # GPSd puts on the wire; gps.h remains the reference for what it means.
         enum_def = re.compile(r"\s*enum(?:\s+\w+)?\s*\{").match(body, index)
         if enum_def:
             _, cursor = brace_body(body, enum_def.end())
@@ -496,7 +496,7 @@ def split_members(body: str) -> List[Member]:
                     # union, so they get the same 0-or-1 array treatment. Both
                     # gps_data_t's report union and rtcm2_t's arm union are
                     # declarator-less, so without this the representation would
-                    # depend on whether gpsd happened to name the union.
+                    # depend on whether GPSd happened to name the union.
                     for member in spliced:
                         member.union_arm = True
                 members += spliced
@@ -583,9 +583,9 @@ def parse_declarator(decl: str) -> Tuple[str, Optional[str]]:
 # --------------------------------------------------------------------------
 
 def snake_case(name: str) -> str:
-    """gpsd member name -> a legal ROS field name.
+    """GPSd member name -> a legal ROS field name.
 
-    ROS field names must be lowercase alphanumeric with underscores. gpsd mixes
+    ROS field names must be lowercase alphanumeric with underscores. GPSd mixes
     conventions freely (PRN, altHAE, relPosN, errEllipseOrient, dgps_age), so
     the split has to handle acronym runs as well as ordinary camelCase:
     altHAE -> alt_hae, PRN -> prn, relPosN -> rel_pos_n.
@@ -600,12 +600,12 @@ def snake_case(name: str) -> str:
 
 
 def camel(name: str) -> str:
-    """gpsd member/tag name -> CamelCase fragment for a message name.
+    """GPSd member/tag name -> CamelCase fragment for a message name.
 
     Underscores must not survive: rosidl rejects them in message type names.
     `rtcm3_1001` becomes Rtcm31001, matching what message_base_name() produces
     for the same name used as a struct tag, so an arm gets the same spelling
-    whether gpsd tagged its inline struct or not.
+    whether GPSd tagged its inline struct or not.
 
     Acronyms are *not* preserved: gps_fix_t::NED becomes Ned, not NED. rosidl
     normalises a run of capitals when it derives the C struct name (NED -> Ned)
@@ -890,7 +890,7 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
             "Add it to SCALAR_TYPES with a documented rationale.")
 
     if member.array:
-        # gpsd draws the text/bytes line itself: `char[N]` is always a
+        # GPSd draws the text/bytes line itself: `char[N]` is always a
         # NUL-terminated string (paths, driver names, RTCM2 type-16 ASCII
         # messages), while a raw payload is `unsigned char[N]` -- rtcm3_t's
         # 1024-byte `data` is the clearest case. Mapping char[N] to string and
@@ -974,7 +974,7 @@ def mask_constants(src: str) -> List[Tuple[str, str]]:
     """`<NAME>_SET (1llu<<N)` -> ('SET_<NAME>', value), plus SET_UNION.
 
     Renamed because rosidl emits constants as static constexpr members while
-    gps.h defines the gpsd spellings as global macros; a member named
+    gps.h defines the GPSd spellings as global macros; a member named
     STATUS_SET in a header parsed after gps.h is destroyed by the preprocessor.
     gps.h defines no SET_* macros, so the flipped form is collision-free.
     """
@@ -1039,7 +1039,7 @@ def assert_no_macro_collisions(constants, src: str, rev: str) -> None:
 # Emission
 # --------------------------------------------------------------------------
 
-BANNER = ("# Generated by tools/generate_raw_msgs.py from gpsd {rev} "
+BANNER = ("# Generated by tools/generate_raw_msgs.py from GPSd {rev} "
           "(libgps API {major}.{minor}).\n# Do not edit; edit the generator "
           "and regenerate.\n")
 
@@ -1050,7 +1050,7 @@ def emit_msg(model: Model, name: str, rev: str,
     lines = [BANNER.format(rev=rev, major=major, minor=minor)]
     if name.startswith(MESSAGE_PREFIX + "Raw"):
         lines.append(
-            f"# Raw gpsd report (gps_data_t) as delivered by libgps API "
+            f"# Raw GPSd report (gps_data_t) as delivered by libgps API "
             f"{major}.{minor}.\n")
     for const_name, value in constants:
         lines.append(f"uint64 {const_name} = {value}")
@@ -1064,7 +1064,7 @@ def emit_msg(model: Model, name: str, rev: str,
 def emit_mask_asserts(model: Model, constants) -> List[str]:
     """static_assert every SET_<NAME> against the gps.h macro it came from.
 
-    The generator flips gpsd's `<NAME>_SET` to `SET_<NAME>` so the constants survive the
+    The generator flips GPSd's `<NAME>_SET` to `SET_<NAME>` so the constants survive the
     preprocessor. The flip is mechanical, which makes it exactly the kind of
     thing that can go quietly wrong: a message whose SET_LATLON does not equal
     gps.h's LATLON_SET is worse than useless, because every mask test written
@@ -1082,13 +1082,13 @@ def emit_mask_asserts(model: Model, constants) -> List[str]:
       would be a compile error rather than graceful degradation
       the struct members.
     * SET_HIGHEST_BIT is skipped. It is a count of bits rather than a bit, and
-      it is the one value that genuinely moves within an API pair -- gpsd 3.24
+      it is the one value that genuinely moves within an API pair -- GPSd 3.24
       and 3.26.1 are both API 14.0 with different counts -- so there is no
       fixed value to assert. test_gpsd_raw_include_order.cpp bounds it instead.
     """
     root = versioned(MESSAGE_PREFIX + "Raw", model.pair)
     out = [
-        "// The message's mask constants are gpsd's own bit values under a",
+        "// The message's mask constants are GPSd's own bit values under a",
         "// name the preprocessor leaves alone. Checked here, where both",
         "// spellings are legitimately in scope, so a rename that changes a",
         "// value cannot reach a subscriber.",
@@ -1118,7 +1118,7 @@ def emit_parser(model: Model, rev: str, constants=()) -> str:
     major, minor = model.pair
     root = versioned(MESSAGE_PREFIX + "Raw", model.pair)
     out = [
-        f"// Generated by tools/generate_raw_msgs.py from gpsd {rev} "
+        f"// Generated by tools/generate_raw_msgs.py from GPSd {rev} "
         f"(libgps API {major}.{minor}).",
         "// Do not edit; edit the generator and regenerate.",
         f"#ifndef GPSD_CLIENT__PARSERS__GENERATED__FILL_{major}V{minor}_HPP_",
@@ -1222,7 +1222,7 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
             if bit is None:
                 # No dispatch rule for this union yet -- rtcm2_t's arms and
                 # subframe_t's pages are selected by mappings that live in
-                # gpsd's C rather than in the header. Left empty rather
+                # GPSd's C rather than in the header. Left empty rather
                 # than filled speculatively: an empty arm honestly says "not
                 # decoded", a filled one would assert a report type.
                 out.append(f"  // {f.name}: union arm, left empty until its "
@@ -1300,7 +1300,7 @@ def emit_rtcm3_dispatch(model: Model, container: Field) -> List[str]:
         "    //",
         "    // Each arm is guarded the same way a plain member is. An",
         "    // API pair spans a range of header states, and rtcm3_t gains arms",
-        "    // within one: gpsd 3.24 and 3.26.1 both report API 14.0, but only",
+        "    // within one: GPSd 3.24 and 3.26.1 both report API 14.0, but only",
         "    // the later one has rtcm3_4076. Without this the generated code",
         "    // names a union member the build's gps.h does not declare, which",
         "    // is a compile error rather than a missing field.",
@@ -1335,7 +1335,7 @@ def emit_rtcm3_dispatch(model: Model, container: Field) -> List[str]:
     if "data" in by_field:
         arm = by_field["data"]
         lines.append("      default:")
-        lines.append("        // gpsd keeps the undecoded payload here.")
+        lines.append("        // GPSd keeps the undecoded payload here.")
         lines.append(f"        if constexpr (has_{arm.c_expr}<Arms>::value) {{")
         lines.append(f"          out.{container.c_expr}.{arm.name}.assign(")
         lines.append(f"              std::begin(in.{container.c_expr}.{arm.c_expr}),")
@@ -1476,8 +1476,8 @@ HAS_MEMBER_HEADER = """\
 
 /// Compile-time detection of a struct member.
 ///
-/// A gpsd API pair names a *range* of header states, not one: gps_fix_t gains
-/// ant_stat, clockbias, clockdrift, jam, temp and wtemp between gpsd 3.24 and
+/// A GPSd API pair names a *range* of header states, not one: gps_fix_t gains
+/// ant_stat, clockbias, clockdrift, jam, temp and wtemp between GPSd 3.24 and
 /// 3.26.1, which both report API 14.0. Messages are generated from the last
 /// rev of a pair, so generated code can name members an older libgps reporting
 /// the same pair does not have.
@@ -1524,7 +1524,7 @@ def emit_selection_ladder() -> str:
         "#include <gps.h>",
         "",
         "#if GPSD_API_MAJOR_VERSION < 9",
-        '#error "gpsd_client requires gpsd API version >= 9 (gpsd >= 3.20)"',
+        '#error "gpsd_client requires GPSd API version >= 9 (GPSd >= 3.20)"',
         "#endif",
         "",
     ]
@@ -1541,7 +1541,7 @@ def emit_selection_ladder() -> str:
         "// available message; its fields are a subset of what the build's",
         "// gps.h declares, and every generated assignment is member-guarded,",
         "// so this compiles -- it just cannot carry members added later.",
-        f'#warning "Untested gpsd API version; falling back to the API '
+        f'#warning "Untested GPSd API version; falling back to the API '
         f'{newest[0]}.{newest[1]} raw message"',
         f"#define GPSD_RAW_FILL_MAJOR {newest[0]}",
         f"#define GPSD_RAW_FILL_MINOR {newest[1]}",
@@ -1594,7 +1594,7 @@ def emit_version_workflow(pair: Tuple[int, int], rev: str) -> str:
     message = versioned(MESSAGE_PREFIX + "Raw", pair)
     unreleased = not rev.startswith("release-")
     note = ("#\n"
-            "# This API pair shipped in no gpsd release, so the revision below\n"
+            "# This API pair shipped in no GPSd release, so the revision below\n"
             "# is a bare commit: the last commit at which the pair was current.\n"
             if unreleased else "")
     return f"""# Generated by tools/generate_raw_msgs.py. Do not edit.
@@ -1612,7 +1612,7 @@ on:
   pull_request:
     paths:
       # Only the things that can change what this version builds or publishes.
-      # A docs-only change should not rebuild gpsd from source.
+      # A docs-only change should not rebuild GPSd from source.
       - 'gps_extended_msgs/**'
       - 'gpsd_client/**'
       - 'tools/generate_raw_msgs.py'
@@ -1722,7 +1722,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--gpsd-repo", default=default_repo,
-                        help="gpsd git clone to read gps.h from "
+                        help="GPSd git clone to read gps.h from "
                              f"(default: {default_repo})")
     parser.add_argument("--scope", default=CHECKED_IN_SCOPE,
                         choices=list(SCOPE_ORDER),

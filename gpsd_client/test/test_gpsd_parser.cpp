@@ -14,7 +14,7 @@ namespace
 // DGPS status macro is called) are isolated here.
 //
 // HAVE_GPS_FIX_STATUS comes from CheckStructHasMember in CMakeLists.txt and
-// asks the header directly rather than inferring from the version. gpsd moved
+// asks the header directly rather than inferring from the version. GPSd moved
 // the status from gps_data_t to gps_fix_t on the API 10 bump commit itself, so
 // a version comparison happens to work here -- but one API pair spans a range
 // of header states, so version arithmetic does not answer "has this member" in
@@ -35,7 +35,7 @@ constexpr int kStatusDgps = STATUS_DGPS_FIX;
 constexpr int kStatusDgps = STATUS_DGPS;
 #endif
 
-// A plain GPS fix: STATUS_FIX until gpsd renamed it to STATUS_GPS.
+// A plain GPS fix: STATUS_FIX until GPSd renamed it to STATUS_GPS.
 #ifdef STATUS_GPS
 constexpr int kStatusGps = STATUS_GPS;
 #else
@@ -43,7 +43,7 @@ constexpr int kStatusGps = STATUS_FIX;
 #endif
 
 /* gps.h defines STATUS_* macros whose names collide with the ROS message
- * constants (e.g. STATUS_FIX in gpsd < 3.23), so the expectations below use
+ * constants (e.g. STATUS_FIX in GPSd < 3.23), so the expectations below use
  * the messages' integer values with the symbolic name in a comment -- the
  * same convention the parser sources use.
  */

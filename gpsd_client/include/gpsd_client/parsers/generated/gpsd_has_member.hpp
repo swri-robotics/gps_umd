@@ -7,8 +7,8 @@
 
 /// Compile-time detection of a struct member.
 ///
-/// A gpsd API pair names a *range* of header states, not one: gps_fix_t gains
-/// ant_stat, clockbias, clockdrift, jam, temp and wtemp between gpsd 3.24 and
+/// A GPSd API pair names a *range* of header states, not one: gps_fix_t gains
+/// ant_stat, clockbias, clockdrift, jam, temp and wtemp between GPSd 3.24 and
 /// 3.26.1, which both report API 14.0. Messages are generated from the last
 /// rev of a pair, so generated code can name members an older libgps reporting
 /// the same pair does not have.

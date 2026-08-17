@@ -1,6 +1,6 @@
 name: gpsd end to end
 
-# gpsfake replays a recorded receiver log into a real gpsd, the node
+# gpsfake replays a recorded receiver log into a real GPSd, the node
 # connects to it over TCP exactly as it does in production, and the assertions
 # are made against messages that actually arrived on actual topics.
 #
@@ -9,8 +9,8 @@ name: gpsd end to end
 # pair using library-only tests, which need just libgps. What this job adds
 # is proof that the chain outside libgps works at all -- publishers advertised,
 # parameters read, message types resolved at runtime -- and that is not
-# version-specific. It also costs more: gpsfake needs the gpsd daemon and the
-# Python module, so this builds far more of gpsd than the others do.
+# version-specific. It also costs more: gpsfake needs the GPSd daemon and the
+# Python module, so this builds far more of GPSd than the others do.
 #
 # Revisit if a version-specific end-to-end bug ever slips through.
 
@@ -38,7 +38,7 @@ jobs:
       - name: Install build tools and workspace dependencies
         run: |
           apt-get update
-          # python3-serial and libdbus: gpsd's scons build wants them for the
+          # python3-serial and libdbus: GPSd's scons build wants them for the
           # daemon and the Python module, neither of which the libgps-only
           # builds in the other workflows compile.
           apt-get install -y --no-install-recommends scons pkg-config \
@@ -56,7 +56,7 @@ jobs:
           # trees are deliberately not cached.
           #
           # Bump the key whenever the layout under prefix changes, not only
-          # when the gpsd revision does. A restored prefix missing the gps
+          # when the GPSd revision does. A restored prefix missing the gps
           # Python module makes the whole suite skip itself while the build
           # still reports success.
           path: |
@@ -127,11 +127,11 @@ jobs:
         shell: bash
         run: |
           {
-            echo "## gpsd end to end (gpsfake)"
+            echo "## GPSd end to end (gpsfake)"
             echo
             echo "| | |"
             echo "|---|---|"
-            echo "| gpsd revision | \`3.27.5\` |"
+            echo "| GPSd revision | \`3.27.5\` |"
             echo "| Build + tests | ${{ steps.run.outcome }} |"
             echo "| Tests actually ran | ${{ steps.ran.outcome }} |"
           } >> "$GITHUB_STEP_SUMMARY"

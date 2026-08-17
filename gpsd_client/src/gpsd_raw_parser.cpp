@@ -58,7 +58,7 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
 
 #if GPSD_API_MAJOR_VERSION >= 12
   /* imu[] is the one array with no count anywhere: gps_data_t carries a fixed
-   * ten entries and nothing saying how many were filled. gpsd resolves this by
+   * ten entries and nothing saying how many were filled. GPSd resolves this by
    * treating an empty attitude_t::msg as the terminator -- its own JSON dumper
    * walks imu[] until msg[0] == '\0' (gpsd/gpsd_json.c) while the u-blox
    * driver stamps msg with "UBX-ESF-RAW" on each entry it populates. Use the
@@ -80,12 +80,12 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
   }
 #endif
 
-  /* rawdata_t::meas[] carries neither a count nor a terminator. gpsd fills
+  /* rawdata_t::meas[] carries neither a count nor a terminator. GPSd fills
    * entries at arbitrary indices and leaves svid at 0 on unused ones, so its
    * own dumper walks all MAXCHANNELS and skips the empty entries rather than
    * stopping at the first (gpsd/gpsd_json.c). It skips svid 255 too, which
    * GLONASS uses for "unknown". Applying the same rule publishes the same
-   * measurements gpsd reports.
+   * measurements GPSd reports.
    *
    * meas lives in the report union, so msg.raw is empty unless this report is
    * a RAW one.

@@ -41,7 +41,6 @@ surface as a confusing mid-test failure.
 import json
 import os
 import re
-import shutil
 import socket
 import subprocess
 import sys
@@ -499,24 +498,103 @@ class GstReports(unittest.TestCase):
 
 @unittest.skipIf(SKIP, SKIP or "")
 class AttitudeReports(unittest.TestCase):
-    """hemi.log carries ATT, which reaches the Tier B `attitude` member."""
+    """tnt-revolution.log carries ATT, which reaches the Tier B `attitude` member.
+
+    The log choice is load-bearing, so it is worth writing down. This suite
+    originally replayed hemi.log and skipped itself on every run it ever made,
+    which is the failure mode a skip-on-no-data guard is built to hide: hemi
+    emits 4 ATT reports, the first at report 350 of 370, in a 755-sentence log.
+    At CYCLE the capture window reaches roughly the first tenth of that log, so
+    the ATT reports were not merely unlikely to be sampled -- they were
+    unreachable, and the suite reported that as success.
+
+    tnt-revolution is a dedicated heading sensor: 60 of its 120 reports are ATT,
+    the first arrives at report 2, and the whole log replays inside one capture
+    window. Zero ATT is therefore a real failure here, not a sampling accident,
+    and this suite no longer skips.
+
+    Note that on the API this tier runs against, `attitude` is *not* a union
+    arm -- it sits past the union's closing brace and ATTITUDE_SET is absent
+    from UNION_SET -- so unlike gst, osc and the rtcm arms it is not clobbered
+    by the following report. The CYCLE-slowing rationale documented on Session
+    does not apply to it; this only ever needed a log whose ATT reports the
+    replay actually reaches.
+
+    That is a property of the newer header, not a permanent one: attitude left
+    the union at API 12.0 (plan section 2, and the reason `imu[]` exists), so on
+    API 9-11 it *is* union-carried and CYCLE would matter. Tier 2 deliberately
+    runs one recent version, so this suite never meets that case -- but do not
+    carry the claim backwards if it is ever pointed at an older libgps.
+    """
+
+    # Every ATT report in this log carries all five, and they occupy visibly
+    # disjoint ranges (heading ~14000, dip ~13600, pitch ~170, roll ~-40), so a
+    # field crossed with its neighbour in the fill code shows up as a value the
+    # .chk never reported rather than as a plausible number.
+    FIELDS = ("heading", "pitch", "roll", "dip", "mag_x")
 
     @classmethod
     def setUpClass(cls):
-        cls.session = capture("hemi.log")
-        cls.chk = chk_reports("hemi.log")
+        cls.session = capture("tnt-revolution.log")
+        cls.chk = chk_reports("tnt-revolution.log")
 
     def test_attitude_values_reach_the_message(self):
-        truth = {rounded(r["heading"])
-                 for r in self.chk.get("ATT", []) if "heading" in r}
         raws = self.session.messages.get("/gpsd_raw", [])
         self.assertTrue(raws, "no raw messages captured")
-        seen = {rounded(m.attitude.heading)
-                for m in raws if m.attitude.heading == m.attitude.heading}
-        if not seen:
-            self.skipTest("this replay sampled no ATT report")
-        self.assertEqual(set(), seen - truth,
-                         "attitude.heading values published that gpsd does not report")
+        reports = self.chk.get("ATT", [])
+        self.assertTrue(reports, "tnt-revolution.log.chk carries no ATT report")
+
+        for field in self.FIELDS:
+            with self.subTest(field=field):
+                truth = {rounded(r[field]) for r in reports if field in r}
+                self.assertTrue(truth, f"no ATT report carries {field}")
+                # NaN is gpsd's "unset"; compare only what was actually filled.
+                seen = {rounded(getattr(m.attitude, field)) for m in raws
+                        if getattr(m.attitude, field) == getattr(m.attitude, field)}
+                self.assertTrue(
+                    seen,
+                    f"no attitude.{field} reached the topic, though the log "
+                    f"reports {len(truth)} distinct values\n"
+                    f"{self.session.diagnostics()}")
+                self.assertEqual(
+                    set(), seen - truth,
+                    f"attitude.{field} values published that gpsd does not report")
+
+    def test_attitude_tracks_the_replay(self):
+        """Every field must move, not just be present once.
+
+        attitude persists across reads (it is not a union arm), so a fill that
+        ran a single time would satisfy the subset check above forever. This is
+        the assertion that separates "filled and held" from "tracked".
+
+        The threshold is half the distinct values gpsd reports, which is a 2x
+        margin: measured coverage is all of them -- 45/45 headings, 13/13 pitch,
+        11/11 roll, 38/38 dip, 20/20 mag_x -- identical across repeated runs.
+        That is structural rather than lucky. gpsfake replays without -1, so the
+        log cycles, and one cycle (71 sentences x CYCLE, ~10.6s) fits inside the
+        capture window with room to spare, so a full pass is covered whatever
+        phase collection happens to start on.
+
+        Subset above and coverage here are deliberately split. Exact set
+        equality would fold both into one assertion and read as stronger, but it
+        would fail on a loaded runner dropping a single publish -- a scheduling
+        artifact, not a defect -- and the two catch different bugs anyway:
+        wrong values above, frozen values here.
+        """
+        raws = self.session.messages.get("/gpsd_raw", [])
+        self.assertTrue(raws, "no raw messages captured")
+        reports = self.chk.get("ATT", [])
+        for field in self.FIELDS:
+            with self.subTest(field=field):
+                truth = {rounded(r[field]) for r in reports if field in r}
+                seen = {rounded(getattr(m.attitude, field)) for m in raws
+                        if getattr(m.attitude, field) == getattr(m.attitude, field)}
+                self.assertGreaterEqual(
+                    len(seen), len(truth) // 2,
+                    f"attitude.{field} barely moved across the replay: "
+                    f"{len(seen)} distinct values published of {len(truth)} "
+                    f"reported -- it is being filled once and then held, not "
+                    f"tracked\n{sorted(seen)}")
 
 
 @unittest.skipIf(SKIP, SKIP or "")

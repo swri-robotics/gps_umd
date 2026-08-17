@@ -69,6 +69,7 @@ Parameter | Type | Default | Description
 `check_fix_by_variance` | bool | `false` | Discard fixes whose reported variances (`epx`/`epy`/`epv`) are not finite. gpsd reports a status of OK even when there is no current fix, as long as there was one previously; this rejects those stale results.
 `override_augmentation_source` | bool | `false` | When gpsd reports a DGPS fix, always report it as an SBAS fix, whether or not a satellite with an SBAS ID was used in the solution. Useful for receivers that apply SBAS corrections without listing the SBAS satellite in their skyview. Affects both `NavSatFix` and `GPSFix` status.
 `publish_gpsd_raw` | bool | `false` | Also publish a near-verbatim mirror of gpsd's `gps_data_t` on `gpsd_raw`, in a message named after the libgps API this package was built against (see below). Off by default: the message is much larger than `GPSFix`, and neither the publisher nor its parser is created unless this is set.
+`publish_gpsd_rtcm` | bool | `false` | Publish RTCM2 and RTCM3 differential corrections on `gpsd_rtcm2` and `gpsd_rtcm3`. Separate from `gpsd_raw` and separately switchable: the two RTCM families are about half of all the generated message types, and a consumer of corrections is rarely the one that wants a fix.
 
 These are the node's built-in defaults, used when a parameter is not set.
 They match the config file shipped in `gpsd_client/config/gpsd_client.yaml`,
@@ -116,6 +117,31 @@ Points worth knowing before subscribing:
   gpsd reported AIS data this message does not include.
 * **`skyview` is trimmed to `satellites_visible`.** gpsd's array is a fixed
   140 or 184 entries depending on version; only the valid prefix is published.
+
+### RTCM is on its own topics
+
+RTCM2 and RTCM3 are **not** carried inside `GPSDRaw`. They are published on
+`gpsd_rtcm2` and `gpsd_rtcm3` when `publish_gpsd_rtcm` is set, each as its own
+message with its own `std_msgs/Header`.
+
+They were split out because they dominate everything else: between them the two
+families account for roughly half of all the generated message types, and
+carrying them in every raw report would put that on the wire for subscribers
+who only wanted a position.
+
+`GPSDRaw` still copies the `set` mask verbatim, so a raw subscriber can always
+tell that an RTCM report arrived and look at the RTCM topics for it:
+
+```cpp
+if (msg.set & gps_extended_msgs::msg::GPSDRaw16v1::SET_RTCM3) {
+  // gpsd decoded an RTCM3 message; it was published on ~/gpsd_rtcm3
+}
+```
+
+That is the same contract used for AIS, which is not published at all.
+
+Most reports are not RTCM, so these topics are usually quiet even when enabled
+-- nothing is published unless the report's mask actually names RTCM.
 
 ### An empty `skyview` alongside a non-zero `satellites_used`
 

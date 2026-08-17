@@ -60,8 +60,6 @@ GPSDSatellite9v0[] skyview
 GPSDDevconfig9v0 dev
 GPSDPolicy9v0 policy
 GPSDRawDevices9v0 devices
-GPSDRtcm2V9v0[] rtcm2
-GPSDRtcm3V9v0[] rtcm3
 GPSDSubframe9v0[] subframe
 GPSDAttitude9v0[] attitude
 GPSDRawdata9v0[] raw

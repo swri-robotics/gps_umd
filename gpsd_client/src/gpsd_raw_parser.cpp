@@ -83,4 +83,34 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
   return msg;
 }
 
+std::optional<GpsdRtcm2Msg> GpsdRawParser::parseRtcm2(
+    const gps_data_t& data, const rclcpp::Time& stamp) const
+{
+  if (0 == (data.set & RTCM2_SET))
+  {
+    return std::nullopt;
+  }
+
+  GpsdRtcm2Msg msg;
+  msg.header.stamp = stamp;
+  msg.header.frame_id = context_.frame_id;
+  generated::fill(data.rtcm2, msg);
+  return msg;
+}
+
+std::optional<GpsdRtcm3Msg> GpsdRawParser::parseRtcm3(
+    const gps_data_t& data, const rclcpp::Time& stamp) const
+{
+  if (0 == (data.set & RTCM3_SET))
+  {
+    return std::nullopt;
+  }
+
+  GpsdRtcm3Msg msg;
+  msg.header.stamp = stamp;
+  msg.header.frame_id = context_.frame_id;
+  generated::fill(data.rtcm3, msg);
+  return msg;
+}
+
 }  // namespace gpsd_client

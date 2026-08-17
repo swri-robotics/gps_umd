@@ -554,12 +554,54 @@ the generator, cited to the switch they came from — not re-derived by guesswor
   from the table above. Emitted in the *parent's* fill, because the
   discriminator is a sibling of the union and so is invisible inside the
   union's own `fill()`.
-- [ ] **`rtcm2_t`** — 13 arms, mapping not derivable from names.
-- [ ] **`subframe_t`** — two-level, `subframe_num` then `pageid`.
+- [x] **`rtcm2_t`**, on `type`. 13 arms whose names give no hint of the type, so
+  the mapping is a curated table read off gpsd's dumper and cross-checked
+  against what `driver_rtcm2.c` writes. The union is anonymous, so the switch
+  lives in the same `fill()` as the discriminator rather than one level down.
+- [x] **`subframe_t`**, on `subframe_num` then `pageid`. Subframes 4 and 5 share
+  a single pageid space, and within them `is_almanac` decides between the
+  generic almanac (kept in `sub5`) and a specific page.
 
-The two unimplemented unions emit a comment naming what is missing rather than
-filling speculatively; an empty arm honestly says "not decoded", a filled one
-would assert a report type.
+### Dead arms: declared in gps.h, written by nothing
+
+Cross-checking the mappings against gpsd's *drivers*, rather than only its JSON
+dumper, turned up arms that no gpsd code ever populates:
+
+| Arm | Referenced in gpsd |
+|---|---|
+| `rtcm2_t::rtcm2_18` … `rtcm2_24` | none |
+| `subframe_t::sub4` | none |
+
+For rtcm2 types 18-22 gpsd fills `rtk` and `ref_sta`, which are *not* union
+members and so were already published as ordinary fields. Every other subframe
+arm is referenced 1-32 times; `sub4` is referenced zero times.
+
+Mapping arm names to discriminator values by pattern — the obvious shortcut,
+and the one that is correct for rtcm3 — would have routed types 18-22 to those
+dead arms and copied uninitialised union bytes into a published message,
+asserting a decode that never happened. They are excluded with the reason
+recorded, and tests pin that they stay empty while the fields gpsd really fills
+come through.
+
+### D17 — RTCM is published separately from the raw report
+
+`rtcm2_t` and `rtcm3_t` are generated as their own message roots, each with a
+`std_msgs/Header`, and published on `gpsd_rtcm2` / `gpsd_rtcm3` behind a
+`publish_gpsd_rtcm` parameter. They are no longer fields of `GPSDRaw`.
+
+Between them they are 452 of the ~905 generated message types — about half —
+and the audience for differential corrections is largely disjoint from the
+audience for a position fix. Carrying them inside every raw report would put
+that weight on the wire for everyone.
+
+What is preserved: `GPSDRaw` still copies `set` verbatim and still defines
+`SET_RTCM2` / `SET_RTCM3`, so a raw subscriber can see that an RTCM report
+arrived and look at the RTCM topics for it. Exactly the contract already used
+for AIS (D10), which is not published at all.
+
+Both parse methods return `std::nullopt` unless the report's mask names that
+arm — reading it otherwise would be reading an inactive union member, not
+merely publishing something empty.
 
 ---
 
@@ -1007,6 +1049,9 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-17 | 4 | D17: RTCM split onto its own topics (`gpsd_rtcm2`, `gpsd_rtcm3`) behind `publish_gpsd_rtcm`, each with its own Header; removed from `GPSDRaw`, whose mask still reports them. 53 tests locally. |
+| 2026-08-17 | 3 | All three Tier C unions now dispatch: `rtcm2_t` (curated type table) and `subframe_t` (two-level, subframe_num then pageid) join the mask and rtcm3 dispatches. Found dead arms — `rtcm2_18`..`rtcm2_24` and `sub4` are declared in gps.h and written by no gpsd code; filling them would have published uninitialised union bytes. 51 tests locally. |
+| 2026-08-17 | 3 | Ten-version sweep clean with the Tier C dispatch: 107-110 tests per pair, 0 failures on all ten (the count rises with version as the guarded imu/msm/source tests switch on). |
 | 2026-08-17 | 3 | D16 dispatch implemented for the two mechanical unions: `gps_data_t`'s report union (set mask) and `rtcm3_t`'s arm union (type, with MSM ranges and raw fallback). Six new tests cover arm selection, the empty-when-unset case, the string arm, MSM folding and the unknown-type fallback. `rtcm2_t` and `subframe_t` still emit the placeholder comment. |
 | 2026-08-17 | 2 | Union arms are now 0-or-1 arrays consistently, whether or not gpsd named the union — `rtcm2_t`'s and `gps_data_t`'s are anonymous and were being spliced in as plain fields, so representation depended on an accident of gpsd's declaration style. Recorded the three union discriminators as D16. |
 | 2026-08-17 | 2 | **Tier C generated, and the messages moved to a new `gps_extended_msgs` package** (D13), keeping the `GPSD` message prefix, after measuring Tier C at 8m48s — too much to impose on the released `gps_msgs`. Tier C needed six new generator capabilities: inline *tagged* structs, enums, unions with a declarator, struct typedefs, `isgps30bits_t`, and a function-pointer test that was misfiring on a parenthesised array extent. Union arms are 0-or-1 arrays. Also D14 (rosidl name normalisation) and D15 (orphan removal), both found by breaking the build. |

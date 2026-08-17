@@ -209,6 +209,61 @@ REPORT_UNION_BITS = {
 RTCM3_MSM_RANGES = ((1071, 1077), (1081, 1087), (1091, 1097),
                     (1101, 1107), (1111, 1117), (1121, 1127))
 
+# rtcm2_t's arm union, selected by rtcm2_t::type. Read off gpsd's own dumper
+# (the switch in gpsd_json.c) and cross-checked against what driver_rtcm2.c
+# actually writes; unlike rtcm3's, these arm names give no hint of the type.
+RTCM2_TYPE_ARMS = {
+    1: "gps_ranges",        # GPS pseudorange corrections
+    9: "gps_ranges",        # same payload, partial set
+    4: "reference",
+    5: "conhealth",
+    7: "almanac",
+    13: "xmitter",
+    14: "gpstime",
+    16: "message",          # ASCII special message
+    31: "glonass_ranges",
+    # Deliberately absent:
+    #   3, 18-22   gpsd fills ref_sta / rtk, which are *not* union members and
+    #              so are already published as ordinary fields.
+    #   6          an idle no-op message with no payload.
+    #   rtcm2_18 .. rtcm2_24 are declared in gps.h and never written by gpsd --
+    #              no driver or daemon code touches them. Filling one would
+    #              copy uninitialised union bytes, so they stay empty always.
+    # `words` is the default arm: gpsd keeps the undecoded 30-bit words there.
+}
+
+# subframe_t's arm union, selected in two levels. From gpsd's own dumper:
+# subframes 1-3 map straight to an arm, while 4 and 5 share a single pageid
+# space -- "pageid is unique to all of subframes 4 and 5, handle as one"
+# (gpsd_json.c) -- and within those, is_almanac says whether the payload is the
+# generic almanac (which lives in sub5) or a specific page.
+SUBFRAME_ARMS = {1: "sub1", 2: "sub2", 3: "sub3"}
+SUBFRAME_PAGE_ARMS = {
+    51: "sub5_25",      # subframe 5, page 25
+    52: "sub4_13",      # subframe 4, page 13 (NMCT)
+    55: "sub4_17",      # subframe 4, page 17 (system message)
+    56: "sub4_18",      # subframe 4, page 18 (ionosphere / UTC)
+    63: "sub4_25",      # subframe 4, page 25
+}
+# `sub4` is declared in gps.h and never written by gpsd -- no driver or daemon
+# code references it, the same as rtcm2_18..24. It stays empty always.
+
+# Structs published on their own topic rather than inside GPSDRaw.
+#
+# RTCM2 and RTCM3 are by far the largest things gpsd decodes -- 452 of the ~905
+# generated messages between them -- and they are of interest to a quite
+# different audience from a position fix. Carrying them inside every raw report
+# would put that weight on the wire for everyone, so they get their own message
+# root (with its own std_msgs/Header) and their own opt-in topic.
+#
+# The SET_RTCM2 / SET_RTCM3 constants stay in GPSDRaw and `set` is still copied
+# verbatim, so a consumer of the raw topic can still see that gpsd reported an
+# RTCM message -- and go look at the RTCM topic for it. Same contract as AIS.
+STANDALONE_ROOTS = ("rtcm2_t", "rtcm3_t")
+
+# The gps_data_t member names those structs appear under.
+STANDALONE_MEMBER_NAMES = ("rtcm2", "rtcm3")
+
 # The tier the checked-in generated files are produced at, and the default for
 # --tier. Single source of truth: the CLI, the drift check and the tests all
 # read it, so moving the tree to the next tier is a one-line change here
@@ -669,6 +724,9 @@ def build_model(pair: Tuple[int, int], src: str, tier_members: Sequence[str]) ->
             continue
         if member.name not in tier_members:
             continue
+        if member.name in STANDALONE_MEMBER_NAMES:
+            # Generated as its own root below, not as a field here.
+            continue
         before = len(fields)
         add_field(model, fields, member, parent="gps_data_t")
         if member.union_arm:
@@ -680,6 +738,22 @@ def build_model(pair: Tuple[int, int], src: str, tier_members: Sequence[str]) ->
         mapped.append(member.name)
     model.mapped["gps_data_t"] = mapped
     model.skipped["gps_data_t"] = skipped
+
+    # The standalone roots. Generated even though they are no longer fields of
+    # GPSDRaw, and given their own Header since they are published in their
+    # own right and a subscriber needs a stamp and frame.
+    for tag in STANDALONE_ROOTS:
+        body = find_struct_body(src, tag)
+        if body is None:
+            continue
+        name = versioned(message_base_name(tag), pair)
+        if name not in model.messages:
+            emit_struct(model, name,
+                        split_members(resolve_conditionals(body)), tag)
+        root_fields = model.messages[name]
+        if not any(f.name == "header" for f in root_fields):
+            root_fields.insert(0, Field(ros_type="std_msgs/Header",
+                                        name="header", kind="header"))
     return model
 
 
@@ -1050,6 +1124,9 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
     resolve against whatever the build's gps.h actually declares.
     """
     is_root = message_name == versioned(MESSAGE_PREFIX + "Raw", model.pair)
+    is_rtcm2 = message_name == versioned(message_base_name("rtcm2_t"), model.pair)
+    is_subframe = message_name == versioned(message_base_name("subframe_t"),
+                                            model.pair)
     out = [
         "template <typename T>",
         f"inline void fill(const T& in, {PACKAGE}::msg::{message_name}& out)",
@@ -1060,6 +1137,9 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
     for f in model.messages[message_name]:
         if f.kind == "header":
             continue
+        if f.union_arm and (is_rtcm2 or is_subframe):
+            continue          # emitted together as a switch, after the loop
+
         if f.union_arm:
             bit = REPORT_UNION_BITS.get(f.c_expr) if is_root else None
             if bit is None:
@@ -1122,6 +1202,12 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
         out.append(f"  if constexpr ({guard}) {{")
         out += [f"    {line}" for line in assign]
         out.append("  }")
+
+    if is_rtcm2:
+        out += emit_rtcm2_dispatch(model, message_name)
+    if is_subframe:
+        out += emit_subframe_dispatch(model, message_name)
+
     out += ["}", ""]
     return out
 
@@ -1169,6 +1255,111 @@ def emit_rtcm3_dispatch(model: Model, container: Field) -> List[str]:
         lines.append("        break;")
 
     lines += ["    }", "  }"]
+    return lines
+
+
+def emit_rtcm2_dispatch(model: Model, message_name: str) -> List[str]:
+    """switch on rtcm2_t::type, filling exactly the arm it names.
+
+    rtcm2_t's union is anonymous, so its arms are spliced in as siblings of the
+    discriminator; the switch therefore lives in this same fill(), one level
+    higher than rtcm3's.
+    """
+    arms = {f.name: f for f in model.messages[message_name] if f.union_arm}
+    if not arms:
+        return []
+
+    lines = [
+        "  // Exactly one arm is valid, named by rtcm2_t::type (D16).",
+        "  switch (in.type) {",
+    ]
+    for value, arm_name in sorted(RTCM2_TYPE_ARMS.items()):
+        arm = arms.get(arm_name)
+        if arm is None:
+            continue
+        lines.append(f"    case {value}:")
+        lines.append(f"      if constexpr (has_{arm.c_expr}<T>::value) {{")
+        lines.append(f"        out.{arm.name}.resize(1);")
+        if arm.kind == "string":
+            lines.append(f"        out.{arm.name}[0].assign(in.{arm.c_expr}, "
+                         f"strnlen(in.{arm.c_expr}, sizeof(in.{arm.c_expr})));")
+        else:
+            lines.append(f"        fill(in.{arm.c_expr}, out.{arm.name}[0]);")
+        lines.append("      }")
+        lines.append("      break;")
+
+    words = arms.get("words")
+    lines.append("    default:")
+    if words is not None:
+        lines.append("      // Undecoded types keep their raw 30-bit words.")
+        lines.append(f"      if constexpr (has_{words.c_expr}<T>::value) {{")
+        lines.append(f"        out.{words.name}.assign("
+                     f"std::begin(in.{words.c_expr}), std::end(in.{words.c_expr}));")
+        lines.append("      }")
+    lines.append("      break;")
+    lines += ["  }"]
+    return lines
+
+
+def emit_subframe_dispatch(model: Model, message_name: str) -> List[str]:
+    """Two-level switch: subframe_num, then pageid for subframes 4 and 5."""
+    arms = {f.name: f for f in model.messages[message_name] if f.union_arm}
+    if not arms:
+        return []
+
+    def fill_arm(name: str, indent: str) -> List[str]:
+        arm = arms.get(name)
+        if arm is None:
+            return []
+        return [
+            f"{indent}if constexpr (has_{arm.c_expr}<T>::value) {{",
+            f"{indent}  out.{arm.name}.resize(1);",
+            f"{indent}  fill(in.{arm.c_expr}, out.{arm.name}[0]);",
+            f"{indent}}}",
+        ]
+
+    lines = [
+        "  // Exactly one arm is valid, named by subframe_num and, for",
+        "  // subframes 4 and 5, by pageid (D16).",
+        "  switch (in.subframe_num) {",
+    ]
+    for number, arm_name in sorted(SUBFRAME_ARMS.items()):
+        if arm_name not in arms:
+            continue
+        lines.append(f"    case {number}:")
+        lines += fill_arm(arm_name, "      ")
+        lines.append("      break;")
+
+    lines += [
+        "    case 4:",
+        "      // Subframes 4 and 5 share one pageid space, so they are one",
+        "      // grouped label -- no statements between them, hence no",
+        "      // fallthrough marker.",
+        "    case 5:",
+        "      if (0 != in.is_almanac) {",
+        "        // The generic almanac payload lives in sub5.",
+    ]
+    lines += fill_arm("sub5", "        ")
+    lines += [
+        "      } else {",
+        "        switch (in.pageid) {",
+    ]
+    for page, arm_name in sorted(SUBFRAME_PAGE_ARMS.items()):
+        if arm_name not in arms:
+            continue
+        lines.append(f"          case {page}:")
+        lines += fill_arm(arm_name, "            ")
+        lines.append("            break;")
+    lines += [
+        "          default:",
+        "            break;",
+        "        }",
+        "      }",
+        "      break;",
+        "    default:",
+        "      break;",
+        "  }",
+    ]
     return lines
 
 
@@ -1273,10 +1464,18 @@ def emit_selection_ladder() -> str:
         out.append(f"#{'if' if index == 0 else 'elif'} {guard}")
         out.append(f"#include <gpsd_client/parsers/generated/"
                    f"gpsd_raw_fill_{major}v{minor}.hpp>")
+        for tag in STANDALONE_ROOTS:
+            out.append(f"#include <{PACKAGE}/msg/"
+                       f"{ros_header_name(versioned(message_base_name(tag), pair))}"
+                       f".hpp>")
         out.append(f'#define GPSD_RAW_MESSAGE_NAME "{name}"')
         out.append("namespace gpsd_client")
         out.append("{")
         out.append(f"using GpsdRawMsg = {PACKAGE}::msg::{name};")
+        for tag, alias in (("rtcm2_t", "GpsdRtcm2Msg"),
+                           ("rtcm3_t", "GpsdRtcm3Msg")):
+            out.append(f"using {alias} = {PACKAGE}::msg::"
+                       f"{versioned(message_base_name(tag), pair)};")
         out.append("}  // namespace gpsd_client")
     out += [
         "#endif",

@@ -14,6 +14,25 @@
 #include <gps_extended_msgs/msg/gpsd_devconfig9v0.hpp>
 #include <gps_extended_msgs/msg/gpsd_policy9v0.hpp>
 #include <gps_extended_msgs/msg/gpsd_raw_devices9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub1_v9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub2_v9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub3_v9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub4_v9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_almanac9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub413_v9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub417_v9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub418_v9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub425_v9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub5_v9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_subframe_sub525_v9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_attitude9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_rawdata9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_meas9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_gst9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_oscillator9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_version9v0.hpp>
+#include <gps_extended_msgs/msg/gpsd_timedelta9v0.hpp>
 #include <gps_extended_msgs/msg/gpsd_rtcm2_v9v0.hpp>
 #include <gps_extended_msgs/msg/gpsd_rtcm2_gps_ranges9v0.hpp>
 #include <gps_extended_msgs/msg/gpsd_rangesat9v0.hpp>
@@ -64,25 +83,6 @@
 #include <gps_extended_msgs/msg/gpsd_rtcm31020_v9v0.hpp>
 #include <gps_extended_msgs/msg/gpsd_rtcm31029_v9v0.hpp>
 #include <gps_extended_msgs/msg/gpsd_rtcm31033_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe_sub1_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe_sub2_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe_sub3_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe_sub4_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_almanac9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe_sub413_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe_sub417_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe_sub418_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe_sub425_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe_sub5_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_subframe_sub525_v9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_attitude9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_rawdata9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_meas9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_gst9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_oscillator9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_version9v0.hpp>
-#include <gps_extended_msgs/msg/gpsd_timedelta9v0.hpp>
 
 #include <gps.h>
 
@@ -407,8 +407,6 @@ GPSD_DEFINE_HAS_MEMBER(rms_deviation)
 GPSD_DEFINE_HAS_MEMBER(roll)
 GPSD_DEFINE_HAS_MEMBER(roll_st)
 GPSD_DEFINE_HAS_MEMBER(rrc)
-GPSD_DEFINE_HAS_MEMBER(rtcm2)
-GPSD_DEFINE_HAS_MEMBER(rtcm3)
 GPSD_DEFINE_HAS_MEMBER(rtcm3_1001)
 GPSD_DEFINE_HAS_MEMBER(rtcm3_1002)
 GPSD_DEFINE_HAS_MEMBER(rtcm3_1003)
@@ -573,6 +571,44 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDPolicy9v0& out);
 template <typename T>
 inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawDevices9v0& out);
 template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframe9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub1V9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub2V9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub3V9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub4V9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDAlmanac9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub413V9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub417V9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub418V9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub425V9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub5V9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub525V9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDAttitude9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawdata9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDMeas9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDGst9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDOscillator9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDVersion9v0& out);
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDTimedelta9v0& out);
+template <typename T>
 inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2V9v0& out);
 template <typename T>
 inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2GpsRanges9v0& out);
@@ -672,44 +708,6 @@ template <typename T>
 inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31029V9v0& out);
 template <typename T>
 inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31033V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframe9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub1V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub2V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub3V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub4V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDAlmanac9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub413V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub417V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub418V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub425V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub5V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub525V9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDAttitude9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawdata9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDMeas9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDGst9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDOscillator9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDVersion9v0& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDTimedelta9v0& out);
 
 template <typename T>
 inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw9v0& out)
@@ -751,18 +749,6 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw9v0& out)
   }
   if constexpr (has_devices<T>::value) {
     fill(in.devices, out.devices);
-  }
-  if constexpr (has_rtcm2<T>::value) {
-    if (0 != (in.set & RTCM2_SET)) {
-      out.rtcm2.resize(1);
-      fill(in.rtcm2, out.rtcm2[0]);
-    }
-  }
-  if constexpr (has_rtcm3<T>::value) {
-    if (0 != (in.set & RTCM3_SET)) {
-      out.rtcm3.resize(1);
-      fill(in.rtcm3, out.rtcm3[0]);
-    }
   }
   if constexpr (has_subframe<T>::value) {
     if (0 != (in.set & SUBFRAME_SET)) {
@@ -1129,6 +1115,760 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawDevices9v0& out)
 }
 
 template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframe9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_subframe_num<T>::value) {
+    out.subframe_num = in.subframe_num;
+  }
+  if constexpr (has_data_id<T>::value) {
+    out.data_id = in.data_id;
+  }
+  if constexpr (has_pageid<T>::value) {
+    out.pageid = in.pageid;
+  }
+  if constexpr (has_tSVID<T>::value) {
+    out.t_svid = in.tSVID;
+  }
+  if constexpr (has_TOW17<T>::value) {
+    out.tow17 = in.TOW17;
+  }
+  if constexpr (has_l_TOW17<T>::value) {
+    out.l_tow17 = in.l_TOW17;
+  }
+  if constexpr (has_integrity<T>::value) {
+    out.integrity = in.integrity;
+  }
+  if constexpr (has_alert<T>::value) {
+    out.alert = in.alert;
+  }
+  if constexpr (has_antispoof<T>::value) {
+    out.antispoof = in.antispoof;
+  }
+  if constexpr (has_is_almanac<T>::value) {
+    out.is_almanac = in.is_almanac;
+  }
+  // Exactly one arm is valid, named by subframe_num and, for
+  // subframes 4 and 5, by pageid (D16).
+  switch (in.subframe_num) {
+    case 1:
+      if constexpr (has_sub1<T>::value) {
+        out.sub1.resize(1);
+        fill(in.sub1, out.sub1[0]);
+      }
+      break;
+    case 2:
+      if constexpr (has_sub2<T>::value) {
+        out.sub2.resize(1);
+        fill(in.sub2, out.sub2[0]);
+      }
+      break;
+    case 3:
+      if constexpr (has_sub3<T>::value) {
+        out.sub3.resize(1);
+        fill(in.sub3, out.sub3[0]);
+      }
+      break;
+    case 4:
+      // Subframes 4 and 5 share one pageid space, so they are one
+      // grouped label -- no statements between them, hence no
+      // fallthrough marker.
+    case 5:
+      if (0 != in.is_almanac) {
+        // The generic almanac payload lives in sub5.
+        if constexpr (has_sub5<T>::value) {
+          out.sub5.resize(1);
+          fill(in.sub5, out.sub5[0]);
+        }
+      } else {
+        switch (in.pageid) {
+          case 51:
+            if constexpr (has_sub5_25<T>::value) {
+              out.sub5_25.resize(1);
+              fill(in.sub5_25, out.sub5_25[0]);
+            }
+            break;
+          case 52:
+            if constexpr (has_sub4_13<T>::value) {
+              out.sub4_13.resize(1);
+              fill(in.sub4_13, out.sub4_13[0]);
+            }
+            break;
+          case 55:
+            if constexpr (has_sub4_17<T>::value) {
+              out.sub4_17.resize(1);
+              fill(in.sub4_17, out.sub4_17[0]);
+            }
+            break;
+          case 56:
+            if constexpr (has_sub4_18<T>::value) {
+              out.sub4_18.resize(1);
+              fill(in.sub4_18, out.sub4_18[0]);
+            }
+            break;
+          case 63:
+            if constexpr (has_sub4_25<T>::value) {
+              out.sub4_25.resize(1);
+              fill(in.sub4_25, out.sub4_25[0]);
+            }
+            break;
+          default:
+            break;
+        }
+      }
+      break;
+    default:
+      break;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub1V9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_WN<T>::value) {
+    out.wn = in.WN;
+  }
+  if constexpr (has_IODC<T>::value) {
+    out.iodc = in.IODC;
+  }
+  if constexpr (has_toc<T>::value) {
+    out.toc = in.toc;
+  }
+  if constexpr (has_l_toc<T>::value) {
+    out.l_toc = in.l_toc;
+  }
+  if constexpr (has_l2<T>::value) {
+    out.l2 = in.l2;
+  }
+  if constexpr (has_l2p<T>::value) {
+    out.l2p = in.l2p;
+  }
+  if constexpr (has_ura<T>::value) {
+    out.ura = in.ura;
+  }
+  if constexpr (has_hlth<T>::value) {
+    out.hlth = in.hlth;
+  }
+  if constexpr (has_af0<T>::value) {
+    out.af0 = in.af0;
+  }
+  if constexpr (has_d_af0<T>::value) {
+    out.d_af0 = in.d_af0;
+  }
+  if constexpr (has_af1<T>::value) {
+    out.af1 = in.af1;
+  }
+  if constexpr (has_d_af1<T>::value) {
+    out.d_af1 = in.d_af1;
+  }
+  if constexpr (has_af2<T>::value) {
+    out.af2 = in.af2;
+  }
+  if constexpr (has_d_af2<T>::value) {
+    out.d_af2 = in.d_af2;
+  }
+  if constexpr (has_Tgd<T>::value) {
+    out.tgd = in.Tgd;
+  }
+  if constexpr (has_d_Tgd<T>::value) {
+    out.d_tgd = in.d_Tgd;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub2V9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_IODE<T>::value) {
+    out.iode = in.IODE;
+  }
+  if constexpr (has_AODO<T>::value) {
+    out.aodo = in.AODO;
+  }
+  if constexpr (has_u_AODO<T>::value) {
+    out.u_aodo = in.u_AODO;
+  }
+  if constexpr (has_fit<T>::value) {
+    out.fit = in.fit;
+  }
+  if constexpr (has_toe<T>::value) {
+    out.toe = in.toe;
+  }
+  if constexpr (has_l_toe<T>::value) {
+    out.l_toe = in.l_toe;
+  }
+  if constexpr (has_Crs<T>::value) {
+    out.crs = in.Crs;
+  }
+  if constexpr (has_d_Crs<T>::value) {
+    out.d_crs = in.d_Crs;
+  }
+  if constexpr (has_Cus<T>::value) {
+    out.cus = in.Cus;
+  }
+  if constexpr (has_d_Cus<T>::value) {
+    out.d_cus = in.d_Cus;
+  }
+  if constexpr (has_Cuc<T>::value) {
+    out.cuc = in.Cuc;
+  }
+  if constexpr (has_d_Cuc<T>::value) {
+    out.d_cuc = in.d_Cuc;
+  }
+  if constexpr (has_deltan<T>::value) {
+    out.deltan = in.deltan;
+  }
+  if constexpr (has_d_deltan<T>::value) {
+    out.d_deltan = in.d_deltan;
+  }
+  if constexpr (has_M0<T>::value) {
+    out.m0 = in.M0;
+  }
+  if constexpr (has_d_M0<T>::value) {
+    out.d_m0 = in.d_M0;
+  }
+  if constexpr (has_e<T>::value) {
+    out.e = in.e;
+  }
+  if constexpr (has_d_eccentricity<T>::value) {
+    out.d_eccentricity = in.d_eccentricity;
+  }
+  if constexpr (has_sqrtA<T>::value) {
+    out.sqrt_a = in.sqrtA;
+  }
+  if constexpr (has_d_sqrtA<T>::value) {
+    out.d_sqrt_a = in.d_sqrtA;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub3V9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_IODE<T>::value) {
+    out.iode = in.IODE;
+  }
+  if constexpr (has_IDOT<T>::value) {
+    out.idot = in.IDOT;
+  }
+  if constexpr (has_d_IDOT<T>::value) {
+    out.d_idot = in.d_IDOT;
+  }
+  if constexpr (has_Cic<T>::value) {
+    out.cic = in.Cic;
+  }
+  if constexpr (has_d_Cic<T>::value) {
+    out.d_cic = in.d_Cic;
+  }
+  if constexpr (has_Cis<T>::value) {
+    out.cis = in.Cis;
+  }
+  if constexpr (has_d_Cis<T>::value) {
+    out.d_cis = in.d_Cis;
+  }
+  if constexpr (has_Crc<T>::value) {
+    out.crc = in.Crc;
+  }
+  if constexpr (has_d_Crc<T>::value) {
+    out.d_crc = in.d_Crc;
+  }
+  if constexpr (has_i0<T>::value) {
+    out.i0 = in.i0;
+  }
+  if constexpr (has_d_i0<T>::value) {
+    out.d_i0 = in.d_i0;
+  }
+  if constexpr (has_Omega0<T>::value) {
+    out.omega0 = in.Omega0;
+  }
+  if constexpr (has_d_Omega0<T>::value) {
+    out.d_omega0 = in.d_Omega0;
+  }
+  if constexpr (has_omega<T>::value) {
+    out.omega = in.omega;
+  }
+  if constexpr (has_d_omega<T>::value) {
+    out.d_omega = in.d_omega;
+  }
+  if constexpr (has_Omegad<T>::value) {
+    out.omegad = in.Omegad;
+  }
+  if constexpr (has_d_Omegad<T>::value) {
+    out.d_omegad = in.d_Omegad;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub4V9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_almanac<T>::value) {
+    fill(in.almanac, out.almanac);
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDAlmanac9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_sv<T>::value) {
+    out.sv = in.sv;
+  }
+  if constexpr (has_toa<T>::value) {
+    out.toa = in.toa;
+  }
+  if constexpr (has_l_toa<T>::value) {
+    out.l_toa = in.l_toa;
+  }
+  if constexpr (has_svh<T>::value) {
+    out.svh = in.svh;
+  }
+  if constexpr (has_deltai<T>::value) {
+    out.deltai = in.deltai;
+  }
+  if constexpr (has_d_deltai<T>::value) {
+    out.d_deltai = in.d_deltai;
+  }
+  if constexpr (has_M0<T>::value) {
+    out.m0 = in.M0;
+  }
+  if constexpr (has_d_M0<T>::value) {
+    out.d_m0 = in.d_M0;
+  }
+  if constexpr (has_Omega0<T>::value) {
+    out.omega0 = in.Omega0;
+  }
+  if constexpr (has_d_Omega0<T>::value) {
+    out.d_omega0 = in.d_Omega0;
+  }
+  if constexpr (has_omega<T>::value) {
+    out.omega = in.omega;
+  }
+  if constexpr (has_d_omega<T>::value) {
+    out.d_omega = in.d_omega;
+  }
+  if constexpr (has_af0<T>::value) {
+    out.af0 = in.af0;
+  }
+  if constexpr (has_d_af0<T>::value) {
+    out.d_af0 = in.d_af0;
+  }
+  if constexpr (has_af1<T>::value) {
+    out.af1 = in.af1;
+  }
+  if constexpr (has_d_af1<T>::value) {
+    out.d_af1 = in.d_af1;
+  }
+  if constexpr (has_e<T>::value) {
+    out.e = in.e;
+  }
+  if constexpr (has_d_eccentricity<T>::value) {
+    out.d_eccentricity = in.d_eccentricity;
+  }
+  if constexpr (has_sqrtA<T>::value) {
+    out.sqrt_a = in.sqrtA;
+  }
+  if constexpr (has_d_sqrtA<T>::value) {
+    out.d_sqrt_a = in.d_sqrtA;
+  }
+  if constexpr (has_Omegad<T>::value) {
+    out.omegad = in.Omegad;
+  }
+  if constexpr (has_d_Omegad<T>::value) {
+    out.d_omegad = in.d_Omegad;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub413V9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_ERD<T>::value) {
+    out.erd.assign(in.ERD, strnlen(in.ERD, sizeof(in.ERD)));
+  }
+  if constexpr (has_ai<T>::value) {
+    out.ai = in.ai;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub417V9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_str<T>::value) {
+    out.str.assign(in.str, strnlen(in.str, sizeof(in.str)));
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub418V9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_A0<T>::value) {
+    out.a0 = in.A0;
+  }
+  if constexpr (has_d_A0<T>::value) {
+    out.d_a0 = in.d_A0;
+  }
+  if constexpr (has_A1<T>::value) {
+    out.a1 = in.A1;
+  }
+  if constexpr (has_d_A1<T>::value) {
+    out.d_a1 = in.d_A1;
+  }
+  if constexpr (has_alpha0<T>::value) {
+    out.alpha0 = in.alpha0;
+  }
+  if constexpr (has_d_alpha0<T>::value) {
+    out.d_alpha0 = in.d_alpha0;
+  }
+  if constexpr (has_alpha1<T>::value) {
+    out.alpha1 = in.alpha1;
+  }
+  if constexpr (has_d_alpha1<T>::value) {
+    out.d_alpha1 = in.d_alpha1;
+  }
+  if constexpr (has_alpha2<T>::value) {
+    out.alpha2 = in.alpha2;
+  }
+  if constexpr (has_d_alpha2<T>::value) {
+    out.d_alpha2 = in.d_alpha2;
+  }
+  if constexpr (has_alpha3<T>::value) {
+    out.alpha3 = in.alpha3;
+  }
+  if constexpr (has_d_alpha3<T>::value) {
+    out.d_alpha3 = in.d_alpha3;
+  }
+  if constexpr (has_beta0<T>::value) {
+    out.beta0 = in.beta0;
+  }
+  if constexpr (has_d_beta0<T>::value) {
+    out.d_beta0 = in.d_beta0;
+  }
+  if constexpr (has_beta1<T>::value) {
+    out.beta1 = in.beta1;
+  }
+  if constexpr (has_d_beta1<T>::value) {
+    out.d_beta1 = in.d_beta1;
+  }
+  if constexpr (has_beta2<T>::value) {
+    out.beta2 = in.beta2;
+  }
+  if constexpr (has_d_beta2<T>::value) {
+    out.d_beta2 = in.d_beta2;
+  }
+  if constexpr (has_beta3<T>::value) {
+    out.beta3 = in.beta3;
+  }
+  if constexpr (has_d_beta3<T>::value) {
+    out.d_beta3 = in.d_beta3;
+  }
+  if constexpr (has_leap<T>::value) {
+    out.leap = in.leap;
+  }
+  if constexpr (has_lsf<T>::value) {
+    out.lsf = in.lsf;
+  }
+  if constexpr (has_tot<T>::value) {
+    out.tot = in.tot;
+  }
+  if constexpr (has_t_tot<T>::value) {
+    out.t_tot = in.t_tot;
+  }
+  if constexpr (has_WNt<T>::value) {
+    out.w_nt = in.WNt;
+  }
+  if constexpr (has_WNlsf<T>::value) {
+    out.w_nlsf = in.WNlsf;
+  }
+  if constexpr (has_DN<T>::value) {
+    out.dn = in.DN;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub425V9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_svf<T>::value) {
+    out.svf.assign(std::begin(in.svf), std::end(in.svf));
+  }
+  if constexpr (has_svhx<T>::value) {
+    out.svhx.assign(std::begin(in.svhx), std::end(in.svhx));
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub5V9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_almanac<T>::value) {
+    fill(in.almanac, out.almanac);
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub525V9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_toa<T>::value) {
+    out.toa = in.toa;
+  }
+  if constexpr (has_l_toa<T>::value) {
+    out.l_toa = in.l_toa;
+  }
+  if constexpr (has_WNa<T>::value) {
+    out.w_na = in.WNa;
+  }
+  if constexpr (has_sv<T>::value) {
+    out.sv.assign(std::begin(in.sv), std::end(in.sv));
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDAttitude9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_mtime<T>::value) {
+    out.mtime.sec = static_cast<int32_t>(in.mtime.tv_sec);
+    out.mtime.nanosec = static_cast<uint32_t>(in.mtime.tv_nsec);
+  }
+  if constexpr (has_acc_len<T>::value) {
+    out.acc_len = in.acc_len;
+  }
+  if constexpr (has_acc_x<T>::value) {
+    out.acc_x = in.acc_x;
+  }
+  if constexpr (has_acc_y<T>::value) {
+    out.acc_y = in.acc_y;
+  }
+  if constexpr (has_acc_z<T>::value) {
+    out.acc_z = in.acc_z;
+  }
+  if constexpr (has_depth<T>::value) {
+    out.depth = in.depth;
+  }
+  if constexpr (has_dip<T>::value) {
+    out.dip = in.dip;
+  }
+  if constexpr (has_gyro_x<T>::value) {
+    out.gyro_x = in.gyro_x;
+  }
+  if constexpr (has_gyro_y<T>::value) {
+    out.gyro_y = in.gyro_y;
+  }
+  if constexpr (has_heading<T>::value) {
+    out.heading = in.heading;
+  }
+  if constexpr (has_mag_len<T>::value) {
+    out.mag_len = in.mag_len;
+  }
+  if constexpr (has_mag_x<T>::value) {
+    out.mag_x = in.mag_x;
+  }
+  if constexpr (has_mag_y<T>::value) {
+    out.mag_y = in.mag_y;
+  }
+  if constexpr (has_mag_z<T>::value) {
+    out.mag_z = in.mag_z;
+  }
+  if constexpr (has_pitch<T>::value) {
+    out.pitch = in.pitch;
+  }
+  if constexpr (has_roll<T>::value) {
+    out.roll = in.roll;
+  }
+  if constexpr (has_temp<T>::value) {
+    out.temp = in.temp;
+  }
+  if constexpr (has_yaw<T>::value) {
+    out.yaw = in.yaw;
+  }
+  if constexpr (has_mag_st<T>::value) {
+    out.mag_st = in.mag_st;
+  }
+  if constexpr (has_pitch_st<T>::value) {
+    out.pitch_st = in.pitch_st;
+  }
+  if constexpr (has_roll_st<T>::value) {
+    out.roll_st = in.roll_st;
+  }
+  if constexpr (has_yaw_st<T>::value) {
+    out.yaw_st = in.yaw_st;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawdata9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_mtime<T>::value) {
+    out.mtime.sec = static_cast<int32_t>(in.mtime.tv_sec);
+    out.mtime.nanosec = static_cast<uint32_t>(in.mtime.tv_nsec);
+  }
+  // meas: filled by the caller, which knows the valid element count
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDMeas9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_gnssid<T>::value) {
+    out.gnssid = in.gnssid;
+  }
+  if constexpr (has_svid<T>::value) {
+    out.svid = in.svid;
+  }
+  if constexpr (has_sigid<T>::value) {
+    out.sigid = in.sigid;
+  }
+  if constexpr (has_snr<T>::value) {
+    out.snr = in.snr;
+  }
+  if constexpr (has_freqid<T>::value) {
+    out.freqid = in.freqid;
+  }
+  if constexpr (has_lli<T>::value) {
+    out.lli = in.lli;
+  }
+  if constexpr (has_obs_code<T>::value) {
+    out.obs_code.assign(in.obs_code, strnlen(in.obs_code, sizeof(in.obs_code)));
+  }
+  if constexpr (has_codephase<T>::value) {
+    out.codephase = in.codephase;
+  }
+  if constexpr (has_carrierphase<T>::value) {
+    out.carrierphase = in.carrierphase;
+  }
+  if constexpr (has_pseudorange<T>::value) {
+    out.pseudorange = in.pseudorange;
+  }
+  if constexpr (has_deltarange<T>::value) {
+    out.deltarange = in.deltarange;
+  }
+  if constexpr (has_doppler<T>::value) {
+    out.doppler = in.doppler;
+  }
+  if constexpr (has_locktime<T>::value) {
+    out.locktime = in.locktime;
+  }
+  if constexpr (has_l2c<T>::value) {
+    out.l2c = in.l2c;
+  }
+  if constexpr (has_c2c<T>::value) {
+    out.c2c = in.c2c;
+  }
+  if constexpr (has_satstat<T>::value) {
+    out.satstat = in.satstat;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDGst9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_utctime<T>::value) {
+    out.utctime.sec = static_cast<int32_t>(in.utctime.tv_sec);
+    out.utctime.nanosec = static_cast<uint32_t>(in.utctime.tv_nsec);
+  }
+  if constexpr (has_rms_deviation<T>::value) {
+    out.rms_deviation = in.rms_deviation;
+  }
+  if constexpr (has_smajor_deviation<T>::value) {
+    out.smajor_deviation = in.smajor_deviation;
+  }
+  if constexpr (has_sminor_deviation<T>::value) {
+    out.sminor_deviation = in.sminor_deviation;
+  }
+  if constexpr (has_smajor_orientation<T>::value) {
+    out.smajor_orientation = in.smajor_orientation;
+  }
+  if constexpr (has_lat_err_deviation<T>::value) {
+    out.lat_err_deviation = in.lat_err_deviation;
+  }
+  if constexpr (has_lon_err_deviation<T>::value) {
+    out.lon_err_deviation = in.lon_err_deviation;
+  }
+  if constexpr (has_alt_err_deviation<T>::value) {
+    out.alt_err_deviation = in.alt_err_deviation;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDOscillator9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_running<T>::value) {
+    out.running = in.running;
+  }
+  if constexpr (has_reference<T>::value) {
+    out.reference = in.reference;
+  }
+  if constexpr (has_disciplined<T>::value) {
+    out.disciplined = in.disciplined;
+  }
+  if constexpr (has_delta<T>::value) {
+    out.delta = in.delta;
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDVersion9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_release<T>::value) {
+    out.release.assign(in.release, strnlen(in.release, sizeof(in.release)));
+  }
+  if constexpr (has_rev<T>::value) {
+    out.rev.assign(in.rev, strnlen(in.rev, sizeof(in.rev)));
+  }
+  if constexpr (has_proto_major<T>::value) {
+    out.proto_major = in.proto_major;
+  }
+  if constexpr (has_proto_minor<T>::value) {
+    out.proto_minor = in.proto_minor;
+  }
+  if constexpr (has_remote<T>::value) {
+    out.remote.assign(in.remote, strnlen(in.remote, sizeof(in.remote)));
+  }
+}
+
+template <typename T>
+inline void fill(const T& in, gps_extended_msgs::msg::GPSDTimedelta9v0& out)
+{
+  (void)in;
+  (void)out;
+  if constexpr (has_real<T>::value) {
+    out.real.sec = static_cast<int32_t>(in.real.tv_sec);
+    out.real.nanosec = static_cast<uint32_t>(in.real.tv_nsec);
+  }
+  if constexpr (has_clock<T>::value) {
+    out.clock.sec = static_cast<int32_t>(in.clock.tv_sec);
+    out.clock.nanosec = static_cast<uint32_t>(in.clock.tv_nsec);
+  }
+}
+
+template <typename T>
 inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2V9v0& out)
 {
   (void)in;
@@ -1151,16 +1891,69 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm2V9v0& out)
   if constexpr (has_stathlth<T>::value) {
     out.stathlth = in.stathlth;
   }
-  // gps_ranges: union arm, left empty until its discriminator dispatch lands (D16)
-  // ecef: union arm, left empty until its discriminator dispatch lands (D16)
-  // reference: union arm, left empty until its discriminator dispatch lands (D16)
-  // conhealth: union arm, left empty until its discriminator dispatch lands (D16)
-  // almanac: union arm, left empty until its discriminator dispatch lands (D16)
-  // xmitter: union arm, left empty until its discriminator dispatch lands (D16)
-  // gpstime: union arm, left empty until its discriminator dispatch lands (D16)
-  // glonass_ranges: union arm, left empty until its discriminator dispatch lands (D16)
-  // message: union arm, left empty until its discriminator dispatch lands (D16)
-  // words: union arm, left empty until its discriminator dispatch lands (D16)
+  // Exactly one arm is valid, named by rtcm2_t::type (D16).
+  switch (in.type) {
+    case 1:
+      if constexpr (has_gps_ranges<T>::value) {
+        out.gps_ranges.resize(1);
+        fill(in.gps_ranges, out.gps_ranges[0]);
+      }
+      break;
+    case 4:
+      if constexpr (has_reference<T>::value) {
+        out.reference.resize(1);
+        fill(in.reference, out.reference[0]);
+      }
+      break;
+    case 5:
+      if constexpr (has_conhealth<T>::value) {
+        out.conhealth.resize(1);
+        fill(in.conhealth, out.conhealth[0]);
+      }
+      break;
+    case 7:
+      if constexpr (has_almanac<T>::value) {
+        out.almanac.resize(1);
+        fill(in.almanac, out.almanac[0]);
+      }
+      break;
+    case 9:
+      if constexpr (has_gps_ranges<T>::value) {
+        out.gps_ranges.resize(1);
+        fill(in.gps_ranges, out.gps_ranges[0]);
+      }
+      break;
+    case 13:
+      if constexpr (has_xmitter<T>::value) {
+        out.xmitter.resize(1);
+        fill(in.xmitter, out.xmitter[0]);
+      }
+      break;
+    case 14:
+      if constexpr (has_gpstime<T>::value) {
+        out.gpstime.resize(1);
+        fill(in.gpstime, out.gpstime[0]);
+      }
+      break;
+    case 16:
+      if constexpr (has_message<T>::value) {
+        out.message.resize(1);
+        out.message[0].assign(in.message, strnlen(in.message, sizeof(in.message)));
+      }
+      break;
+    case 31:
+      if constexpr (has_glonass_ranges<T>::value) {
+        out.glonass_ranges.resize(1);
+        fill(in.glonass_ranges, out.glonass_ranges[0]);
+      }
+      break;
+    default:
+      // Undecoded types keep their raw 30-bit words.
+      if constexpr (has_words<T>::value) {
+        out.words.assign(std::begin(in.words), std::end(in.words));
+      }
+      break;
+  }
 }
 
 template <typename T>
@@ -2320,698 +3113,6 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRtcm31033V9v0& out)
   }
   if constexpr (has_firmware<T>::value) {
     out.firmware.assign(in.firmware, strnlen(in.firmware, sizeof(in.firmware)));
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframe9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_subframe_num<T>::value) {
-    out.subframe_num = in.subframe_num;
-  }
-  if constexpr (has_data_id<T>::value) {
-    out.data_id = in.data_id;
-  }
-  if constexpr (has_pageid<T>::value) {
-    out.pageid = in.pageid;
-  }
-  if constexpr (has_tSVID<T>::value) {
-    out.t_svid = in.tSVID;
-  }
-  if constexpr (has_TOW17<T>::value) {
-    out.tow17 = in.TOW17;
-  }
-  if constexpr (has_l_TOW17<T>::value) {
-    out.l_tow17 = in.l_TOW17;
-  }
-  if constexpr (has_integrity<T>::value) {
-    out.integrity = in.integrity;
-  }
-  if constexpr (has_alert<T>::value) {
-    out.alert = in.alert;
-  }
-  if constexpr (has_antispoof<T>::value) {
-    out.antispoof = in.antispoof;
-  }
-  if constexpr (has_is_almanac<T>::value) {
-    out.is_almanac = in.is_almanac;
-  }
-  // sub1: union arm, left empty until its discriminator dispatch lands (D16)
-  // sub2: union arm, left empty until its discriminator dispatch lands (D16)
-  // sub3: union arm, left empty until its discriminator dispatch lands (D16)
-  // sub4: union arm, left empty until its discriminator dispatch lands (D16)
-  // sub4_13: union arm, left empty until its discriminator dispatch lands (D16)
-  // sub4_17: union arm, left empty until its discriminator dispatch lands (D16)
-  // sub4_18: union arm, left empty until its discriminator dispatch lands (D16)
-  // sub4_25: union arm, left empty until its discriminator dispatch lands (D16)
-  // sub5: union arm, left empty until its discriminator dispatch lands (D16)
-  // sub5_25: union arm, left empty until its discriminator dispatch lands (D16)
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub1V9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_WN<T>::value) {
-    out.wn = in.WN;
-  }
-  if constexpr (has_IODC<T>::value) {
-    out.iodc = in.IODC;
-  }
-  if constexpr (has_toc<T>::value) {
-    out.toc = in.toc;
-  }
-  if constexpr (has_l_toc<T>::value) {
-    out.l_toc = in.l_toc;
-  }
-  if constexpr (has_l2<T>::value) {
-    out.l2 = in.l2;
-  }
-  if constexpr (has_l2p<T>::value) {
-    out.l2p = in.l2p;
-  }
-  if constexpr (has_ura<T>::value) {
-    out.ura = in.ura;
-  }
-  if constexpr (has_hlth<T>::value) {
-    out.hlth = in.hlth;
-  }
-  if constexpr (has_af0<T>::value) {
-    out.af0 = in.af0;
-  }
-  if constexpr (has_d_af0<T>::value) {
-    out.d_af0 = in.d_af0;
-  }
-  if constexpr (has_af1<T>::value) {
-    out.af1 = in.af1;
-  }
-  if constexpr (has_d_af1<T>::value) {
-    out.d_af1 = in.d_af1;
-  }
-  if constexpr (has_af2<T>::value) {
-    out.af2 = in.af2;
-  }
-  if constexpr (has_d_af2<T>::value) {
-    out.d_af2 = in.d_af2;
-  }
-  if constexpr (has_Tgd<T>::value) {
-    out.tgd = in.Tgd;
-  }
-  if constexpr (has_d_Tgd<T>::value) {
-    out.d_tgd = in.d_Tgd;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub2V9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_IODE<T>::value) {
-    out.iode = in.IODE;
-  }
-  if constexpr (has_AODO<T>::value) {
-    out.aodo = in.AODO;
-  }
-  if constexpr (has_u_AODO<T>::value) {
-    out.u_aodo = in.u_AODO;
-  }
-  if constexpr (has_fit<T>::value) {
-    out.fit = in.fit;
-  }
-  if constexpr (has_toe<T>::value) {
-    out.toe = in.toe;
-  }
-  if constexpr (has_l_toe<T>::value) {
-    out.l_toe = in.l_toe;
-  }
-  if constexpr (has_Crs<T>::value) {
-    out.crs = in.Crs;
-  }
-  if constexpr (has_d_Crs<T>::value) {
-    out.d_crs = in.d_Crs;
-  }
-  if constexpr (has_Cus<T>::value) {
-    out.cus = in.Cus;
-  }
-  if constexpr (has_d_Cus<T>::value) {
-    out.d_cus = in.d_Cus;
-  }
-  if constexpr (has_Cuc<T>::value) {
-    out.cuc = in.Cuc;
-  }
-  if constexpr (has_d_Cuc<T>::value) {
-    out.d_cuc = in.d_Cuc;
-  }
-  if constexpr (has_deltan<T>::value) {
-    out.deltan = in.deltan;
-  }
-  if constexpr (has_d_deltan<T>::value) {
-    out.d_deltan = in.d_deltan;
-  }
-  if constexpr (has_M0<T>::value) {
-    out.m0 = in.M0;
-  }
-  if constexpr (has_d_M0<T>::value) {
-    out.d_m0 = in.d_M0;
-  }
-  if constexpr (has_e<T>::value) {
-    out.e = in.e;
-  }
-  if constexpr (has_d_eccentricity<T>::value) {
-    out.d_eccentricity = in.d_eccentricity;
-  }
-  if constexpr (has_sqrtA<T>::value) {
-    out.sqrt_a = in.sqrtA;
-  }
-  if constexpr (has_d_sqrtA<T>::value) {
-    out.d_sqrt_a = in.d_sqrtA;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub3V9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_IODE<T>::value) {
-    out.iode = in.IODE;
-  }
-  if constexpr (has_IDOT<T>::value) {
-    out.idot = in.IDOT;
-  }
-  if constexpr (has_d_IDOT<T>::value) {
-    out.d_idot = in.d_IDOT;
-  }
-  if constexpr (has_Cic<T>::value) {
-    out.cic = in.Cic;
-  }
-  if constexpr (has_d_Cic<T>::value) {
-    out.d_cic = in.d_Cic;
-  }
-  if constexpr (has_Cis<T>::value) {
-    out.cis = in.Cis;
-  }
-  if constexpr (has_d_Cis<T>::value) {
-    out.d_cis = in.d_Cis;
-  }
-  if constexpr (has_Crc<T>::value) {
-    out.crc = in.Crc;
-  }
-  if constexpr (has_d_Crc<T>::value) {
-    out.d_crc = in.d_Crc;
-  }
-  if constexpr (has_i0<T>::value) {
-    out.i0 = in.i0;
-  }
-  if constexpr (has_d_i0<T>::value) {
-    out.d_i0 = in.d_i0;
-  }
-  if constexpr (has_Omega0<T>::value) {
-    out.omega0 = in.Omega0;
-  }
-  if constexpr (has_d_Omega0<T>::value) {
-    out.d_omega0 = in.d_Omega0;
-  }
-  if constexpr (has_omega<T>::value) {
-    out.omega = in.omega;
-  }
-  if constexpr (has_d_omega<T>::value) {
-    out.d_omega = in.d_omega;
-  }
-  if constexpr (has_Omegad<T>::value) {
-    out.omegad = in.Omegad;
-  }
-  if constexpr (has_d_Omegad<T>::value) {
-    out.d_omegad = in.d_Omegad;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub4V9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_almanac<T>::value) {
-    fill(in.almanac, out.almanac);
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDAlmanac9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_sv<T>::value) {
-    out.sv = in.sv;
-  }
-  if constexpr (has_toa<T>::value) {
-    out.toa = in.toa;
-  }
-  if constexpr (has_l_toa<T>::value) {
-    out.l_toa = in.l_toa;
-  }
-  if constexpr (has_svh<T>::value) {
-    out.svh = in.svh;
-  }
-  if constexpr (has_deltai<T>::value) {
-    out.deltai = in.deltai;
-  }
-  if constexpr (has_d_deltai<T>::value) {
-    out.d_deltai = in.d_deltai;
-  }
-  if constexpr (has_M0<T>::value) {
-    out.m0 = in.M0;
-  }
-  if constexpr (has_d_M0<T>::value) {
-    out.d_m0 = in.d_M0;
-  }
-  if constexpr (has_Omega0<T>::value) {
-    out.omega0 = in.Omega0;
-  }
-  if constexpr (has_d_Omega0<T>::value) {
-    out.d_omega0 = in.d_Omega0;
-  }
-  if constexpr (has_omega<T>::value) {
-    out.omega = in.omega;
-  }
-  if constexpr (has_d_omega<T>::value) {
-    out.d_omega = in.d_omega;
-  }
-  if constexpr (has_af0<T>::value) {
-    out.af0 = in.af0;
-  }
-  if constexpr (has_d_af0<T>::value) {
-    out.d_af0 = in.d_af0;
-  }
-  if constexpr (has_af1<T>::value) {
-    out.af1 = in.af1;
-  }
-  if constexpr (has_d_af1<T>::value) {
-    out.d_af1 = in.d_af1;
-  }
-  if constexpr (has_e<T>::value) {
-    out.e = in.e;
-  }
-  if constexpr (has_d_eccentricity<T>::value) {
-    out.d_eccentricity = in.d_eccentricity;
-  }
-  if constexpr (has_sqrtA<T>::value) {
-    out.sqrt_a = in.sqrtA;
-  }
-  if constexpr (has_d_sqrtA<T>::value) {
-    out.d_sqrt_a = in.d_sqrtA;
-  }
-  if constexpr (has_Omegad<T>::value) {
-    out.omegad = in.Omegad;
-  }
-  if constexpr (has_d_Omegad<T>::value) {
-    out.d_omegad = in.d_Omegad;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub413V9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_ERD<T>::value) {
-    out.erd.assign(in.ERD, strnlen(in.ERD, sizeof(in.ERD)));
-  }
-  if constexpr (has_ai<T>::value) {
-    out.ai = in.ai;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub417V9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_str<T>::value) {
-    out.str.assign(in.str, strnlen(in.str, sizeof(in.str)));
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub418V9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_A0<T>::value) {
-    out.a0 = in.A0;
-  }
-  if constexpr (has_d_A0<T>::value) {
-    out.d_a0 = in.d_A0;
-  }
-  if constexpr (has_A1<T>::value) {
-    out.a1 = in.A1;
-  }
-  if constexpr (has_d_A1<T>::value) {
-    out.d_a1 = in.d_A1;
-  }
-  if constexpr (has_alpha0<T>::value) {
-    out.alpha0 = in.alpha0;
-  }
-  if constexpr (has_d_alpha0<T>::value) {
-    out.d_alpha0 = in.d_alpha0;
-  }
-  if constexpr (has_alpha1<T>::value) {
-    out.alpha1 = in.alpha1;
-  }
-  if constexpr (has_d_alpha1<T>::value) {
-    out.d_alpha1 = in.d_alpha1;
-  }
-  if constexpr (has_alpha2<T>::value) {
-    out.alpha2 = in.alpha2;
-  }
-  if constexpr (has_d_alpha2<T>::value) {
-    out.d_alpha2 = in.d_alpha2;
-  }
-  if constexpr (has_alpha3<T>::value) {
-    out.alpha3 = in.alpha3;
-  }
-  if constexpr (has_d_alpha3<T>::value) {
-    out.d_alpha3 = in.d_alpha3;
-  }
-  if constexpr (has_beta0<T>::value) {
-    out.beta0 = in.beta0;
-  }
-  if constexpr (has_d_beta0<T>::value) {
-    out.d_beta0 = in.d_beta0;
-  }
-  if constexpr (has_beta1<T>::value) {
-    out.beta1 = in.beta1;
-  }
-  if constexpr (has_d_beta1<T>::value) {
-    out.d_beta1 = in.d_beta1;
-  }
-  if constexpr (has_beta2<T>::value) {
-    out.beta2 = in.beta2;
-  }
-  if constexpr (has_d_beta2<T>::value) {
-    out.d_beta2 = in.d_beta2;
-  }
-  if constexpr (has_beta3<T>::value) {
-    out.beta3 = in.beta3;
-  }
-  if constexpr (has_d_beta3<T>::value) {
-    out.d_beta3 = in.d_beta3;
-  }
-  if constexpr (has_leap<T>::value) {
-    out.leap = in.leap;
-  }
-  if constexpr (has_lsf<T>::value) {
-    out.lsf = in.lsf;
-  }
-  if constexpr (has_tot<T>::value) {
-    out.tot = in.tot;
-  }
-  if constexpr (has_t_tot<T>::value) {
-    out.t_tot = in.t_tot;
-  }
-  if constexpr (has_WNt<T>::value) {
-    out.w_nt = in.WNt;
-  }
-  if constexpr (has_WNlsf<T>::value) {
-    out.w_nlsf = in.WNlsf;
-  }
-  if constexpr (has_DN<T>::value) {
-    out.dn = in.DN;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub425V9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_svf<T>::value) {
-    out.svf.assign(std::begin(in.svf), std::end(in.svf));
-  }
-  if constexpr (has_svhx<T>::value) {
-    out.svhx.assign(std::begin(in.svhx), std::end(in.svhx));
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub5V9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_almanac<T>::value) {
-    fill(in.almanac, out.almanac);
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSubframeSub525V9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_toa<T>::value) {
-    out.toa = in.toa;
-  }
-  if constexpr (has_l_toa<T>::value) {
-    out.l_toa = in.l_toa;
-  }
-  if constexpr (has_WNa<T>::value) {
-    out.w_na = in.WNa;
-  }
-  if constexpr (has_sv<T>::value) {
-    out.sv.assign(std::begin(in.sv), std::end(in.sv));
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDAttitude9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_mtime<T>::value) {
-    out.mtime.sec = static_cast<int32_t>(in.mtime.tv_sec);
-    out.mtime.nanosec = static_cast<uint32_t>(in.mtime.tv_nsec);
-  }
-  if constexpr (has_acc_len<T>::value) {
-    out.acc_len = in.acc_len;
-  }
-  if constexpr (has_acc_x<T>::value) {
-    out.acc_x = in.acc_x;
-  }
-  if constexpr (has_acc_y<T>::value) {
-    out.acc_y = in.acc_y;
-  }
-  if constexpr (has_acc_z<T>::value) {
-    out.acc_z = in.acc_z;
-  }
-  if constexpr (has_depth<T>::value) {
-    out.depth = in.depth;
-  }
-  if constexpr (has_dip<T>::value) {
-    out.dip = in.dip;
-  }
-  if constexpr (has_gyro_x<T>::value) {
-    out.gyro_x = in.gyro_x;
-  }
-  if constexpr (has_gyro_y<T>::value) {
-    out.gyro_y = in.gyro_y;
-  }
-  if constexpr (has_heading<T>::value) {
-    out.heading = in.heading;
-  }
-  if constexpr (has_mag_len<T>::value) {
-    out.mag_len = in.mag_len;
-  }
-  if constexpr (has_mag_x<T>::value) {
-    out.mag_x = in.mag_x;
-  }
-  if constexpr (has_mag_y<T>::value) {
-    out.mag_y = in.mag_y;
-  }
-  if constexpr (has_mag_z<T>::value) {
-    out.mag_z = in.mag_z;
-  }
-  if constexpr (has_pitch<T>::value) {
-    out.pitch = in.pitch;
-  }
-  if constexpr (has_roll<T>::value) {
-    out.roll = in.roll;
-  }
-  if constexpr (has_temp<T>::value) {
-    out.temp = in.temp;
-  }
-  if constexpr (has_yaw<T>::value) {
-    out.yaw = in.yaw;
-  }
-  if constexpr (has_mag_st<T>::value) {
-    out.mag_st = in.mag_st;
-  }
-  if constexpr (has_pitch_st<T>::value) {
-    out.pitch_st = in.pitch_st;
-  }
-  if constexpr (has_roll_st<T>::value) {
-    out.roll_st = in.roll_st;
-  }
-  if constexpr (has_yaw_st<T>::value) {
-    out.yaw_st = in.yaw_st;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawdata9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_mtime<T>::value) {
-    out.mtime.sec = static_cast<int32_t>(in.mtime.tv_sec);
-    out.mtime.nanosec = static_cast<uint32_t>(in.mtime.tv_nsec);
-  }
-  // meas: filled by the caller, which knows the valid element count
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDMeas9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_gnssid<T>::value) {
-    out.gnssid = in.gnssid;
-  }
-  if constexpr (has_svid<T>::value) {
-    out.svid = in.svid;
-  }
-  if constexpr (has_sigid<T>::value) {
-    out.sigid = in.sigid;
-  }
-  if constexpr (has_snr<T>::value) {
-    out.snr = in.snr;
-  }
-  if constexpr (has_freqid<T>::value) {
-    out.freqid = in.freqid;
-  }
-  if constexpr (has_lli<T>::value) {
-    out.lli = in.lli;
-  }
-  if constexpr (has_obs_code<T>::value) {
-    out.obs_code.assign(in.obs_code, strnlen(in.obs_code, sizeof(in.obs_code)));
-  }
-  if constexpr (has_codephase<T>::value) {
-    out.codephase = in.codephase;
-  }
-  if constexpr (has_carrierphase<T>::value) {
-    out.carrierphase = in.carrierphase;
-  }
-  if constexpr (has_pseudorange<T>::value) {
-    out.pseudorange = in.pseudorange;
-  }
-  if constexpr (has_deltarange<T>::value) {
-    out.deltarange = in.deltarange;
-  }
-  if constexpr (has_doppler<T>::value) {
-    out.doppler = in.doppler;
-  }
-  if constexpr (has_locktime<T>::value) {
-    out.locktime = in.locktime;
-  }
-  if constexpr (has_l2c<T>::value) {
-    out.l2c = in.l2c;
-  }
-  if constexpr (has_c2c<T>::value) {
-    out.c2c = in.c2c;
-  }
-  if constexpr (has_satstat<T>::value) {
-    out.satstat = in.satstat;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDGst9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_utctime<T>::value) {
-    out.utctime.sec = static_cast<int32_t>(in.utctime.tv_sec);
-    out.utctime.nanosec = static_cast<uint32_t>(in.utctime.tv_nsec);
-  }
-  if constexpr (has_rms_deviation<T>::value) {
-    out.rms_deviation = in.rms_deviation;
-  }
-  if constexpr (has_smajor_deviation<T>::value) {
-    out.smajor_deviation = in.smajor_deviation;
-  }
-  if constexpr (has_sminor_deviation<T>::value) {
-    out.sminor_deviation = in.sminor_deviation;
-  }
-  if constexpr (has_smajor_orientation<T>::value) {
-    out.smajor_orientation = in.smajor_orientation;
-  }
-  if constexpr (has_lat_err_deviation<T>::value) {
-    out.lat_err_deviation = in.lat_err_deviation;
-  }
-  if constexpr (has_lon_err_deviation<T>::value) {
-    out.lon_err_deviation = in.lon_err_deviation;
-  }
-  if constexpr (has_alt_err_deviation<T>::value) {
-    out.alt_err_deviation = in.alt_err_deviation;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDOscillator9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_running<T>::value) {
-    out.running = in.running;
-  }
-  if constexpr (has_reference<T>::value) {
-    out.reference = in.reference;
-  }
-  if constexpr (has_disciplined<T>::value) {
-    out.disciplined = in.disciplined;
-  }
-  if constexpr (has_delta<T>::value) {
-    out.delta = in.delta;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDVersion9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_release<T>::value) {
-    out.release.assign(in.release, strnlen(in.release, sizeof(in.release)));
-  }
-  if constexpr (has_rev<T>::value) {
-    out.rev.assign(in.rev, strnlen(in.rev, sizeof(in.rev)));
-  }
-  if constexpr (has_proto_major<T>::value) {
-    out.proto_major = in.proto_major;
-  }
-  if constexpr (has_proto_minor<T>::value) {
-    out.proto_minor = in.proto_minor;
-  }
-  if constexpr (has_remote<T>::value) {
-    out.remote.assign(in.remote, strnlen(in.remote, sizeof(in.remote)));
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDTimedelta9v0& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_real<T>::value) {
-    out.real.sec = static_cast<int32_t>(in.real.tv_sec);
-    out.real.nanosec = static_cast<uint32_t>(in.real.tv_nsec);
-  }
-  if constexpr (has_clock<T>::value) {
-    out.clock.sec = static_cast<int32_t>(in.clock.tv_sec);
-    out.clock.nanosec = static_cast<uint32_t>(in.clock.tv_nsec);
   }
 }
 

@@ -18,6 +18,7 @@
 
   <depend>libgps</depend>
   <depend>gps_msgs</depend>
+  <depend>gps_extended_msgs</depend>
   <depend>pkg-config</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>

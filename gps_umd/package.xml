@@ -15,6 +15,7 @@
 
   <exec_depend>gpsd_client</exec_depend>
   <exec_depend>gps_msgs</exec_depend>
+  <exec_depend>gps_extended_msgs</exec_depend>
   <exec_depend>gps_tools</exec_depend>
 
   <export>

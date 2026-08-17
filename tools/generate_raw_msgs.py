@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Generate the GPSDRaw<MAJOR>v<MINOR> messages and their parsers from gps.h.
+"""Generate the GPSExtendedRaw<MAJOR>v<MINOR> messages and their parsers from gps.h.
 
 Ground truth is gpsd's ``include/gps.h`` at a pinned commit per API pair (see
 REFERENCE_REVS). Nothing here reads the build host's installed libgps: the
-messages live in ``gps_msgs``, which is a pure interface package released to the
-ROS build farm and must never gain a libgps dependency. Regenerating is a
+messages live in ``gps_extended_msgs``, a pure interface package that must
+never gain a libgps dependency. Regenerating is a
 deliberate, reviewed act, and CI runs ``--check`` so the checked-in output
 cannot drift from this script.
 
 Design decisions this implements live in docs/gpsd-raw-messages-plan.md; the
-ones that constrain the code most are D1 (no libgps in gps_msgs), D2 (generated,
+ones that constrain the code most are D1 (no libgps in the message package),
+D2 (generated,
 not hand-written), D3 (version-suffixed sub-messages), D5 (union arms selected
 by the ``set`` mask), D9 (``SET_<NAME>`` constants), D10 (no AIS) and D11
 (absent members detected in C++).
@@ -180,7 +181,21 @@ TIERS = {"A": TIER_A_MEMBERS, "B": TIER_B_MEMBERS, "C": TIER_C_MEMBERS}
 # --tier. Single source of truth: the CLI, the drift check and the tests all
 # read it, so moving the tree to the next tier is a one-line change here
 # followed by a regenerate.
-CHECKED_IN_TIER = "B"
+CHECKED_IN_TIER = "C"
+
+# The generated messages live in their own package, not in gps_msgs.
+#
+# gps_msgs is a small, long-released interface package (GPSFix, GPSStatus) that
+# the ROS build farm builds for five distros. The generated set is two orders
+# of magnitude larger -- Tier C alone is ~90 messages per API pair, and building
+# them takes minutes rather than seconds -- so putting them here would impose
+# that on every consumer of gps_msgs, released or not. A separate package keeps
+# the cost with the feature that incurs it.
+#
+# The GPSExtended prefix distinguishes these from gps_msgs' own types and from
+# gpsd's C names.
+PACKAGE = "gps_extended_msgs"
+MESSAGE_PREFIX = "GPSExtended"
 
 
 import argparse
@@ -288,6 +303,7 @@ class Member:
     anon_body: Optional[str] = None  # body of an inline anonymous struct
     is_pointer: bool = False         # declared with a '*'
     struct_tag: Optional[str] = None  # tag of an inline `struct X { ... } m;`
+    is_union: bool = False           # inline union with a declarator
 
 
 
@@ -295,6 +311,18 @@ class Member:
 class StructDef:
     cname: str                       # 'gps_fix_t', or a synthetic name for anon
     members: List[Member] = field(default_factory=list)
+
+
+def brace_body(text: str, start: int) -> Tuple[str, int]:
+    """Return (body, index-after-close) for a block whose '{' is already past."""
+    index, depth = start, 1
+    while depth:
+        if text[index] == "{":
+            depth += 1
+        elif text[index] == "}":
+            depth -= 1
+        index += 1
+    return text[start:index - 1], index
 
 
 def split_members(body: str) -> List[Member]:
@@ -307,6 +335,28 @@ def split_members(body: str) -> List[Member]:
     members: List[Member] = []
     index = 0
     while index < len(body):
+        # Enums map to a plain integer. gps.h uses both anonymous
+        # (`enum {RESERVED, CORRECT, WIDELANE, UNCERTAIN} ambiguity;`) and
+        # tagged-by-reference (`enum RTCM3_QUALITY_INDICATOR_TRANSFORMATION
+        # quality_hori;`) forms, and neither is a struct, so they must be
+        # consumed before the inline-struct handling below.
+        #
+        # The enumerator *names* are not carried into the message -- ROS
+        # constants are per-message and these live several structs deep, where
+        # names from different enums would collide. The numeric value is what
+        # gpsd puts on the wire; gps.h remains the reference for what it means.
+        enum_def = re.compile(r"\s*enum(?:\s+\w+)?\s*\{").match(body, index)
+        if enum_def:
+            _, cursor = brace_body(body, enum_def.end())
+            tail = body.index(";", cursor)
+            for decl in body[cursor:tail].split(","):
+                decl = decl.strip()
+                if decl:
+                    name, array = parse_declarator(decl)
+                    members.append(Member(name=name, ctype="enum", array=array))
+            index = tail + 1
+            continue
+
         # An anonymous union or struct with no declarator injects its members
         # into the enclosing scope (C11 6.7.2.1). gps_data_t uses exactly this
         # for the rtcm2/rtcm3/subframe/ais/raw/osc/version/error arms, so
@@ -329,7 +379,8 @@ def split_members(body: str) -> List[Member]:
                 index = tail + 1
                 continue
 
-        anon = re.compile(r"\s*struct(?:\s+(\w+))?\s*\{").match(body, index)
+        anon = re.compile(r"\s*(struct|union)(?:\s+(\w+))?\s*\{").match(
+            body, index)
         if anon:
             inner_start = anon.end()
             depth, cursor = 1, inner_start
@@ -347,7 +398,8 @@ def split_members(body: str) -> List[Member]:
                     continue
                 name, array = parse_declarator(decl)
                 members.append(Member(name=name, ctype="struct", array=array,
-                                      anon_body=inner, struct_tag=anon.group(1)))
+                                      anon_body=inner, struct_tag=anon.group(2),
+                                      is_union=(anon.group(1) == "union")))
             index = tail + 1
             continue
 
@@ -423,16 +475,51 @@ def snake_case(name: str) -> str:
     return out
 
 
+def camel(name: str) -> str:
+    """gpsd member/tag name -> CamelCase fragment for a message name.
+
+    Underscores must not survive: rosidl rejects them in message type names.
+    `rtcm3_1001` becomes Rtcm31001, matching what message_base_name() produces
+    for the same name used as a struct tag, so an arm gets the same spelling
+    whether gpsd tagged its inline struct or not.
+
+    Acronyms are *not* preserved: gps_fix_t::NED becomes Ned, not NED. rosidl
+    normalises a run of capitals when it derives the C struct name (NED -> Ned)
+    but emits the name as authored in the *referencing* message's header, so a
+    name containing consecutive capitals produces two spellings that disagree
+    and the generated C fails to compile with "unknown type name". Writing
+    names already in rosidl's normalised form avoids the mismatch entirely.
+    """
+    return "".join(part.capitalize() for part in name.split("_") if part)
+
+
 def message_base_name(cname: str) -> str:
-    """C struct tag -> message name stem, e.g. gps_fix_t -> GPSDFix."""
+    """C struct tag -> message name stem, e.g. gps_fix_t -> GPSExtendedFix."""
     if cname == "gps_data_t":
-        return "GPSDRaw"
+        return MESSAGE_PREFIX + "Raw"
     stem = re.sub(r"_t$", "", cname)
     stem = re.sub(r"^gps_", "", stem)
-    return "GPSD" + "".join(part.capitalize() for part in stem.split("_"))
+    return MESSAGE_PREFIX + camel(stem)
 
 
 def versioned(base: str, pair: Tuple[int, int]) -> str:
+    """Append the API pair, keeping the boundary readable.
+
+    The plain form is `<Stem><MAJOR>v<MINOR>` -- GPSExtendedFix16v1 -- which is what
+    the specified root name GPSExtendedRaw<MAJOR>v<MINOR> uses.
+
+    A stem that itself *ends in a digit* would run into the version and become
+    ambiguous: the rtcm3 arm `rtcm3_1001` at API 9.0 would read
+    GPSExtendedRtcm3100 19v0 / GPSExtendedRtcm31001 9v0 with no way to tell, and even the
+    plain GPSExtendedRtcm3 + 16v1 gives GPSExtendedRtcm316v1. Those stems get a 'V'
+    separator. rosidl rejects underscores in message names, so a letter is the
+    only option.
+
+    Applied only where the ambiguity exists, so the many stems that end in a
+    letter keep the shorter, spec-matching form.
+    """
+    if base and base[-1].isdigit():
+        return f"{base}V{pair[0]}v{pair[1]}"
     return f"{base}{pair[0]}v{pair[1]}"
 
 
@@ -446,6 +533,14 @@ SCALAR_TYPES = {
     "bool": "bool",
     "char": "int8",
     "signed char": "int8",
+    "signed int": "int32",
+    "signed short": "int16",
+    "signed short int": "int16",
+    "signed long": "int64",
+    "signed long int": "int64",
+    "signed long long": "int64",
+    "unsigned long int": "uint64",
+    "long double": "float64",   # widened; ROS has no 80/128-bit float
     "unsigned char": "uint8",
     "short": "int16",
     "short int": "int16",
@@ -474,6 +569,8 @@ SCALAR_TYPES = {
     "gnssid_t": "uint8",
     "gps_fd_t": "int32",
     "watch_t": "uint32",        # typedef uint32_t; a WATCH_* bitmask
+    "isgps30bits_t": "uint32",  # typedef uint32_t; a raw RTCM2 30-bit word
+    "enum": "int32",            # anonymous enum member; see split_members
     "socket_t": "int32",
     "timestamp_t": "float64",   # pre-API-9 leftover
 }
@@ -490,6 +587,7 @@ class Field:
     kind: str = "scalar"          # scalar | string | bytes | time | struct
     c_expr: str = ""              # C member path relative to its parent
     array: bool = False
+    union_arm: bool = False       # a 0-or-1 array standing in for a union arm
 
 
 class Model:
@@ -516,7 +614,7 @@ def build_model(pair: Tuple[int, int], src: str, tier_members: Sequence[str]) ->
     if body is None:
         raise SystemExit(f"gps_data_t not found at {REFERENCE_REVS[pair]}")
 
-    root = versioned("GPSDRaw", pair)
+    root = versioned(MESSAGE_PREFIX + "Raw", pair)
     fields = model.message(root)
     fields.append(Field(ros_type="std_msgs/Header", name="header",
                         comment="", kind="header"))
@@ -567,18 +665,21 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
             # tagged, so name it as if it were declared at file scope.
             sub = versioned(message_base_name(member.struct_tag), model.pair)
         else:
-            base = message_base_name(parent).replace("GPSD", "", 1)
-            sub = versioned(
-                f"GPSD{base}{member.name[:1].upper()}{member.name[1:]}",
-                model.pair)
+            # `parent` may be a dotted path (rtcm3_t.rtcmtypes) rather than a
+            # struct tag, so take only its last component and strip the _t.
+            stem = parent.split(".")[-1]
+            base = message_base_name(stem).replace(MESSAGE_PREFIX, "", 1)
+            sub = versioned(f"{MESSAGE_PREFIX}{base}{camel(member.name)}",
+                            model.pair)
         if sub in model.messages:
             # Already emitted from another use of the same tag.
             fields.append(Field(ros_type=sub + ("[]" if member.array else ""),
                                 name=name, kind="struct", c_expr=member.name,
                                 array=bool(member.array)))
             return
-        emit_struct(model, sub, split_members(resolve_conditionals(member.anon_body)),
-                    f"{parent}.{member.name}")
+        emit_struct(model, sub,
+                    split_members(resolve_conditionals(member.anon_body)),
+                    f"{parent}.{member.name}", as_union=member.is_union)
         fields.append(Field(ros_type=sub + ("[]" if member.array else ""),
                             name=name, kind="struct", c_expr=member.name,
                             array=bool(member.array)))
@@ -606,6 +707,32 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
     if ctype == "function_pointer":
         return
 
+    if ctype.startswith("enum "):
+        # `enum RTCM3_QUALITY_INDICATOR_TRANSFORMATION quality_hori;` -- a
+        # reference to a tagged enum, which is still just an integer.
+        ctype = "enum"
+
+    if SCALAR_TYPES.get(ctype) is None:
+        # A typedef naming a struct, e.g. `typedef struct orbit orbit_t;`
+        # (subframe_t::orbit and ::orbit1 are declared as bare orbit_t).
+        # Checked after SCALAR_TYPES so scalar typedefs such as watch_t and
+        # isgps30bits_t keep their integer mapping.
+        tag = struct_typedefs(model.src).get(ctype)
+        if tag is not None:
+            sub_body = find_struct_body(model.src, tag)
+            if sub_body is None:
+                raise SystemExit(
+                    f"{parent}.{member.name}: {ctype} names struct {tag}, "
+                    f"which was not found")
+            sub = versioned(message_base_name(ctype), model.pair)
+            if sub not in model.messages:
+                emit_struct(model, sub,
+                            split_members(resolve_conditionals(sub_body)), tag)
+            fields.append(Field(ros_type=sub + ("[]" if member.array else ""),
+                                name=name, kind="struct", c_expr=member.name,
+                                array=bool(member.array)))
+            return
+
     ros = SCALAR_TYPES.get(ctype)
     if ros is None:
         raise SystemExit(
@@ -613,8 +740,15 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
             "Add it to SCALAR_TYPES with a documented rationale.")
 
     if member.array:
-        # char[N] is a NUL-terminated name in every Tier A/B use; binary
-        # payloads live in Tier C and are mapped to uint8[] there.
+        # gpsd draws the text/bytes line itself: `char[N]` is always a
+        # NUL-terminated string (paths, driver names, RTCM2 type-16 ASCII
+        # messages), while a raw payload is `unsigned char[N]` -- rtcm3_t's
+        # 1024-byte `data` is the clearest case. Mapping char[N] to string and
+        # letting unsigned char[N] fall through to uint8[] follows the header
+        # rather than guessing from field names.
+        #
+        # The fill side uses strnlen with sizeof, so an array that happens to
+        # be full with no NUL is truncated rather than overrun.
         if ctype == "char":
             fields.append(Field(ros_type="string", name=name, kind="string",
                                 c_expr=member.name))
@@ -628,15 +762,37 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
 
 
 def emit_struct(model: Model, message_name: str, members: List[Member],
-                parent: str) -> None:
+                parent: str, as_union: bool = False) -> None:
+    """Emit one message for a struct, or for a union's arms.
+
+    A union's arms become **0-or-1 element arrays** rather than plain fields.
+    ROS has no variant type, and a flat message would serialise all 26 rtcm3
+    arms on every report -- roughly 180 dead fields of wire and CPU per RTCM3
+    message -- while also requiring the reader to know the discriminator to
+    tell which one means anything. As arrays, an inactive arm costs the four
+    bytes of its length, and `!msg.rtcm3_1005.empty()` says outright that the
+    report is a type 1005.
+
+    It also keeps the parser from reading an inactive union member, which is
+    undefined behaviour, not merely wasteful.
+    """
     fields = model.message(message_name)
     mapped, skipped = [], []
     for member in members:
         if member.name in EXCLUDED_MEMBERS:
             skipped.append(member.name)
             continue
+        before = len(fields)
         add_field(model, fields, member, parent=parent)
-        mapped.append(member.name)
+        if as_union:
+            for f in fields[before:]:
+                # An arm that is already an array (rtcm3's raw `data`) needs no
+                # wrapping: ROS forbids nested arrays, and its emptiness
+                # already signals an inactive arm.
+                if not f.ros_type.endswith("[]"):
+                    f.ros_type += "[]"
+                f.array = True
+                f.union_arm = True
     model.mapped[parent] = mapped
     if skipped:
         model.skipped[parent] = skipped
@@ -645,6 +801,24 @@ def emit_struct(model: Model, message_name: str, members: List[Member],
 # --------------------------------------------------------------------------
 # The `set` mask constants (D9)
 # --------------------------------------------------------------------------
+
+_STRUCT_TYPEDEFS: Dict[int, Dict[str, str]] = {}
+
+
+def struct_typedefs(src: str) -> Dict[str, str]:
+    """{typedef name: struct tag} for `typedef struct <tag> <name>;` forms.
+
+    Cached per source text; the lookup is only consulted for types that are
+    not already scalars, so it never shadows watch_t or isgps30bits_t.
+    """
+    key = id(src)
+    if key not in _STRUCT_TYPEDEFS:
+        _STRUCT_TYPEDEFS[key] = {
+            name: tag for tag, name in
+            re.findall(r"typedef\s+struct\s+(\w+)\s+(\w+)\s*;", src)
+        }
+    return _STRUCT_TYPEDEFS[key]
+
 
 def mask_constants(src: str) -> List[Tuple[str, str]]:
     """`<NAME>_SET (1llu<<N)` -> ('SET_<NAME>', value), plus SET_UNION.
@@ -724,7 +898,7 @@ def emit_msg(model: Model, name: str, rev: str,
              constants: Sequence[Tuple[str, str]]) -> str:
     major, minor = model.pair
     lines = [BANNER.format(rev=rev, major=major, minor=minor)]
-    if name.startswith("GPSDRaw"):
+    if name.startswith(MESSAGE_PREFIX + "Raw"):
         lines.append(
             f"# Raw gpsd report (gps_data_t) as delivered by libgps API "
             f"{major}.{minor}.\n")
@@ -745,7 +919,7 @@ def emit_parser(model: Model, rev: str) -> str:
     rev can name members an older libgps reporting the same pair lacks.
     """
     major, minor = model.pair
-    root = versioned("GPSDRaw", model.pair)
+    root = versioned(MESSAGE_PREFIX + "Raw", model.pair)
     out = [
         f"// Generated by tools/generate_raw_msgs.py from gpsd {rev} "
         f"(libgps API {major}.{minor}).",
@@ -755,11 +929,11 @@ def emit_parser(model: Model, rev: str) -> str:
         "",
         "#include <gpsd_client/parsers/generated/gpsd_has_member.hpp>",
         "",
-        f"#include <gps_msgs/msg/{ros_header_name(root)}.hpp>",
+        f"#include <{PACKAGE}/msg/{ros_header_name(root)}.hpp>",
     ]
     for name in model.order:
         if name != root:
-            out.append(f"#include <gps_msgs/msg/{ros_header_name(name)}.hpp>")
+            out.append(f"#include <{PACKAGE}/msg/{ros_header_name(name)}.hpp>")
     out += [
         "",
         "#include <gps.h>",
@@ -797,11 +971,11 @@ def emit_parser(model: Model, rev: str) -> str:
     # Forward-declare every overload first. The root's fill() calls fill() on
     # its sub-structs, and unqualified lookup in a template happens at
     # definition time -- ADL cannot find these, since the arguments live in ::
-    # and gps_msgs::msg while the overloads live in gpsd_client::generated.
+    # and the message package while the overloads live in gpsd_client::generated.
     out.append("// Forward declarations; see the note in the generator.")
     for name in model.order:
         out.append(f"template <typename T>")
-        out.append(f"inline void fill(const T& in, gps_msgs::msg::{name}& out);")
+        out.append(f"inline void fill(const T& in, {PACKAGE}::msg::{name}& out);")
     out.append("")
 
     for name in model.order:
@@ -828,7 +1002,7 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
     """
     out = [
         "template <typename T>",
-        f"inline void fill(const T& in, gps_msgs::msg::{message_name}& out)",
+        f"inline void fill(const T& in, {PACKAGE}::msg::{message_name}& out)",
         "{",
         "  (void)in;",
         "  (void)out;",
@@ -870,10 +1044,10 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
 
 
 def ros_header_name(message_name: str) -> str:
-    """GPSDRaw16v1 -> gpsd_raw16v1, matching rosidl's generated header names.
+    """GPSExtendedRaw16v1 -> gpsd_raw16v1, matching rosidl's generated header names.
 
     rosidl uses the same camel-to-snake rule as ROS field names, including the
-    acronym-run split that turns GPSDBaseline into gpsd_baseline rather than
+    acronym-run split that turns GPSExtendedBaseline into gpsd_baseline rather than
     gpsdbaseline. Verified against the headers rosidl actually emitted for all
     seven Tier A messages.
     """
@@ -964,7 +1138,7 @@ def emit_selection_ladder() -> str:
     ]
     for index, pair in enumerate(pairs):
         major, minor = pair
-        name = versioned("GPSDRaw", pair)
+        name = versioned(MESSAGE_PREFIX + "Raw", pair)
         guard = (f"GPSD_RAW_FILL_MAJOR == {major} && "
                  f"GPSD_RAW_FILL_MINOR == {minor}")
         out.append(f"#{'if' if index == 0 else 'elif'} {guard}")
@@ -973,7 +1147,7 @@ def emit_selection_ladder() -> str:
         out.append(f'#define GPSD_RAW_MESSAGE_NAME "{name}"')
         out.append("namespace gpsd_client")
         out.append("{")
-        out.append(f"using GpsdRawMsg = gps_msgs::msg::{name};")
+        out.append(f"using GpsdRawMsg = {PACKAGE}::msg::{name};")
         out.append("}  // namespace gpsd_client")
     out += [
         "#endif",
@@ -997,7 +1171,7 @@ def emit_version_workflow(pair: Tuple[int, int], rev: str) -> str:
     workflow too; `--check` fails if the checked-in set has drifted.
     """
     major, minor = pair
-    message = versioned("GPSDRaw", pair)
+    message = versioned("GPSExtendedRaw", pair)
     unreleased = not rev.startswith("release-")
     note = ("#\n"
             "# This API pair shipped in no gpsd release, so the revision below\n"
@@ -1019,7 +1193,7 @@ on:
     paths:
       # Only the things that can change what this version builds or publishes.
       # A docs-only change should not rebuild gpsd from source.
-      - 'gps_msgs/**'
+      - 'gps_extended_msgs/**'
       - 'gpsd_client/**'
       - 'tools/generate_raw_msgs.py'
       - 'tools/test_against_gpsd.sh'
@@ -1075,14 +1249,44 @@ def generate(repo: str, tier: str) -> Dict[str, str]:
         model = build_model(pair, src, tier_members)
         constants = mask_constants(src)
         assert_no_macro_collisions(constants, src, rev)
-        root = versioned("GPSDRaw", pair)
+        root = versioned("GPSExtendedRaw", pair)
         for name in model.order:
-            files[f"gps_msgs/msg/{name}.msg"] = emit_msg(
+            files[f"{PACKAGE}/msg/{name}.msg"] = emit_msg(
                 model, name, rev, constants if name == root else ())
         major, minor = pair
         files[f"gpsd_client/include/gpsd_client/parsers/generated/"
               f"gpsd_raw_fill_{major}v{minor}.hpp"] = emit_parser(model, rev)
     return files
+
+
+def orphans(files: Dict[str, str], output_root: str) -> List[str]:
+    """Checked-in files that look generated but are no longer produced.
+
+    Scoped to the directories this generator owns and to its own naming, so it
+    can never propose deleting a hand-written file. `msg/GPSExtended*.msg` is
+    exactly what the message package globs, which is what makes a leftover
+    dangerous rather than merely untidy.
+    """
+    owned = {
+        os.path.join(PACKAGE, "msg"): lambda n: (
+            n.startswith(MESSAGE_PREFIX) and n.endswith(".msg")),
+        os.path.join("gpsd_client", "include", "gpsd_client", "parsers",
+                     "generated"): lambda n: n.endswith(".hpp"),
+        os.path.join(".github", "workflows"): lambda n: (
+            n.startswith("gpsd_api_") and n[len("gpsd_api_"):-len(".yml")]
+            .replace("v", "").isdigit()),
+    }
+    expected = set(files)
+    found: List[str] = []
+    for directory, belongs in owned.items():
+        full_dir = os.path.join(output_root, directory)
+        if not os.path.isdir(full_dir):
+            continue
+        for name in sorted(os.listdir(full_dir)):
+            rel = os.path.join(directory, name)
+            if belongs(name) and rel not in expected:
+                found.append(rel)
+    return found
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -1124,6 +1328,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 drift.append(f"missing: {path}")
             elif open(full).read() != contents:
                 drift.append(f"differs: {path}")
+        drift += [f"orphan:  {p}" for p in orphans(files, args.output_root)]
         if drift:
             print("generated files are out of date; rerun "
                   "tools/generate_raw_msgs.py", file=sys.stderr)
@@ -1138,7 +1343,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         os.makedirs(os.path.dirname(full), exist_ok=True)
         with open(full, "w") as handle:
             handle.write(contents)
-    print(f"wrote {len(files)} files under {args.output_root}")
+
+    # Remove files this generator previously produced but no longer does.
+    # Without this a rename leaves the old file behind, and since the message
+    # package globs its directory, the stale copy is still built -- which is
+    # exactly how a renamed message once produced two conflicting definitions.
+    stale = orphans(files, args.output_root)
+    for path in stale:
+        os.remove(os.path.join(args.output_root, path))
+
+    print(f"wrote {len(files)} files under {args.output_root}"
+          + (f", removed {len(stale)} stale" if stale else ""))
     return 0
 
 

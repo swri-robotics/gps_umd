@@ -56,73 +56,73 @@
 
 #if GPSD_RAW_FILL_MAJOR == 9 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_9v0.hpp>
-#define GPSD_RAW_MESSAGE_NAME "GPSDRaw9v0"
+#define GPSD_RAW_MESSAGE_NAME "GPSExtendedRaw9v0"
 namespace gpsd_client
 {
-using GpsdRawMsg = gps_msgs::msg::GPSDRaw9v0;
+using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw9v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 9 && GPSD_RAW_FILL_MINOR == 1
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_9v1.hpp>
-#define GPSD_RAW_MESSAGE_NAME "GPSDRaw9v1"
+#define GPSD_RAW_MESSAGE_NAME "GPSExtendedRaw9v1"
 namespace gpsd_client
 {
-using GpsdRawMsg = gps_msgs::msg::GPSDRaw9v1;
+using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw9v1;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 10 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_10v0.hpp>
-#define GPSD_RAW_MESSAGE_NAME "GPSDRaw10v0"
+#define GPSD_RAW_MESSAGE_NAME "GPSExtendedRaw10v0"
 namespace gpsd_client
 {
-using GpsdRawMsg = gps_msgs::msg::GPSDRaw10v0;
+using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw10v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 10 && GPSD_RAW_FILL_MINOR == 1
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_10v1.hpp>
-#define GPSD_RAW_MESSAGE_NAME "GPSDRaw10v1"
+#define GPSD_RAW_MESSAGE_NAME "GPSExtendedRaw10v1"
 namespace gpsd_client
 {
-using GpsdRawMsg = gps_msgs::msg::GPSDRaw10v1;
+using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw10v1;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 11 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_11v0.hpp>
-#define GPSD_RAW_MESSAGE_NAME "GPSDRaw11v0"
+#define GPSD_RAW_MESSAGE_NAME "GPSExtendedRaw11v0"
 namespace gpsd_client
 {
-using GpsdRawMsg = gps_msgs::msg::GPSDRaw11v0;
+using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw11v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 12 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_12v0.hpp>
-#define GPSD_RAW_MESSAGE_NAME "GPSDRaw12v0"
+#define GPSD_RAW_MESSAGE_NAME "GPSExtendedRaw12v0"
 namespace gpsd_client
 {
-using GpsdRawMsg = gps_msgs::msg::GPSDRaw12v0;
+using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw12v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 13 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_13v0.hpp>
-#define GPSD_RAW_MESSAGE_NAME "GPSDRaw13v0"
+#define GPSD_RAW_MESSAGE_NAME "GPSExtendedRaw13v0"
 namespace gpsd_client
 {
-using GpsdRawMsg = gps_msgs::msg::GPSDRaw13v0;
+using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw13v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 14 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_14v0.hpp>
-#define GPSD_RAW_MESSAGE_NAME "GPSDRaw14v0"
+#define GPSD_RAW_MESSAGE_NAME "GPSExtendedRaw14v0"
 namespace gpsd_client
 {
-using GpsdRawMsg = gps_msgs::msg::GPSDRaw14v0;
+using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw14v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 16 && GPSD_RAW_FILL_MINOR == 0
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_16v0.hpp>
-#define GPSD_RAW_MESSAGE_NAME "GPSDRaw16v0"
+#define GPSD_RAW_MESSAGE_NAME "GPSExtendedRaw16v0"
 namespace gpsd_client
 {
-using GpsdRawMsg = gps_msgs::msg::GPSDRaw16v0;
+using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw16v0;
 }  // namespace gpsd_client
 #elif GPSD_RAW_FILL_MAJOR == 16 && GPSD_RAW_FILL_MINOR == 1
 #include <gpsd_client/parsers/generated/gpsd_raw_fill_16v1.hpp>
-#define GPSD_RAW_MESSAGE_NAME "GPSDRaw16v1"
+#define GPSD_RAW_MESSAGE_NAME "GPSExtendedRaw16v1"
 namespace gpsd_client
 {
-using GpsdRawMsg = gps_msgs::msg::GPSDRaw16v1;
+using GpsdRawMsg = gps_extended_msgs::msg::GPSExtendedRaw16v1;
 }  // namespace gpsd_client
 #endif
 

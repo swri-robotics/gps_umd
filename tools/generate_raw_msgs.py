@@ -210,7 +210,7 @@ SCOPES = {
 # Mostly <NAME>_SET, but not reliably -- `osc` is selected by OSCILLATOR_SET --
 # so the mapping is written out rather than derived from the member name.
 #
-# There is deliberately no `ais` entry: AIS is not published (D10). AIS_SET
+# There is deliberately no `ais` entry: AIS is not published. AIS_SET
 # stays in the mask and in the message constants, so a consumer can still see
 # that gpsd reported an AIS message this message does not carry.
 REPORT_UNION_BITS = {

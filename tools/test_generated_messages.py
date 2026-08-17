@@ -131,7 +131,7 @@ class ManualExpectations(unittest.TestCase):
 
     def test_api_14_gps_fix_t_additions(self):
         # These six landed *within* API 14.0 (after 3.24 shipped), which is the
-        # whole reason D11 exists. The message is generated from 3.26.1, so it
+        # whole reason member detection exists. The message is generated from 3.26.1, so it
         # must carry them at 14.0 and must not at 13.0.
         late_14 = ("jam", "temp", "wtemp", "ant_stat", "clockbias", "clockdrift")
         for field in late_14:
@@ -233,7 +233,7 @@ class ManualExpectations(unittest.TestCase):
             constants = message_constants(pair)
             self.assertIn("SET_LATLON", constants)
             self.assertIn("SET_UNION", constants)
-            # AIS is never published (D10) but the constant must survive, so a
+            # AIS is never published, but the constant must survive, so a
             # consumer can detect an AIS report the message omits.
             self.assertIn("SET_AIS", constants)
             self.assertEqual("SET_SPARTN" in constants, pair[0] == 16,
@@ -244,7 +244,7 @@ class ManualExpectations(unittest.TestCase):
                              f"API {pair}: IMU_SET arrives with API 12")
 
     def test_no_constant_collides_with_a_gps_h_macro(self):
-        # D9: rosidl emits constants as static constexpr members, so any name
+        # rosidl emits constants as static constexpr members, so any name
         # gps.h defines as a macro is destroyed by the preprocessor.
         #
         # This checks the whole macro namespace rather than the <NAME>_SET
@@ -272,7 +272,7 @@ class ManualExpectations(unittest.TestCase):
             self.assertNotRegex(path, r"15v\d", "API 15 never existed")
 
     def test_ais_is_absent_everywhere(self):
-        # D10. Nothing named ais may appear in any generated message.
+        # Nothing named ais may appear in any generated message.
         #
         # Note this passes in the fix scope for a weaker reason than it looks:
         # `ais` is in no scope list, so the scope filter drops it before the
@@ -570,7 +570,7 @@ class FieldTypes(unittest.TestCase):
                 self.assertEqual(fix["base"], f"GPSDBaseline{suffix}")
 
     def test_skyview_is_an_unbounded_array(self):
-        # D4: MAXCHANNELS is 140 or 184 depending on the rev and is not a
+        # MAXCHANNELS is 140 or 184 depending on the rev and is not a
         # function of the API pair, so it must not appear in any message type.
         for pair in ALL_PAIRS:
             self.assertTrue(
@@ -808,7 +808,7 @@ class GeneratedParserCode(unittest.TestCase):
                 self.assertIn(f"out.{field}.nanosec = ", source)
 
     def test_every_assignment_is_member_guarded(self):
-        # D11: an unguarded assignment is exactly the bug that breaks a build
+        # An unguarded assignment is exactly the bug that breaks a build
         # against an older libgps reporting the same API pair.
         for pair in ALL_PAIRS:
             for line in self.parser_source(pair).splitlines():

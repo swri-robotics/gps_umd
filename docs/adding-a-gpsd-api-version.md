@@ -20,7 +20,7 @@ at the start of API 13 and present at the end of it.
 Every consequence in this document follows from that. In particular: a feature
 test of the form "API >= 13, therefore field X exists" is *wrong* unless you
 have checked the specific revision. Use `if constexpr` member detection
-(D11, `gpsd_has_member.hpp`) rather than version arithmetic, in both the
+(`gpsd_has_member.hpp`) rather than version arithmetic, in both the
 generated fill code and the tests.
 
 ## 1. Find the revision
@@ -76,7 +76,7 @@ REFERENCE_REVS = {
 
 EXPECTED_MAXCHANNELS = {
     ...
-    (17, 0): 184,          # cross-check only; never emitted (D4)
+    (17, 0): 184,          # cross-check only; never emitted
 }
 ```
 
@@ -105,7 +105,7 @@ The generator refuses to guess. Expect it to stop with a `SystemExit` on any of:
 * **an unknown `#ifdef`** — it resolves the conditionals it knows and refuses
   the rest rather than guessing which arm is live
 * **a mask constant colliding with a `gps.h` macro** — this is why the
-  constants are `SET_LATLON` and not `LATLON_SET` (D9), and why `SET_HIGH_BIT`
+  constants are `SET_LATLON` and not `LATLON_SET`, and why `SET_HIGH_BIT`
   had to become `SET_HIGHEST_BIT`
 
 It also *deletes* files it used to emit and no longer does. That is deliberate:

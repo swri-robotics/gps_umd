@@ -448,7 +448,7 @@ class EndToEnd(unittest.TestCase):
                          f"satellite counts not in the .chk: {sorted(seen - truth)}")
 
     def test_rtcm_is_absent_from_the_raw_message(self):
-        # D17 moved RTCM onto its own topics. The unit tests assert the field
+        # RTCM travels on its own topics. The unit tests assert the field
         # is gone from the message definition; this asserts the topics stay
         # unadvertised when publish_gpsd_rtcm is false.
         raws = self.raws()
@@ -598,7 +598,7 @@ class SubframeAndLogAreUnreachableThroughLibgps(unittest.TestCase):
     our fill code, and only an end-to-end test can tell those apart.
 
     If a future libgps learns to parse them these tests fail, which is exactly
-    when someone should look at the subframe dispatch (D16) again.
+    when someone should look at the subframe dispatch again.
     """
 
     @classmethod
@@ -709,7 +709,7 @@ class ImuReports(unittest.TestCase):
 
 @unittest.skipIf(SKIP, SKIP or "")
 class RtcmTopics(unittest.TestCase):
-    """ublox-zed-f9r.log carries RTCM3, which D17 put on its own topic."""
+    """ublox-zed-f9r.log carries RTCM3, which travels on its own topic."""
 
     @classmethod
     def setUpClass(cls):

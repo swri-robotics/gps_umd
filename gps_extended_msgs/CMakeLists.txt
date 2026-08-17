@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(gps_extended_msgs)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set(MSG_DEPS std_msgs builtin_interfaces)
 
@@ -53,7 +53,7 @@ if(BUILD_TESTING)
   # The generator's tests live with the generator rather than with a package,
   # and run here because this package owns its output.
   #
-  # Neither suite links or needs libgps -- they read gps.h out of a gpsd git
+  # Neither suite links or needs libgps -- they read gps.h out of a GPSd git
   # clone and skip cleanly when it is absent, so this package stays buildable
   # and testable on the build farm. Point GPSD_REPO at a clone to run them:
   #

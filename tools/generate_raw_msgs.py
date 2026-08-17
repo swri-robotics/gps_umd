@@ -1056,7 +1056,54 @@ def emit_msg(model: Model, name: str, rev: str,
     return "\n".join(lines).rstrip() + "\n"
 
 
-def emit_parser(model: Model, rev: str) -> str:
+def emit_mask_asserts(model: Model, constants) -> List[str]:
+    """static_assert every SET_<NAME> against the gps.h macro it came from.
+
+    D9 flips gpsd's `<NAME>_SET` to `SET_<NAME>` so the constants survive the
+    preprocessor. The flip is mechanical, which makes it exactly the kind of
+    thing that can go quietly wrong: a message whose SET_LATLON does not equal
+    gps.h's LATLON_SET is worse than useless, because every mask test written
+    against it silently checks the wrong bit.
+
+    These land in the fill header rather than in a test so they are checked in
+    every build that publishes raw messages, not only when BUILD_TESTING is on
+    -- and at compile time, where a mismatch cannot be observed as a flake.
+
+    Two things are deliberately not asserted:
+
+    * Each is wrapped in `#ifdef`. The messages are generated from the last rev
+      at a pair, but a build can use an *earlier* rev reporting the same pair,
+      where a late-added bit does not exist yet. Naming an undefined macro
+      would be a compile error rather than the graceful degradation D11 gives
+      the struct members.
+    * SET_HIGHEST_BIT is skipped. It is a count of bits rather than a bit, and
+      it is the one value that genuinely moves within an API pair -- gpsd 3.24
+      and 3.26.1 are both API 14.0 with different counts -- so there is no
+      fixed value to assert. test_gpsd_raw_include_order.cpp bounds it instead.
+    """
+    root = versioned(MESSAGE_PREFIX + "Raw", model.pair)
+    out = [
+        "// D9: the message's mask constants are gpsd's own bit values under a",
+        "// name the preprocessor leaves alone. Checked here, where both",
+        "// spellings are legitimately in scope, so a rename that changes a",
+        "// value cannot reach a subscriber.",
+    ]
+    for name, value in constants:
+        if name == "SET_HIGHEST_BIT":
+            continue    # a count, not a bit; moves within a pair. See above.
+        gpsd_name = "UNION_SET" if name == "SET_UNION" else name[len("SET_"):] + "_SET"
+        out += [
+            f"#ifdef {gpsd_name}",
+            f"static_assert({PACKAGE}::msg::{root}::{name} == "
+            f"static_cast<uint64_t>({gpsd_name}),",
+            f"              \"{name} disagrees with gps.h's {gpsd_name}\");",
+            "#endif",
+        ]
+    out.append("")
+    return out
+
+
+def emit_parser(model: Model, rev: str, constants=()) -> str:
     """Per-pair fill functions, guarded on the exact API pair.
 
     Every assignment is wrapped in the D11 member-detection idiom: an API pair
@@ -1105,6 +1152,9 @@ def emit_parser(model: Model, rev: str) -> str:
         "{",
         "",
     ]
+
+    if constants:
+        out += emit_mask_asserts(model, constants)
 
     # Member-detection traits, one per distinct member name.
     names = sorted({f.c_expr for fields in model.messages.values()
@@ -1605,7 +1655,8 @@ def generate(repo: str, tier: str) -> Dict[str, str]:
                 model, name, rev, constants if name == root else ())
         major, minor = pair
         files[f"gpsd_client/include/gpsd_client/parsers/generated/"
-              f"gpsd_raw_fill_{major}v{minor}.hpp"] = emit_parser(model, rev)
+              f"gpsd_raw_fill_{major}v{minor}.hpp"] = emit_parser(
+                  model, rev, constants)
     return files
 
 

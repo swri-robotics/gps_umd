@@ -10,7 +10,9 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <memory>
+#include <string>
 
 #include <gpsd_client/gpsd_parser_factory.hpp>
 #include <gpsd_client/gpsd_raw_parser.hpp>
@@ -250,6 +252,36 @@ TEST(GpsdRawParser, PointerMembersAreNotPublished)
 }
 #endif  // fixsource_t reached gps_data_t in API 14
 
+TEST(GpsdRawParser, AnUnterminatedCharArrayStopsAtTheEndOfTheArray)
+{
+  // gpsd's char[N] members carry no guarantee of a NUL: a driver that fills
+  // the array exactly leaves no room for one, and gpsd's own code reads these
+  // with bounded calls for that reason. Constructing the ROS string from a
+  // plain strlen would run past the array into whatever the struct puts next
+  // -- reading uninitialised bytes at best, off the end of the object at
+  // worst -- so the fill code bounds it with strnlen(..., sizeof).
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  std::memset(data.dev.path, 'x', sizeof(data.dev.path));
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+
+  EXPECT_EQ(sizeof(data.dev.path), msg.dev.path.size());
+  EXPECT_EQ(std::string(sizeof(data.dev.path), 'x'), msg.dev.path);
+}
+
+TEST(GpsdRawParser, ATerminatedCharArrayStopsAtTheTerminator)
+{
+  // The other half of the pair: bounding by sizeof must not also mean
+  // publishing the padding after a short, properly terminated string.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  std::memset(data.dev.path, '\0', sizeof(data.dev.path));
+  snprintf(data.dev.path, sizeof(data.dev.path), "/dev/ttyS0");
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+
+  EXPECT_EQ("/dev/ttyS0", msg.dev.path);
+}
+
 // --- Tier C union dispatch (D16) -----------------------------------------
 
 TEST(GpsdRawParser, ReportUnionFillsOnlyTheArmTheMaskNames)
@@ -274,7 +306,7 @@ TEST(GpsdRawParser, RtcmIsNotCarriedInTheRawMessage)
 {
   /* RTCM has its own topic. The raw message still reports the mask verbatim,
    * so a subscriber can see that an RTCM report arrived and go look at
-   * ~/gpsd_rtcm2 / ~/gpsd_rtcm3 for it -- the same contract as AIS.
+   * gpsd_rtcm2 / gpsd_rtcm3 for it -- the same contract as AIS.
    */
   gps_data_t data = gpsd_client::test::makeEmptyData();
   data.rtcm3.type = 1005;

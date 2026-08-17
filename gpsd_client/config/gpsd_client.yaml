@@ -5,11 +5,11 @@ gpsd_client:
     override_augmentation_source: false
     frame_id: gps
     publish_rate: 10
-    # Mirror of gpsd's gps_data_t on ~/gpsd_raw, in a message named after the
+    # Mirror of gpsd's gps_data_t on gpsd_raw, in a message named after the
     # libgps API this package was built against (GPSDRaw<MAJOR>v<MINOR>).
     # Off by default: the message is large and most users want fix/extended_fix.
     publish_gpsd_raw: false
-    # RTCM2/RTCM3 differential corrections on ~/gpsd_rtcm2 and ~/gpsd_rtcm3.
+    # RTCM2/RTCM3 differential corrections on gpsd_rtcm2 and gpsd_rtcm3.
     # Published apart from gpsd_raw because the two RTCM families are about
     # half of all the generated message types and interest a different
     # audience; off by default for the same reason.

@@ -126,6 +126,191 @@ namespace gpsd_client
 namespace generated
 {
 
+// D9: the message's mask constants are gpsd's own bit values under a
+// name the preprocessor leaves alone. Checked here, where both
+// spellings are legitimately in scope, so a rename that changes a
+// value cannot reach a subscriber.
+#ifdef ONLINE_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_ONLINE == static_cast<uint64_t>(ONLINE_SET),
+              "SET_ONLINE disagrees with gps.h's ONLINE_SET");
+#endif
+#ifdef TIME_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_TIME == static_cast<uint64_t>(TIME_SET),
+              "SET_TIME disagrees with gps.h's TIME_SET");
+#endif
+#ifdef TIMERR_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_TIMERR == static_cast<uint64_t>(TIMERR_SET),
+              "SET_TIMERR disagrees with gps.h's TIMERR_SET");
+#endif
+#ifdef LATLON_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_LATLON == static_cast<uint64_t>(LATLON_SET),
+              "SET_LATLON disagrees with gps.h's LATLON_SET");
+#endif
+#ifdef ALTITUDE_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_ALTITUDE == static_cast<uint64_t>(ALTITUDE_SET),
+              "SET_ALTITUDE disagrees with gps.h's ALTITUDE_SET");
+#endif
+#ifdef SPEED_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_SPEED == static_cast<uint64_t>(SPEED_SET),
+              "SET_SPEED disagrees with gps.h's SPEED_SET");
+#endif
+#ifdef TRACK_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_TRACK == static_cast<uint64_t>(TRACK_SET),
+              "SET_TRACK disagrees with gps.h's TRACK_SET");
+#endif
+#ifdef CLIMB_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_CLIMB == static_cast<uint64_t>(CLIMB_SET),
+              "SET_CLIMB disagrees with gps.h's CLIMB_SET");
+#endif
+#ifdef STATUS_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_STATUS == static_cast<uint64_t>(STATUS_SET),
+              "SET_STATUS disagrees with gps.h's STATUS_SET");
+#endif
+#ifdef MODE_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_MODE == static_cast<uint64_t>(MODE_SET),
+              "SET_MODE disagrees with gps.h's MODE_SET");
+#endif
+#ifdef DOP_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_DOP == static_cast<uint64_t>(DOP_SET),
+              "SET_DOP disagrees with gps.h's DOP_SET");
+#endif
+#ifdef HERR_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_HERR == static_cast<uint64_t>(HERR_SET),
+              "SET_HERR disagrees with gps.h's HERR_SET");
+#endif
+#ifdef VERR_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_VERR == static_cast<uint64_t>(VERR_SET),
+              "SET_VERR disagrees with gps.h's VERR_SET");
+#endif
+#ifdef ATTITUDE_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_ATTITUDE == static_cast<uint64_t>(ATTITUDE_SET),
+              "SET_ATTITUDE disagrees with gps.h's ATTITUDE_SET");
+#endif
+#ifdef SATELLITE_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_SATELLITE == static_cast<uint64_t>(SATELLITE_SET),
+              "SET_SATELLITE disagrees with gps.h's SATELLITE_SET");
+#endif
+#ifdef SPEEDERR_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_SPEEDERR == static_cast<uint64_t>(SPEEDERR_SET),
+              "SET_SPEEDERR disagrees with gps.h's SPEEDERR_SET");
+#endif
+#ifdef TRACKERR_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_TRACKERR == static_cast<uint64_t>(TRACKERR_SET),
+              "SET_TRACKERR disagrees with gps.h's TRACKERR_SET");
+#endif
+#ifdef CLIMBERR_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_CLIMBERR == static_cast<uint64_t>(CLIMBERR_SET),
+              "SET_CLIMBERR disagrees with gps.h's CLIMBERR_SET");
+#endif
+#ifdef DEVICE_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_DEVICE == static_cast<uint64_t>(DEVICE_SET),
+              "SET_DEVICE disagrees with gps.h's DEVICE_SET");
+#endif
+#ifdef DEVICELIST_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_DEVICELIST == static_cast<uint64_t>(DEVICELIST_SET),
+              "SET_DEVICELIST disagrees with gps.h's DEVICELIST_SET");
+#endif
+#ifdef DEVICEID_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_DEVICEID == static_cast<uint64_t>(DEVICEID_SET),
+              "SET_DEVICEID disagrees with gps.h's DEVICEID_SET");
+#endif
+#ifdef RTCM2_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_RTCM2 == static_cast<uint64_t>(RTCM2_SET),
+              "SET_RTCM2 disagrees with gps.h's RTCM2_SET");
+#endif
+#ifdef RTCM3_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_RTCM3 == static_cast<uint64_t>(RTCM3_SET),
+              "SET_RTCM3 disagrees with gps.h's RTCM3_SET");
+#endif
+#ifdef AIS_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_AIS == static_cast<uint64_t>(AIS_SET),
+              "SET_AIS disagrees with gps.h's AIS_SET");
+#endif
+#ifdef PACKET_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_PACKET == static_cast<uint64_t>(PACKET_SET),
+              "SET_PACKET disagrees with gps.h's PACKET_SET");
+#endif
+#ifdef SUBFRAME_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_SUBFRAME == static_cast<uint64_t>(SUBFRAME_SET),
+              "SET_SUBFRAME disagrees with gps.h's SUBFRAME_SET");
+#endif
+#ifdef GST_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_GST == static_cast<uint64_t>(GST_SET),
+              "SET_GST disagrees with gps.h's GST_SET");
+#endif
+#ifdef VERSION_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_VERSION == static_cast<uint64_t>(VERSION_SET),
+              "SET_VERSION disagrees with gps.h's VERSION_SET");
+#endif
+#ifdef POLICY_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_POLICY == static_cast<uint64_t>(POLICY_SET),
+              "SET_POLICY disagrees with gps.h's POLICY_SET");
+#endif
+#ifdef LOGMESSAGE_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_LOGMESSAGE == static_cast<uint64_t>(LOGMESSAGE_SET),
+              "SET_LOGMESSAGE disagrees with gps.h's LOGMESSAGE_SET");
+#endif
+#ifdef ERROR_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_ERROR == static_cast<uint64_t>(ERROR_SET),
+              "SET_ERROR disagrees with gps.h's ERROR_SET");
+#endif
+#ifdef TOFF_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_TOFF == static_cast<uint64_t>(TOFF_SET),
+              "SET_TOFF disagrees with gps.h's TOFF_SET");
+#endif
+#ifdef PPS_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_PPS == static_cast<uint64_t>(PPS_SET),
+              "SET_PPS disagrees with gps.h's PPS_SET");
+#endif
+#ifdef NAVDATA_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_NAVDATA == static_cast<uint64_t>(NAVDATA_SET),
+              "SET_NAVDATA disagrees with gps.h's NAVDATA_SET");
+#endif
+#ifdef OSCILLATOR_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_OSCILLATOR == static_cast<uint64_t>(OSCILLATOR_SET),
+              "SET_OSCILLATOR disagrees with gps.h's OSCILLATOR_SET");
+#endif
+#ifdef ECEF_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_ECEF == static_cast<uint64_t>(ECEF_SET),
+              "SET_ECEF disagrees with gps.h's ECEF_SET");
+#endif
+#ifdef VECEF_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_VECEF == static_cast<uint64_t>(VECEF_SET),
+              "SET_VECEF disagrees with gps.h's VECEF_SET");
+#endif
+#ifdef MAGNETIC_TRACK_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_MAGNETIC_TRACK == static_cast<uint64_t>(MAGNETIC_TRACK_SET),
+              "SET_MAGNETIC_TRACK disagrees with gps.h's MAGNETIC_TRACK_SET");
+#endif
+#ifdef RAW_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_RAW == static_cast<uint64_t>(RAW_SET),
+              "SET_RAW disagrees with gps.h's RAW_SET");
+#endif
+#ifdef NED_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_NED == static_cast<uint64_t>(NED_SET),
+              "SET_NED disagrees with gps.h's NED_SET");
+#endif
+#ifdef VNED_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_VNED == static_cast<uint64_t>(VNED_SET),
+              "SET_VNED disagrees with gps.h's VNED_SET");
+#endif
+#ifdef LOG_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_LOG == static_cast<uint64_t>(LOG_SET),
+              "SET_LOG disagrees with gps.h's LOG_SET");
+#endif
+#ifdef IMU_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_IMU == static_cast<uint64_t>(IMU_SET),
+              "SET_IMU disagrees with gps.h's IMU_SET");
+#endif
+#ifdef EOF_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_EOF == static_cast<uint64_t>(EOF_SET),
+              "SET_EOF disagrees with gps.h's EOF_SET");
+#endif
+#ifdef UNION_SET
+static_assert(gps_extended_msgs::msg::GPSDRaw14v0::SET_UNION == static_cast<uint64_t>(UNION_SET),
+              "SET_UNION disagrees with gps.h's UNION_SET");
+#endif
+
 GPSD_DEFINE_HAS_MEMBER(A0)
 GPSD_DEFINE_HAS_MEMBER(A1)
 GPSD_DEFINE_HAS_MEMBER(AODC)

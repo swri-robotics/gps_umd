@@ -603,6 +603,50 @@ Both parse methods return `std::nullopt` unless the report's mask names that
 arm — reading it otherwise would be reading an inactive union member, not
 merely publishing something empty.
 
+### D18 — RTCM is published per report, keyed on the report's JSON class
+
+The node reads through libgps's C API rather than `gpsmm::read()`, drains one
+report at a time, and publishes RTCM only when the report just parsed *is* an
+RTCM one — decided by the JSON class `gps_read()` hands back, not by the mask.
+
+Found by the tier-2 end-to-end tests, which is the whole argument for having
+them: nothing reachable from a unit test would have shown it.
+
+**Why the mask cannot be used.** `gps_data_t::set` is not per-report for every
+class. gpsd's `TPV` handler assigns `set` outright, clearing the union bits;
+its `SKY` handler only ORs `SATELLITE_SET`/`DOP_SET` in and never touches
+`UNION_SET`. So `RTCM3_SET`, and the union arm behind it, survive every `SKY`
+report until something later clears them. On `ublox-zed-f9r`, where `SKY`
+outnumbers `TPV` nine to one, **20 of 51** messages carrying `RTCM3_SET` also
+carried `SATELLITE_SET` — a combination no single report produces.
+
+**Why not `PACKET_SET`.** It was the obvious first fix and it is not enough: it
+proves *a* message was parsed, not *which*. It fixed the loss (distinct RTCM3
+payloads captured went 25 → 97) and left the duplication untouched.
+
+Measured on `ublox-zed-f9r`, replaying faster than the publish rate:
+
+| | Timer-driven | `PACKET_SET` | Per report, by class |
+|---|---|---|---|
+| Published vs. emitted | 204% | 203% | **98%** |
+| Consecutive duplicates | 73 of 110 | 217 of 371 | **11 of 164** |
+
+**Cost.** `gpsmm::read()` calls `gps_read(gps_state(), NULL, 0)` — it discards
+the line — and `gps_state()` is private, so the class is unreachable through
+gpsmm. The node therefore owns `gps_open`/`gps_stream`/`gps_read`/`gps_close`
+and a destructor. The three-argument `gps_read` is available in all ten API
+versions, so this needs no version guard.
+
+**A trap this exposed.** gpsd ≥ 3.24 overwrites the caller's `message_len`
+with the actual line length *before* copying, so the size passed in is ignored
+and a short buffer is overrun; 3.20 bounds it correctly with `strlcpy`. The
+buffer is sized to libgps's internal one for that reason. Another instance of
+§1.7: same function, same signature, different contract within the range.
+
+**Not fixed, deliberately.** `GPSDRaw.set` still carries the stale bit, because
+it is copied verbatim and a "raw" topic that repaired its input would be worse
+(the same principle as D5). Documented in the README instead.
+
 ---
 
 ## 3. Message inventory
@@ -933,28 +977,28 @@ See section 5 for the data-generation strategy behind these.
 - [x] Harness: `test/gpsd_json_fixture.{hpp,cpp}` — `makeEmptyData()` (mirrors `gps_open()`), `unpack()`, and `tpvJson()`/`skyJson()` builders
 - [x] CMake probes for `gps_clear_gst`/`gps_clear_log` (see 1.7); new `test_gpsd_json_fixture` target
 - [x] Verified building **and running** against API 9.0 (3.20), 14.0 (3.24) and 16.1 (3.27.5): 10/10 pass on each, and the pre-existing `test_gpsd_parser` still passes on all three
-- [ ] Extend [gpsd_client/test/test_gpsd_parser.cpp](../gpsd_client/test/test_gpsd_parser.cpp) with raw-parser cases
-- [ ] Helper: JSON string → `gps_data_t` via `gps_unpack()`, asserting its return status
-- [ ] Generated round-trip coverage test per API pair: distinct sentinel per field, assert each arrives (5.4 #1)
-- [ ] Generated header-audit test: every `gps_data_t` member is mapped or explicitly excluded (5.4 #2) — this is what makes a new gpsd field a build failure rather than silent data loss
+- [x] Helper: JSON string → `gps_data_t` via `gps_unpack()`, asserting its return status
+- [x] Generated header-audit test: every `gps_data_t` member is mapped or explicitly excluded (5.4 #2) — this is what makes a new gpsd field a build failure rather than silent data loss. Landed as `Completeness` in `tools/test_generated_messages.py`, which rescans gps.h independently of the generator rather than trusting its field model
+- [x] Union test: set each `UNION_SET` bit in turn, assert only that arm is populated (D5)
+- [x] AIS test: `CarriesTheSetMaskVerbatim` asserts `SET_AIS` survives in `set` with no arm populated (D10)
+- [x] Mask-constant test: `static_assert` each `SET_<NAME>` equals `gps.h`'s `<NAME>_SET` (D9). Emitted into the *fill header* rather than a test: 46 asserts per version, checked in every build that publishes raw messages rather than only under `BUILD_TESTING`, and at compile time where a mismatch cannot be a flake. Each is `#ifdef`-guarded, because a build may use an earlier rev of the same pair that lacks a late-added bit. `SET_HIGHEST_BIT` is excluded — a count, not a bit, and the one value that genuinely moves within a pair
+- [x] NaN preservation test (gpsd's "unknown" sentinel must survive)
+- [x] String truncation test (`char[N]` without a NUL) — both halves: an unterminated array stops at `sizeof`, a terminated one stops at the NUL rather than publishing the padding
+- [x] Test must compile under every API in the matrix — guard version-specific assertions
+- [ ] Generated round-trip coverage test per API pair: distinct sentinel per field, assert each arrives (5.4 #1). Still open; the header audit above is the stronger of the two guarantees and is in place
 - [ ] `TOFF`/`PPS`/`qErr` cases — reachable only here, never via gpsfake (5.2)
-- [ ] Round-trip test: populate a synthetic `gps_data_t` → parse → assert every field
-- [ ] Union test: set each `UNION_SET` bit in turn, assert only that arm is populated (D5)
-- [ ] AIS test: with `AIS_SET` live, assert the parser returns normally, populates no union arm, and leaves `SET_AIS` visible in the message's `set` field (D10)
-- [ ] Mask-constant test: `static_assert` each `SET_<NAME>` equals `gps.h`'s `<NAME>_SET` for the API being built against (D9) — this is the one place both spellings are legitimately in scope, so it is the natural place to catch a generator mistake
-- [ ] NaN preservation test (gpsd's "unknown" sentinel must survive)
-- [ ] String truncation test (`char[N]` without a NUL)
-- [ ] Test must compile under every API in the matrix — guard version-specific assertions
 
-**Tier 2 — gpsfake end-to-end, newest version only:**
+**Tier 2 — gpsfake end-to-end, newest version only:**  *(landed)*
 
-- [ ] Rebuild that version's gpsd with `gpsd=True python=True` (see 5.3 for the cost)
-- [ ] Launch-test: `gps.fake.TestSession` on a free port → `gpsd_client` node with `host`/`port` pointed at it → capture published topics
-- [ ] Use `FakeTCP`/`FakeUDP` rather than `FakePTY` to avoid pty allocation in containers
-- [ ] Assert `GPSFix`, `NavSatFix` and `gpsd_raw` all publish, with `publish_gpsd_raw` enabled
-- [ ] Cross-check published values against the log's `.log.chk` ground truth
-- [ ] Cover one log per report class from the 5.2 table (`ac12`, `hemi`, `gr8013-w`, `ublox-zed-f9r`, `skytraq-bin`, `ublox-neo-m8t`, `ericsson-gru04`, `ublox-neo-m8u`, `ublox-zoe-m8b-logbatch`)
-- [ ] Confirm `gps.__version__` matches the built daemon, or the test aborts unhelpfully (5.3)
+- [x] Rebuild that version's gpsd with `gpsd=True python=True` (see 5.3 for the cost) — `GPSD_FULL_BUILD=1 tools/test_against_gpsd.sh 3.27.5`, caching under `install/<ver>-full` so it cannot collide with the libgps-only installs the other ten use
+- [x] Launch-test: gpsfake on a free port → `gpsd_client` via `ros2 component standalone` → capture published topics with rclpy
+- [x] Use `FakeTCP` rather than `FakePTY` to avoid pty allocation in containers (`gpsfake -t`)
+- [x] Assert `GPSFix`, `NavSatFix` and `gpsd_raw` all publish, with `publish_gpsd_raw` enabled
+- [x] Cross-check published values against the log's `.log.chk` ground truth — positions, satellite counts, `gst`, `attitude`
+- [x] Confirm `gps.__version__` matches the built daemon, or the test aborts unhelpfully (5.3) — checked in `skip_reason()`, which names both versions and where each came from
+- [x] Assert the advertised raw topic type is the message for *this* API pair. CMake reads `GPSD_API_*_VERSION` from the header being compiled against and passes the expected name in; nothing else in the suite can catch a ladder that compiles but selects the wrong version
+- [x] CI: `.github/workflows/gpsd_end_to_end.yml`, with a step that fails if every test *skipped* — a suite that skips itself is indistinguishable from one that passed
+- [ ] Cover the remaining report classes from the 5.2 table (`skytraq-bin`, `ublox-neo-m8t`, `ericsson-gru04`, `ublox-neo-m8u`, `ublox-zoe-m8b-logbatch`). Four logs are covered: `ac12` (TPV/SKY), `gr8013-w` (GST), `hemi` (ATT), `ublox-zed-f9r` (RTCM3)
 
 ### Phase 6 — CI  *(workflows done; awaiting a real CI run)*
 
@@ -1060,6 +1104,8 @@ person needs to know that isn't obvious from the diff.
 
 | Date | Phase | Note |
 |---|---|---|
+| 2026-08-17 | 4/5 | **D18: RTCM is published per report, keyed on the JSON class.** Found by the new tier-2 tests — the node was republishing stale union arms once per publish cycle (371 messages for 97 distinct payloads) *and* dropping reports when several arrived per cycle. Delivery is now 98% with 11 consecutive duplicates in 164. Cost is that the node reads through the C API rather than `gpsmm::read()`, which discards the line the class comes from. Guarded by a regression test that was mutation-checked: reverting to the mask makes it fail at 57%. |
+| 2026-08-17 | 5 | **Tier 2 landed**, plus the two remaining tier-1 gaps: 46 generated `static_assert`s per version for the mask constants (D9), and char-array truncation both ways. Tier 2 caught three things nothing else could — the RTCM defect above, `~/gpsd_raw` being wrong in five places (the topics are relative, so `/gpsd_raw`), and confirmation that the selection ladder advertises the right message type at runtime. |
 | 2026-08-17 | 6 | Per-API-version workflows now also run on pushes to `per_api_version_messages`, so the branch can be validated before it becomes a PR. Driven by a new `PUSH_BRANCHES` in the generator — **the feature-branch entry must be dropped when this merges**. This is the only way to exercise these workflows pre-merge: GitHub only offers `workflow_dispatch` for workflows already present on the default branch, so the "Run workflow" button does not exist for a file that has never been merged. |
 | 2026-08-17 | 7 | Phase 7 docs: `docs/adding-a-gpsd-api-version.md` (the maintenance procedure, written around the recurring hazards rather than the happy path), README note that API 15 never existed. No changelog entries: `CHANGELOG.rst` is generated from commit history by a separate release tool, so hand-editing it is wrong — write the detail into the commit messages instead. The revision-finding commands in the new doc are the fast forms: a per-tag blob read for released pairs, and a *tag-bounded* pickaxe for unreleased ones — unbounded `git log -G`/`-L` over gpsd's history runs for minutes. Verified the rule reproduces the manifest: `e5279ef52` is exactly the parent of `29991d6f`, the commit that moved `status` and bumped to 10.0. |
 | 2026-08-17 | 4 | D17: RTCM split onto its own topics (`gpsd_rtcm2`, `gpsd_rtcm3`) behind `publish_gpsd_rtcm`, each with its own Header; removed from `GPSDRaw`, whose mask still reports them. 53 tests locally. |

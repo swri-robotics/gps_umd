@@ -1,0 +1,123 @@
+name: gpsd end to end
+
+# Tier 2: gpsfake replays a recorded receiver log into a real gpsd, the node
+# connects to it over TCP exactly as it does in production, and the assertions
+# are made against messages that actually arrived on actual topics.
+#
+# Deliberately one version, not ten. The per-version workflows
+# (gpsd_api_<M>v<m>.yml) carry the correctness argument for every supported API
+# pair using tier-1 tests, which need only libgps. What tier 2 adds is proof
+# that the chain outside libgps works at all -- publishers advertised,
+# parameters read, message types resolved at runtime -- and that is not
+# version-specific. It also costs more: gpsfake needs the gpsd daemon and the
+# Python module, so this builds far more of gpsd than the others do.
+#
+# Revisit if a version-specific end-to-end bug ever slips through.
+
+on:
+  push:
+    branches: [ros2-devel, per_api_version_messages]
+  pull_request:
+    paths:
+      - 'gps_extended_msgs/**'
+      - 'gpsd_client/**'
+      - 'tools/test_against_gpsd.sh'
+      - '.github/workflows/gpsd_end_to_end.yml'
+  workflow_dispatch:
+
+jobs:
+  end_to_end:
+    name: gpsfake -> gpsd -> gpsd_client
+    runs-on: ubuntu-latest
+    container: ros:lyrical-ros-base
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/gps_umd
+
+      - name: Install build tools and workspace dependencies
+        run: |
+          apt-get update
+          # python3-serial and libdbus: gpsd's scons build wants them for the
+          # daemon and the Python module, neither of which the libgps-only
+          # builds in the other workflows compile.
+          apt-get install -y --no-install-recommends scons pkg-config \
+            python3-dev python3-numpy python3-serial libdbus-1-dev
+          rosdep update
+          rosdep install --from-paths src --ignore-src -y \
+            --skip-keys "libgps gpsd"
+
+      - name: Cache gpsd build
+        uses: actions/cache@v4
+        with:
+          # Separate key from the per-version workflows: this is the -full
+          # install, which contains the daemon and Python module they do not
+          # build. See the note in gpsd_api_shared.yml for why the colcon
+          # trees are deliberately not cached.
+          path: |
+            .gpsd_versions/gpsd
+            .gpsd_versions/install
+          key: gpsd-full-${{ runner.os }}-3.27.5-v1
+
+      - name: Build gpsd 3.27.5 with the daemon, then run the end-to-end tests
+        id: run
+        shell: bash
+        run: |
+          source /opt/ros/lyrical/setup.bash
+          GPSD_FULL_BUILD=1 src/gps_umd/tools/test_against_gpsd.sh 3.27.5
+
+      - name: Confirm the end-to-end tests actually ran
+        id: ran
+        if: always() && steps.run.outcome != 'skipped'
+        shell: bash
+        run: |
+          # The suite skips itself when its prerequisites are missing, which is
+          # correct everywhere else and useless here: a green job that skipped
+          # every test would look identical to one that passed. So this fails
+          # unless the results show the tests executing.
+          results=$(find .gpsd_versions/colcon -name '*.xml' \
+                      -path '*test_results*' 2>/dev/null | head -50)
+          if [ -z "${results}" ]; then
+            echo "no test result files were produced" >&2
+            exit 1
+          fi
+          if ! grep -lq "test_gpsfake_end_to_end" ${results}; then
+            echo "the gpsfake suite produced no results at all" >&2
+            exit 1
+          fi
+          # A skip is recorded as <skipped/> inside a <testcase>; if every case
+          # is skipped, the prerequisites were not met and the job proved
+          # nothing.
+          file=$(grep -l "test_gpsfake_end_to_end" ${results} | head -1)
+          total=$(grep -c "<testcase" "${file}" || true)
+          skipped=$(grep -c "<skipped" "${file}" || true)
+          echo "gpsfake suite: ${total} cases, ${skipped} skipped"
+          if [ "${total}" = "${skipped}" ]; then
+            echo "every gpsfake test skipped -- the daemon or corpus was not found" >&2
+            sed -n '1,80p' "${file}" >&2
+            exit 1
+          fi
+
+      - name: Upload build and test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-end-to-end
+          path: |
+            .gpsd_versions/logs/
+            .gpsd_versions/colcon/*/build/*/test_results/
+          retention-days: 7
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## gpsd end to end (gpsfake)"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| gpsd revision | \`3.27.5\` |"
+            echo "| Build + tests | ${{ steps.run.outcome }} |"
+            echo "| Tests actually ran | ${{ steps.ran.outcome }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

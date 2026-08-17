@@ -140,14 +140,41 @@ tell that an RTCM report arrived and look at the RTCM topics for it:
 
 ```cpp
 if (msg.set & gps_extended_msgs::msg::GPSDRaw16v1::SET_RTCM3) {
-  // gpsd decoded an RTCM3 message; it was published on ~/gpsd_rtcm3
+  // gpsd decoded an RTCM3 message; it was published on gpsd_rtcm3
 }
 ```
 
 That is the same contract used for AIS, which is not published at all.
 
 Most reports are not RTCM, so these topics are usually quiet even when enabled
--- nothing is published unless the report's mask actually names RTCM.
+-- nothing is published unless the report gpsd just parsed actually was one.
+
+### The `set` mask can name a report this message does not carry
+
+Worth knowing if you test the mask for anything in gpsd's report union --
+`SET_RTCM2`, `SET_RTCM3`, `SET_SUBFRAME`, `SET_GST`, `SET_RAW`, `SET_OSC`,
+`SET_TOFF`, `SET_VERSION`, `SET_ERROR`, `SET_LOGMESSAGE`.
+
+Those bits are **not** cleared by every following report. gpsd's `TPV` handler
+assigns `set` outright, which clears them; its `SKY` handler only ORs its own
+bits in and leaves the rest alone. So after an RTCM3 report, `SET_RTCM3` and
+the union arm behind it survive every `SKY` report until some later report
+clears them. On a receiver emitting many `SKY` reports per `TPV`, that can be a
+long time.
+
+The tell is a combination that no single report produces, such as `SET_RTCM3`
+and `SET_SATELLITE` set at once.
+
+This is gpsd's behaviour and `gpsd_raw` mirrors it rather than second-guessing
+it, on the same principle as the `skyview` note below -- a "raw" topic that
+quietly repaired its input would be worse. The practical advice:
+
+* For **RTCM**, use the `gpsd_rtcm2` / `gpsd_rtcm3` topics. Those publish per
+  report, keyed on the report's own JSON class rather than on the mask, so each
+  correction is published exactly once.
+* For the **non-union** bits -- `SET_LATLON`, `SET_ALTITUDE`, `SET_SATELLITE`
+  and friends -- the mask means what you would expect. The caveat is specific
+  to the union.
 
 ### An empty `skyview` alongside a non-zero `satellites_used`
 
@@ -216,3 +243,6 @@ The node `fix_translator` converts [sensor_msgs/NavSatFix](http://docs.ros.org/a
 ```
 
 Only adjust the topic names after "to=" in each remap line.
+
+### Disclaimer
+This project is not affiliated with the GPSd project. `gps_umd` utilizes the GPSd library as an interface to GPS receivers but is not a part of the GPSd project itself.

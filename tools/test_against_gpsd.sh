@@ -22,6 +22,12 @@
 # Environment overrides:
 #   GPSD_REPO_URL    gpsd git remote (default: https://gitlab.com/gpsd/gpsd.git)
 #   GPSD_TEST_CACHE  cache directory (default: <workspace>/.gpsd_versions)
+#   GPSD_FULL_BUILD  also build the gpsd daemon and Python module, and run the
+#                    gpsfake end-to-end tests, which skip themselves otherwise.
+#                    Costs several minutes per version, so it is meant for one:
+#                        GPSD_FULL_BUILD=1 tools/test_against_gpsd.sh 3.27.5
+#                    Full builds cache under install/<ver>-full, separately
+#                    from the libgps-only ones.
 #
 # Requirements: git, scons, colcon, a C/C++ toolchain, and network access
 # for the initial gpsd clone. gpsd builds, libgps installs, and per-version
@@ -127,21 +133,47 @@ resolve_rev() {
   esac
 }
 
+# Where a version's gpsd install lives. Full builds get their own prefix: they
+# contain strictly more than a libgps-only build, so sharing one directory
+# would make the cache's contents depend on which mode happened to populate it
+# first.
+prefix_for() {
+  if [ -n "${GPSD_FULL_BUILD:-}" ]; then
+    echo "${CACHE}/install/$1-full"
+  else
+    echo "${CACHE}/install/$1"
+  fi
+}
+
 build_gpsd() {
   local ver=$1
-  local prefix=${CACHE}/install/${ver}
+  local prefix
+  prefix=$(prefix_for "${ver}")
   local build_log=${LOGS}/gpsd-${ver}.log
   local rev
   rev=$(resolve_rev "${ver}")
   if [ -f "${prefix}/include/gps.h" ]; then
     return 0
   fi
+  # Normally libgps/libgpsmm only: the daemon, clients, Python bindings and man
+  # pages are irrelevant to the parser tests and only add build fragility.
+  #
+  # GPSD_FULL_BUILD additionally builds the daemon and the Python module, which
+  # is what the gpsfake end-to-end test needs -- gpsfake spawns the one and
+  # imports the other, and refuses to run if their versions disagree. It costs
+  # several minutes more, so it is opt-in and used for one version rather than
+  # all ten.
+  local scons_flags="gpsd=False gpsdclients=False python=False"
+  if [ -n "${GPSD_FULL_BUILD:-}" ]; then
+    scons_flags="gpsd=True gpsdclients=True python=True"
+  fi
   git -C "${GPSD_SRC}" checkout --quiet "${rev}" || return 1
   git -C "${GPSD_SRC}" clean -xdfq
+  # shellcheck disable=SC2086  # scons_flags is a deliberate word list
   (cd "${GPSD_SRC}" &&
    PYTHONPATH="${PYSHIM}${PYTHONPATH:+:${PYTHONPATH}}" \
    scons -j"$(nproc)" prefix="${prefix}" shared=True \
-         gpsd=False gpsdclients=False python=False qt=False manbuild=False \
+         ${scons_flags} qt=False manbuild=False \
          install >"${build_log}" 2>&1) || return 1
 }
 
@@ -182,10 +214,28 @@ raw_message_for_api() {
 # 3 = tests failed, 4 = the test binary was never produced.
 build_and_test_client() {
   local ver=$1
-  local prefix=${CACHE}/install/${ver}
+  local prefix
+  prefix=$(prefix_for "${ver}")
   local base=${CACHE}/colcon/${ver}
   local libdir
   libdir=$(libgps_dir "${prefix}") || return 2
+
+  # Tier 2 (gpsfake) skips itself unless it is told where to find a daemon and
+  # the log corpus. Exported only for a full build, so the ordinary ten-version
+  # runs stay exactly as they were.
+  if [ -n "${GPSD_FULL_BUILD:-}" ]; then
+    export GPSD_TIER2_PREFIX="${prefix}"
+    export GPSD_REPO="${GPSD_SRC}"
+    # scons installs the gps module outside prefix, into the interpreter's
+    # site-packages. Put it ahead of anything else so a system-packaged gpsfake
+    # of a different version cannot win -- gpsfake aborts on a version mismatch
+    # with the daemon, and this is the likeliest way to cause one.
+    local py_site
+    py_site="/usr/local/lib/python$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')/dist-packages"
+    if [ -d "${py_site}" ]; then
+      export PYTHONPATH="${py_site}${PYTHONPATH:+:${PYTHONPATH}}"
+    fi
+  fi
 
   # libgps_INCLUDE_DIRS/libgps_LIBRARIES are the cache variables that
   # gpsd_client's CMakeLists otherwise fills via find_path/find_library;
@@ -228,7 +278,7 @@ for ver in ${VERSIONS}; do
     continue
   fi
 
-  prefix=${CACHE}/install/${ver}
+  prefix=$(prefix_for "${ver}")
   api=$(api_version "${prefix}")
   parser=$(parser_for_api "${api}")
 

@@ -73,6 +73,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_pytest REQUIRED)
 
   # Where libgps lives at runtime. When gpsd_client is pinned to a
   # source-built libgps (as tools/test_against_gpsd.sh does for each API
@@ -135,6 +136,42 @@ if(BUILD_TESTING)
   endif()
   if(HAVE_GPS_CLEAR_LOG)
     target_compile_definitions(test_gpsd_json_fixture PRIVATE HAVE_GPS_CLEAR_LOG)
+  endif()
+
+  # Tier 2: gpsfake -> real gpsd -> this node -> ROS topics.
+  #
+  # Skips itself unless pointed at a gpsd built with the daemon and Python
+  # module (GPSD_TIER2_PREFIX) and a source checkout for the log corpus
+  # (GPSD_REPO), neither of which exists on the build farm. See the test's
+  # docstring for how to run it.
+  #
+  # GPSD_EXPECTED_RAW_MSG is computed here because this is the only place that
+  # knows which gps.h was compiled against; the test uses it to assert the
+  # node advertised the message for *this* API version rather than merely
+  # advertising something. Read from the header rather than from the installed
+  # library version: a pair spans a range of releases, so the release number
+  # does not determine the API pair.
+  find_file(GPSD_HEADER gps.h PATHS ${libgps_INCLUDE_DIRS} NO_DEFAULT_PATH)
+  if(GPSD_HEADER)
+    file(STRINGS "${GPSD_HEADER}" _api_major_line
+      REGEX "^#define[ \t]+GPSD_API_MAJOR_VERSION[ \t]+[0-9]+")
+    file(STRINGS "${GPSD_HEADER}" _api_minor_line
+      REGEX "^#define[ \t]+GPSD_API_MINOR_VERSION[ \t]+[0-9]+")
+    string(REGEX MATCH "[0-9]+$" _api_major "${_api_major_line}")
+    string(REGEX MATCH "[0-9]+$" _api_minor "${_api_minor_line}")
+  endif()
+
+  if(_api_major AND NOT _api_minor STREQUAL "")
+    ament_add_pytest_test(test_gpsfake_end_to_end
+      "${CMAKE_CURRENT_SOURCE_DIR}/test/test_gpsfake_end_to_end.py"
+      TIMEOUT 900
+      ENV "GPSD_EXPECTED_RAW_MSG=GPSDRaw${_api_major}v${_api_minor}")
+  else()
+    # Not fatal: every other suite still runs. But say so, because a silently
+    # missing end-to-end test is worse than a noisy one.
+    message(WARNING
+      "Could not read GPSD_API_*_VERSION from '${GPSD_HEADER}'; "
+      "skipping the gpsfake end-to-end test")
   endif()
 endif()
 

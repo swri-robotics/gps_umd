@@ -12,7 +12,7 @@ name: gpsd API 9.1
 
 on:
   push:
-    branches: [ros2-devel, per_api_version_messages]
+    branches: [ros2-devel]
   pull_request:
     paths:
       # Only the things that can change what this version builds or publishes.

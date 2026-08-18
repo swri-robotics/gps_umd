@@ -16,7 +16,7 @@ name: gpsd end to end
 
 on:
   push:
-    branches: [ros2-devel, per_api_version_messages]
+    branches: [ros2-devel]
   pull_request:
     paths:
       - 'gps_extended_msgs/**'

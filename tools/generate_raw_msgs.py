@@ -135,13 +135,13 @@ EXCLUDED_MEMBERS = (
 # the per-distro workflows run on every push); it only skips the ten GPSd
 # source builds.
 #
-# Note this is the only way to exercise these before merging. GitHub only
-# offers workflow_dispatch for workflows that already exist on the default
-# branch, so the "Run workflow" button is not available for a workflow file
-# that has never been merged -- the push trigger has to do the work.
+# Adding a branch here is the only way to exercise a *new* workflow before it
+# merges: GitHub offers workflow_dispatch only for workflows already on the
+# default branch, so the "Run workflow" button does not exist for a file that
+# has never been merged. Remove the extra branch once it does merge -- every
+# entry costs a full GPSd build per API version on every push.
 PUSH_BRANCHES = (
     "ros2-devel",
-    "per_api_version_messages",   # TODO: drop when this feature branch merges
 )
 
 REFERENCE_REVS = {

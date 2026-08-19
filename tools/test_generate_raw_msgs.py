@@ -9,6 +9,7 @@ they pin the behaviour that matters without needing a GPSd checkout. Run with:
 
 import importlib.util
 import os
+import tempfile
 import unittest
 
 _SPEC = importlib.util.spec_from_file_location(
@@ -203,6 +204,52 @@ class TypeMapping(unittest.TestCase):
         with self.assertRaises(SystemExit):
             gen.add_field(model, fields, gen.Member(name="alt_hae", ctype="double"),
                           parent="gps_fix_t")
+
+
+class OrphanScope(unittest.TestCase):
+    """What orphans() is allowed to claim.
+
+    main() feeds this straight into os.remove with no prompt, so over-claiming
+    deletes files rather than merely reporting them. That was survivable when
+    the generated messages had a package to themselves: everything orphans()
+    could reach, a rerun of the generator put back.
+
+    It is not survivable now. GPSFix.msg and GPSStatus.msg are hand-written,
+    long-released, and share msg/ with the generated set -- and the generator
+    cannot recreate them. Hence the MESSAGE_PREFIX scoping, and hence this
+    test, which needs no GPSd clone and so still runs where the drift check
+    in test_generated_messages.py skips.
+    """
+
+    def scan(self, on_disk, produced):
+        with tempfile.TemporaryDirectory() as root:
+            msgs = os.path.join(root, gen.PACKAGE, "msg")
+            os.makedirs(msgs)
+            for name in on_disk:
+                open(os.path.join(msgs, name), "w").close()
+            files = {f"{gen.PACKAGE}/msg/{n}": "" for n in produced}
+            return gen.orphans(files, root)
+
+    def test_hand_written_messages_are_never_claimed(self):
+        # The whole point: these are not the generator's to delete, even though
+        # they sit in a directory it writes to.
+        self.assertEqual(
+            [], self.scan(["GPSFix.msg", "GPSStatus.msg", "GPSDRaw9v0.msg"],
+                          ["GPSDRaw9v0.msg"]))
+
+    def test_stale_generated_messages_are_still_claimed(self):
+        # Narrowing the scope must not cost the reason orphans() exists: a
+        # renamed message left behind is picked up by the CMake glob and
+        # becomes a second definition of the same type.
+        self.assertEqual(
+            [os.path.join(gen.PACKAGE, "msg", "GPSDRaw99v9.msg")],
+            self.scan(["GPSFix.msg", "GPSDRaw9v0.msg", "GPSDRaw99v9.msg"],
+                      ["GPSDRaw9v0.msg"]))
+
+    def test_scope_matches_the_prefix_the_cmake_glob_uses(self):
+        # gps_msgs/CMakeLists.txt globs msg/GPSD*.msg. If these two ever
+        # disagree, one of them is wrong about which files are generated.
+        self.assertEqual("GPSD", gen.MESSAGE_PREFIX)
 
 
 if __name__ == "__main__":

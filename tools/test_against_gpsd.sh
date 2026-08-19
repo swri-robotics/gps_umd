@@ -38,6 +38,15 @@
 # Requirements: git, scons, colcon, a C/C++ toolchain, and network access
 # for the initial GPSd clone. GPSd builds, libgps installs, and per-version
 # colcon build dirs are cached, so reruns only rebuild gpsd_client.
+#
+# The cache is specific to the container it was built in: the libgps installs
+# embed a glibc version and the message install embeds a ROS distribution.
+# After a container or base-image change, every build fails with undefined
+# glibc symbols or a missing rosidl target until these are cleared:
+#
+#     rm -rf .gpsd_versions/install .gpsd_versions/msgs .gpsd_versions/colcon
+#
+# Keep .gpsd_versions/gpsd -- it is a git clone and ports fine.
 
 set -uo pipefail
 

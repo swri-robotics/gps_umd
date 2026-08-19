@@ -63,7 +63,6 @@ GPSDSatellite13v0[] skyview
 GPSDDevconfig13v0 dev
 GPSDPolicy13v0 policy
 GPSDRawDevices13v0 devices
-GPSDSubframe13v0[] subframe
 GPSDRawdata13v0[] raw
 GPSDGst13v0[] gst
 GPSDOscillator13v0[] osc

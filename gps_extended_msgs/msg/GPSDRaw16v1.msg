@@ -66,7 +66,6 @@ GPSDDevconfig16v1 dev
 GPSDPolicy16v1 policy
 GPSDRawDevices16v1 devices
 GPSDGst16v1 gst
-GPSDSubframe16v1[] subframe
 GPSDRawdata16v1[] raw
 GPSDOscillator16v1[] osc
 GPSDVersion16v1[] version

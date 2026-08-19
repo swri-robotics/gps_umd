@@ -62,7 +62,6 @@ GPSDSatellite11v0[] skyview
 GPSDDevconfig11v0 dev
 GPSDPolicy11v0 policy
 GPSDRawDevices11v0 devices
-GPSDSubframe11v0[] subframe
 GPSDAttitude11v0[] attitude
 GPSDRawdata11v0[] raw
 GPSDGst11v0[] gst

@@ -9,8 +9,8 @@ gpsd_client:
     # libgps API this package was built against (GPSDRaw<MAJOR>v<MINOR>).
     # Off by default: the message is large and most users want fix/extended_fix.
     publish_gpsd_raw: false
-    # RTCM2/RTCM3 differential corrections on gpsd_rtcm2 and gpsd_rtcm3.
-    # Published apart from gpsd_raw because the two RTCM families are about
-    # half of all the generated message types and interest a different
-    # audience; off by default for the same reason.
-    publish_gpsd_rtcm: false
+    # Every report GPSd sends, as the raw JSON line, on gpsd_json. Carries
+    # more than gpsd_raw can: libgps decodes 17 report classes and drops the
+    # rest, but the JSON line reaches us regardless -- so SUBFRAME arrives
+    # here even though gps_data_t::subframe can never hold it.
+    publish_gpsd_json: false

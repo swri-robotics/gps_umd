@@ -54,7 +54,7 @@ Parameter | Type | Default | Description
 `check_fix_by_variance` | bool | `false` | Discard fixes whose reported variances (`epx`/`epy`/`epv`) are not finite. GPSd reports a status of OK even when there is no current fix, as long as there was one previously; this rejects those stale results.
 `override_augmentation_source` | bool | `false` | When GPSd reports a DGPS fix, always report it as an SBAS fix, whether or not a satellite with an SBAS ID was used in the solution. Useful for receivers that apply SBAS corrections without listing the SBAS satellite in their skyview. Affects both `NavSatFix` and `GPSFix` status.
 `publish_gpsd_raw` | bool | `false` | Also publish a near-verbatim mirror of GPSd's `gps_data_t` on `gpsd_raw`, in a message named after the libgps API this package was built against (see below). Off by default: the message is much larger than `GPSFix`, and neither the publisher nor its parser is created unless this is set.
-`publish_gpsd_rtcm` | bool | `false` | Publish RTCM2 and RTCM3 differential corrections on `gpsd_rtcm2` and `gpsd_rtcm3`. Separate from `gpsd_raw` and separately switchable: the two RTCM families are about half of all the generated message types, and a consumer of corrections is rarely the one that wants a fix.
+`publish_gpsd_json` | bool | `false` | Publish every report GPSd sends on `gpsd_json`, as the raw JSON line. Carries more than `gpsd_raw` can: libgps decodes 17 report classes and silently drops the rest, so RTCM and SUBFRAME reach subscribers only here.
 
 These node defaults can be overriden by setting a parameter. The file `gpsd_client/config/gpsd_client.yaml` contains these parameters as well. The launch file `gpsd_client-launch.py` can load these YAML files for convenience.
 
@@ -65,7 +65,9 @@ With `publish_gpsd_raw` set, `gpsd_client` publishes everything GPSd reports on
 `gpsd_raw`, as close to verbatim as a ROS message allows. The type is named
 after the GPSd C API the package compiled against —
 `gps_extended_msgs/GPSDRaw<MAJOR>v<MINOR>` — and the node logs which one it
-selected at startup. `publish_gpsd_rtcm` adds `gpsd_rtcm2` and `gpsd_rtcm3`.
+selected at startup. `publish_gpsd_json` adds `gpsd_json`, carrying every
+report as the raw JSON line — including RTCM and SUBFRAME, which reach a client
+no other way.
 
 `tools/generate_raw_msgs.py` automatically converts the data structures in GPSd to these messages and their parsers.
 

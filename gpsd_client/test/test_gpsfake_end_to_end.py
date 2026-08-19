@@ -43,7 +43,6 @@ import os
 import re
 import socket
 import subprocess
-import sys
 import time
 import unittest
 
@@ -220,9 +219,9 @@ class Session:
     CYCLE = 0.15      # ~6.7 reports/sec
     PUBLISH_RATE = 10  # Hz
 
-    def __init__(self, log_name, rtcm=False, seconds=12.0, cycle=None):
+    def __init__(self, log_name, json_topic=False, seconds=12.0, cycle=None):
         self.log_name = log_name
-        self.rtcm = rtcm
+        self.json_topic = json_topic
         self.seconds = seconds
         if cycle is not None:
             self.CYCLE = cycle
@@ -271,7 +270,7 @@ class Session:
             "-p", "host:=127.0.0.1",
             "-p", f"port:={self.port}",
             "-p", "publish_gpsd_raw:=true",
-            "-p", f"publish_gpsd_rtcm:={'true' if self.rtcm else 'false'}",
+            "-p", f"publish_gpsd_json:={'true' if self.json_topic else 'false'}",
             "-p", f"publish_rate:={self.PUBLISH_RATE}",
             "-p", "frame_id:=gps",
             "-p", "use_gps_time:=false",
@@ -325,8 +324,8 @@ class Session:
             deadline = time.time() + self.seconds
 
             wanted = ["/fix", "/extended_fix", "/gpsd_raw"]
-            if self.rtcm:
-                wanted += ["/gpsd_rtcm2", "/gpsd_rtcm3"]
+            if self.json_topic:
+                wanted += ["/gpsd_json"]
 
             # The raw topic's type is discovered rather than assumed: which
             # GPSDRaw<M>v<m> the node advertises is itself under test, so
@@ -370,10 +369,11 @@ class Session:
 CAPTURES = {}
 
 
-def capture(log_name, rtcm=False, seconds=12.0, cycle=None):
-    key = (log_name, rtcm, cycle)
+def capture(log_name, json_topic=False, seconds=12.0, cycle=None):
+    key = (log_name, json_topic, cycle)
     if key not in CAPTURES:
-        session = Session(log_name, rtcm=rtcm, seconds=seconds, cycle=cycle)
+        session = Session(log_name, json_topic=json_topic, seconds=seconds,
+                          cycle=cycle)
         session.start()
         try:
             session.collect()
@@ -447,17 +447,18 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(set(), seen - truth,
                          f"satellite counts not in the .chk: {sorted(seen - truth)}")
 
-    def test_rtcm_is_absent_from_the_raw_message(self):
-        # RTCM travels on its own topics. The unit tests assert the field
-        # is gone from the message definition; this asserts the topics stay
-        # unadvertised when publish_gpsd_rtcm is false.
+    def test_json_only_data_is_absent_from_the_raw_message(self):
+        # RTCM and subframe travel as raw JSON on gpsd_json, so neither the
+        # fields nor the old per-report topics exist any more.
         raws = self.raws()
         self.assertTrue(raws)
         fields = set(type(raws[0]).get_fields_and_field_types())
-        self.assertNotIn("rtcm2", fields)
-        self.assertNotIn("rtcm3", fields)
-        self.assertNotIn("/gpsd_rtcm2", self.session.topic_types)
-        self.assertNotIn("/gpsd_rtcm3", self.session.topic_types)
+        for gone in ("rtcm2", "rtcm3", "subframe"):
+            self.assertNotIn(gone, fields)
+        for topic in ("/gpsd_rtcm2", "/gpsd_rtcm3"):
+            self.assertNotIn(topic, self.session.topic_types)
+        # gpsd_json is opt-in and this session did not ask for it.
+        self.assertNotIn("/gpsd_json", self.session.topic_types)
 
     def test_nan_survives_to_the_topic(self):
         # GPSd's "unknown" sentinel must not be flattened to 0.0 anywhere in
@@ -582,46 +583,30 @@ class AttitudeReports(unittest.TestCase):
 
 
 @unittest.skipIf(SKIP, SKIP or "")
-class SubframeAndLogAreUnreachableThroughLibgps(unittest.TestCase):
-    """SUBFRAME and LOG never reach a socket client, and this pins that.
+class LogIsUnreachableThroughLibgps(unittest.TestCase):
+    """``gps_data_t::log`` never populates in a socket client, and this pins it.
 
-    The daemon emits both -- ublox-ned-m8t-sbfrx3 is 151 SUBFRAME reports and a
-    plain JSON watcher receives them -- but ``libgps_json.c`` has no reader for
-    either class. It decodes AIS, ATT, DEVICE, DEVICES, ERROR, GST, IMU, OSC,
-    PPS, RAW, RTCM2, RTCM3, SKY, TOFF, TPV, VERSION and WATCH, and silently
-    ignores everything else. So ``gps_data_t::subframe`` and ``::log`` are only
-    ever populated inside GPSd itself, never in a client.
+    ``libgps_json.c`` has no reader for the LOG class -- it decodes AIS, ATT,
+    DEVICE, DEVICES, ERROR, GST, IMU, OSC, PPS, RAW, RTCM2, RTCM3, SKY, TOFF,
+    TPV, VERSION and WATCH, and ignores the rest silently. So the ``log``
+    member is filled only inside GPSd itself.
 
-    That means the message fields exist and are correct, and in production will
-    always be empty. Asserting the emptiness is worth more than deleting the
-    tests: it is the difference between a known property of libgps and a bug in
-    our fill code, and only an end-to-end test can tell those apart.
+    Asserting the emptiness beats deleting the test: it is the difference
+    between a known property of libgps and a bug in the fill code, and only an
+    end-to-end test tells those apart. If a future libgps learns to parse LOG
+    this fails, which is when the field is worth revisiting.
 
-    If a future libgps learns to parse them these tests fail, which is exactly
-    when someone should look at the subframe dispatch again.
+    SUBFRAME used to be covered here too. It is now reachable -- as JSON, not
+    as a struct member -- so JsonTopic owns that case; see
+    docs/gpsd-quirks.md.
+
+    Shares JsonTopic's capture rather than starting a second replay of the same
+    log: both need only that the node ran against it.
     """
 
     @classmethod
     def setUpClass(cls):
-        cls.session = capture("ublox-ned-m8t-sbfrx3.log")
-        cls.chk = chk_reports("ublox-ned-m8t-sbfrx3.log")
-
-    def test_the_daemon_really_does_emit_subframes_for_this_log(self):
-        # Guards the premise. Without this, the assertions below would also
-        # pass against a log that simply contains no subframes.
-        self.assertTrue(self.chk.get("SUBFRAME"),
-                        "picked a log with no SUBFRAME reports in its .chk")
-
-    def test_subframe_arm_stays_empty(self):
-        raws = self.session.messages.get("/gpsd_raw", [])
-        self.assertTrue(raws, "no raw messages captured")
-        populated = [m for m in raws if m.subframe]
-        self.assertEqual(
-            [], populated,
-            "subframe was populated -- either libgps now parses SUBFRAME, or "
-            "the union arm is being read when it is not the live one")
-        self.assertFalse(any(m.set & type(m).SET_SUBFRAME for m in raws),
-                         "SUBFRAME_SET appeared in the mask of a socket client")
+        cls.session = capture(JsonTopic.LOG, json_topic=True, seconds=15.0)
 
     def test_log_member_stays_unset(self):
         raws = self.session.messages.get("/gpsd_raw", [])
@@ -708,77 +693,91 @@ class ImuReports(unittest.TestCase):
 
 
 @unittest.skipIf(SKIP, SKIP or "")
-class RtcmTopics(unittest.TestCase):
-    """ublox-zed-f9r.log carries RTCM3, which travels on its own topic."""
+class JsonTopic(unittest.TestCase):
+    """gpsd_json carries every report GPSd sends, as the line libgps returned.
+
+    ublox-ned-m8t-sbfrx3 is chosen because it is the case the typed topic
+    cannot serve at all: libgps has no reader for the SUBFRAME class, so
+    gps_data_t::subframe never populates, while gps_read() still hands the line
+    back to the caller. This suite is the proof that the JSON topic reaches
+    data no GPSDRaw message can carry.
+    """
+
+    LOG = "ublox-ned-m8t-sbfrx3.log"
 
     @classmethod
     def setUpClass(cls):
-        cls.session = capture("ublox-zed-f9r.log", rtcm=True, seconds=15.0)
+        cls.session = capture(cls.LOG, json_topic=True, seconds=15.0)
+        cls.chk = chk_reports(cls.LOG)
 
-    def test_rtcm3_topic_is_advertised_when_the_flag_is_set(self):
-        self.assertIn("/gpsd_rtcm3", self.session.topic_types,
-                      f"publish_gpsd_rtcm was true but the topic never "
+    def messages(self):
+        return self.session.messages.get("/gpsd_json", [])
+
+    def test_the_daemon_really_does_emit_subframes_for_this_log(self):
+        # Guards the premise. Without it the assertions below would also pass
+        # against a log that simply contains no subframes.
+        self.assertTrue(self.chk.get("SUBFRAME"),
+                        "picked a log with no SUBFRAME reports in its .chk")
+
+    def test_topic_is_advertised_when_the_flag_is_set(self):
+        self.assertIn("/gpsd_json", self.session.topic_types,
+                      f"publish_gpsd_json was true but the topic never "
                       f"appeared\n{self.session.diagnostics()}")
 
-    def test_rtcm3_messages_arrive_and_carry_a_header(self):
-        messages = self.session.messages.get("/gpsd_rtcm3", [])
-        if not messages:
-            self.skipTest("this replay sampled no RTCM3 report")
-        self.assertTrue(messages[0].header.frame_id)
+    def test_every_message_is_one_parseable_report_with_a_stamp(self):
+        messages = self.messages()
+        self.assertTrue(messages, "no JSON messages captured")
+        for msg in messages[:50]:
+            self.assertTrue(msg.header.stamp.sec or msg.header.stamp.nanosec,
+                            "message published with a zero stamp")
+            report = json.loads(msg.json)     # raises if it is not one report
+            self.assertIn("class", report)
 
-    def test_reports_are_not_republished(self):
-        """Each RTCM report should reach the topic once, not once per cycle.
+    def test_subframe_reaches_this_topic_and_not_the_raw_one(self):
+        """The whole reason this topic exists.
 
-        This is a regression test for a specific defect. gps_data_t::set is not
-        per-report for every class: GPSd's SKY handler ORs its bits in without
-        clearing UNION_SET, so RTCM3_SET and the union arm behind it survive
-        every SKY report until something later clears them. Publishing RTCM on
-        the node's timer therefore republished whatever RTCM report came last,
-        once per cycle, for as long as the stale bit lasted -- measured at 371
-        messages for 97 distinct payloads.
-
-        The fix is to publish per report and use the report's JSON class, which
-        gps_read() hands back, rather than the mask. What that changes, and what
-        this test watches for, is the rate of *consecutive identical* messages.
-
-        A replay faster than the publish rate on purpose: the defect only
-        appears when several reports arrive per cycle, so the slower default
-        would hide it. Some genuine repetition is expected -- gpsfake loops the
-        log, and RTCM streams resend the same corrections -- so this asserts a
-        rate well below the broken behaviour (58%) and well above the healthy
-        one (7%), rather than demanding zero.
+        SUBFRAME is decoded by GPSd and dropped by libgps, so it can reach a
+        client only as JSON. Asserting both halves together is what makes the
+        point: present here, absent there.
         """
-        session = capture("ublox-zed-f9r.log", rtcm=True, seconds=15.0, cycle=0.02)
-        messages = session.messages.get("/gpsd_rtcm3", [])
-        if len(messages) < 20:
-            self.skipTest(f"only {len(messages)} RTCM3 messages; too few to judge")
+        classes = [json.loads(m.json).get("class") for m in self.messages()]
+        self.assertIn("SUBFRAME", classes,
+                      f"the JSON topic carried no SUBFRAME report, though the "
+                      f".chk has {len(self.chk.get('SUBFRAME', []))}"
+                      f"\n{self.session.diagnostics()}")
 
-        def body(msg):
-            # Everything but the header: the stamp is assigned per publish, so
-            # two publishes of one report differ only there.
-            return tuple(str(getattr(msg, f))
-                         for f in msg.get_fields_and_field_types() if f != "header")
-
-        bodies = [body(m) for m in messages]
-        repeats = sum(1 for a, b in zip(bodies, bodies[1:]) if a == b)
-        ratio = repeats / len(bodies)
-        self.assertLess(
-            ratio, 0.25,
-            f"{repeats} of {len(bodies)} RTCM3 messages repeated the previous "
-            f"one ({ratio:.0%}); only {len(set(bodies))} distinct. The node is "
-            "republishing a stale union arm rather than publishing per report.")
-
-    def test_the_raw_topic_still_reports_that_rtcm_arrived(self):
-        # The mask is the contract that lets a raw subscriber know an RTCM
-        # report happened even though the payload went elsewhere.
         raws = self.session.messages.get("/gpsd_raw", [])
         self.assertTrue(raws, "no raw messages captured")
-        bit = type(raws[0]).SET_RTCM3
-        if not any(m.set & bit for m in raws):
-            self.skipTest("this replay sampled no RTCM3 report")
+        bit = type(raws[0]).SET_SUBFRAME
+        self.assertEqual(
+            0, sum(1 for m in raws if m.set & bit),
+            "libgps has no SUBFRAME reader, so the typed topic must never "
+            "report one -- if this fails, libgps grew one and the raw message "
+            "should carry subframe again")
 
+    def test_payload_matches_what_gpsd_says_the_log_contains(self):
+        """Ground truth: the JSON we forward is the JSON GPSd emits."""
+        truth = {r["tSV"] for r in self.chk.get("SUBFRAME", []) if "tSV" in r}
+        self.assertTrue(truth, "no tSV in the .chk SUBFRAME reports")
+        seen = {r.get("tSV") for r in
+                (json.loads(m.json) for m in self.messages())
+                if r.get("class") == "SUBFRAME" and "tSV" in r}
+        self.assertTrue(seen, "no SUBFRAME payloads captured")
+        self.assertEqual(set(), seen - truth,
+                         "forwarded a tSV GPSd does not report for this log")
 
-if __name__ == "__main__":
-    if SKIP:
-        sys.stderr.write(f"skipped: {SKIP}\n")
-    unittest.main()
+    def test_reports_are_not_republished(self):
+        """One message per report, not one per publish cycle.
+
+        The node drains report by report and publishes each line once. Sampling
+        on the timer instead would repeat whatever was last read, so this
+        checks that consecutive payloads are not simply duplicated.
+        """
+        bodies = [m.json for m in self.messages()]
+        if len(bodies) < 20:
+            self.skipTest(f"only {len(bodies)} JSON messages; too few to judge")
+        repeats = sum(1 for a, b in zip(bodies, bodies[1:]) if a == b)
+        self.assertLess(
+            repeats / len(bodies), 0.25,
+            f"{repeats} of {len(bodies)} JSON messages repeated the previous "
+            f"one; the topic looks sampled rather than per-report")

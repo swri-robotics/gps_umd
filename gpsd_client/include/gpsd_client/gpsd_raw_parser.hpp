@@ -34,23 +34,6 @@ public:
   [[nodiscard]] GpsdRawMsg parseRaw(const gps_data_t& data,
                                     const rclcpp::Time& stamp) const;
 
-  /// Convert an RTCM2 report, or nullopt when this report is not one.
-  ///
-  /// RTCM lives on its own topic rather than inside GPSDRaw: between them the
-  /// two RTCM message families are 452 of the ~905 generated types, and they
-  /// interest a quite different audience from a position fix.
-  ///
-  /// Returns nullopt unless the report's `set` mask names RTCM2. gps_data_t
-  /// packs the report arms into a union, so the mask is the only thing that
-  /// makes reading this arm defined rather than a reinterpretation of whatever
-  /// arm was last written.
-  [[nodiscard]] std::optional<GpsdRtcm2Msg> parseRtcm2(
-      const gps_data_t& data, const rclcpp::Time& stamp) const;
-
-  /// Convert an RTCM3 report, or nullopt when this report is not one.
-  [[nodiscard]] std::optional<GpsdRtcm3Msg> parseRtcm3(
-      const gps_data_t& data, const rclcpp::Time& stamp) const;
-
 private:
   /// Number of skyview entries that are actually populated.
   ///

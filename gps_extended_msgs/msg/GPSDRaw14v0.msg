@@ -65,7 +65,6 @@ GPSDDevconfig14v0 dev
 GPSDPolicy14v0 policy
 GPSDRawDevices14v0 devices
 GPSDGst14v0 gst
-GPSDSubframe14v0[] subframe
 GPSDRawdata14v0[] raw
 GPSDOscillator14v0[] osc
 GPSDVersion14v0[] version

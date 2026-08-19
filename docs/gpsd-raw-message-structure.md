@@ -27,7 +27,9 @@ silently misreading the other.
 ## Top-level layout
 
 `GPSDRaw16v1` holds a `std_msgs/Header`, the `set` report mask, the scalar
-members of `gps_data_t`, and these sub-messages:
+members of `gps_data_t`, and these sub-messages. It mirrors the parts of
+`gps_data_t` a socket client can actually reach; what libgps cannot decode
+travels on `gpsd_json` instead.
 
 ```mermaid
 graph LR
@@ -43,12 +45,12 @@ graph LR
   RAW --> SRC["source<br/>GPSDFixsource"]
 
   RAW --> UNION["union arms<br/>0-or-1 arrays"]
-  UNION --> SUB["subframe[]<br/>GPSDSubframe"]
   UNION --> RAWD["raw[]<br/>GPSDRawdata"]
   UNION --> OSC["osc[]<br/>GPSDOscillator"]
   UNION --> VER["version[]<br/>GPSDVersion"]
+  UNION --> ERR["error<br/>string"]
 
-  RTCM["gpsd_rtcm2 / gpsd_rtcm3<br/>separate topics"]
+  JSON["gpsd_json<br/>GPSDJson: Header + string<br/>every report, unversioned"]
 ```
 
 ### Union arms are 0-or-1 arrays
@@ -64,17 +66,37 @@ GPSd sizes `skyview` as a fixed array of 140 or 184 entries and reports the
 valid count separately. The message carries only the valid prefix, so
 `skyview.size()` equals `satellites_visible`.
 
-### RTCM travels on its own topics
+### RTCM and subframe travel as raw JSON
 
-`GPSDRaw` omits RTCM2 and RTCM3. The two families make up roughly half of all
-generated types, and a subscriber wanting a position rarely wants corrections,
-so `gpsd_client` publishes them on `gpsd_rtcm2` and `gpsd_rtcm3` under
-`publish_gpsd_rtcm`. `GPSDRaw` still copies the `set` mask verbatim, so
-`msg.set & SET_RTCM3` still reports that GPSd decoded a correction.
+`GPSDRaw` omits `rtcm2`, `rtcm3` and `subframe`. Typed messages for those three
+were 684 of roughly 905 generated types — 76% of the package — for data almost
+no subscriber decodes. `publish_gpsd_json` instead publishes every report as
+the JSON line libgps returned, on `gpsd_json`.
 
-`gpsd_client` publishes each RTCM message once, keyed on the report's JSON
-class rather than on the mask. [gpsd-quirks.md](gpsd-quirks.md) explains why the
-mask alone does not work for this.
+That carries **more** than the typed path could. libgps decodes 17 report
+classes and silently drops the rest, so `gps_data_t::subframe` never populates
+in a client — but `gps_read()` copies the line into the caller's buffer before
+`gps_unpack()` looks at it, so SUBFRAME arrives on `gpsd_json` even though no
+`GPSDRaw` field can ever hold it. Measured on `ublox-ned-m8t-sbfrx3`: 438 of
+443 forwarded lines carried SUBFRAME, while `SET_SUBFRAME` appeared on 0 typed
+reports.
+
+`GPSDRaw` still copies the `set` mask verbatim, so `msg.set & SET_RTCM3` still
+reports that GPSd decoded a correction — the same contract as AIS.
+
+### `GPSDJson` is the one unversioned message
+
+```
+std_msgs/Header header   # stamped when gps_read() returned the line
+string json              # one GPSd report, verbatim
+```
+
+Every other message mirrors a struct whose shape changes with the GPSd API, so
+it carries the pair in its name. This one carries an opaque string, so a single
+type serves all ten pairs — there is no `GPSDJson16v1`.
+
+Each report is published once, stamped as it is read, rather than sampled once
+per publish cycle.
 
 ### AIS is absent
 
@@ -84,32 +106,24 @@ omits.
 
 ## What varies between API versions
 
-75 of the 100 message families exist in all ten versions. The remaining 25
-appear or disappear as GPSd adds and removes struct members.
+19 versioned message families, plus the unversioned `GPSDJson`. 16 exist in all
+ten API versions; three appear as GPSd adds struct members.
 
 | Family | Present in | Reason |
 |---|---|---|
 | `GPSDLog` | 9.1 → | GPSd adds `gps_log_t` |
-| `GPSDOrbit` | 12.0 → | GPSd adds `orbit_t` |
 | `GPSDBaseline` | 13.0 → | GPSd adds `baseline_t` |
 | `GPSDFixsource` | 14.0 → | GPSd adds `gps_data_t::source` |
-| `GPSDRtcm2Ecef` | 9.0 only | GPSd replaces the `rtcm2_t` ECEF arm |
-| `GPSDRtcm2*` (7 families) | 9.1 → | GPSd expands `rtcm2_t` |
-| `GPSDRtcm31016V`, `GPSDRtcm31017V` | 9.0 – 12.0 | GPSd removes these arms |
-| `GPSDRtcm31021V`, `…1023V`, `…1025V` | 13.0 → | GPSd adds these arms |
-| `GPSDRtcm3Msm*` (3 families) | 13.0 → | GPSd adds MSM support |
-| `GPSDRtcm34076Hdr` | 14.0 → | GPSd adds the 4076 arm |
-| `GPSDRtkSat`, `GPSDRtcmtypesRtcm31230V` | 9.1 → | GPSd expands `rtcm3_t` |
 
 Message count per version:
 
 | API | 9.0 | 9.1 | 10.0 | 10.1 | 11.0 | 12.0 | 13.0 | 14.0 | 16.0 | 16.1 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Messages | 78 | 88 | 88 | 88 | 88 | 89 | 95 | 97 | 97 | 97 |
+| Messages | 16 | 17 | 17 | 17 | 17 | 17 | 18 | 19 | 19 | 19 |
 
-RTCM accounts for most of the variation: 4 of its 63 families change shape
-between versions and 20 do not exist in every version, which is more churn than
-the rest of `gps_data_t` combined.
+Moving RTCM and subframe onto `gpsd_json` removed most of the churn along with
+most of the messages: the families that used to appear and disappear between
+versions were overwhelmingly RTCM arms.
 
 ## Fields that move between versions
 

@@ -38,11 +38,18 @@ OSC, PPS, RAW, RTCM2, RTCM3, SKY, TOFF, TPV, VERSION and WATCH. It ignores every
 other class silently. The daemon emits more than that — a plain JSON watcher
 receives `SUBFRAME` reports that libgps drops.
 
-**Here:** `gps_data_t::subframe` and `::log` never populate in a socket client,
-so `GPSDRaw`'s `subframe` and `log` fields stay empty in production. The fields
-exist and the fill code handles them, because GPSd populates both inside the
-daemon. Tests assert the emptiness rather than leaving it to be rediscovered,
-and they fail if a future libgps grows the missing readers.
+**Here:** the `gpsd_json` topic sidesteps it. `gps_read()` copies the JSON line
+into the caller's buffer *before* `gps_unpack()` decides whether it understands
+the class, so every report reaches a subscriber as text even when libgps cannot
+decode it into `gps_data_t`. SUBFRAME is the case that proves it: replaying
+`ublox-ned-m8t-sbfrx3`, 438 of 443 forwarded lines carried SUBFRAME while
+`SUBFRAME_SET` appeared on 0 typed reports.
+
+`gps_data_t::log` still never populates, and `GPSDRaw` no longer carries
+`subframe` at all — that data is reachable only as JSON. An end-to-end test
+asserts both halves together: SUBFRAME present on `gpsd_json`, absent from the
+typed mask. If a future libgps grows the missing readers, that test fails and
+the typed message can carry them again.
 
 An unparsed class raises no error — it simply never arrives — so only an
 end-to-end test distinguishes "libgps does not decode this" from "our fill code
@@ -78,11 +85,11 @@ lasts a long time.
 The tell is a combination no single report produces, such as `SET_RTCM3` and
 `SET_SATELLITE` together.
 
-**Here:** `gpsd_client` publishes RTCM per report, keyed on the report's JSON
-class from `gps_read`'s message argument rather than on the mask, so each
-correction reaches `gpsd_rtcm2` or `gpsd_rtcm3` exactly once. `GPSDRaw` copies
-the mask verbatim — a topic named "raw" that quietly repaired its input would
-serve subscribers worse.
+**Here:** `gpsd_client` publishes `gpsd_json` per report, straight from
+`gps_read`'s message argument, so each report reaches subscribers exactly once
+regardless of what the mask says. `GPSDRaw` copies the mask verbatim — a topic
+named "raw" that quietly repaired its input would serve subscribers worse — so
+a raw subscriber testing a union bit still needs this caveat.
 
 Non-union bits — `SET_LATLON`, `SET_ALTITUDE`, `SET_SATELLITE` and friends —
 mean what you expect. The caveat applies only to the union.

@@ -278,7 +278,21 @@ build_and_test_client() {
   # on gps_msgs, so gps_msgs was never built, and gpsd_client then failed to
   # configure against an install prefix that did not contain it.
   local msgs=${GPSD_MSGS_INSTALL:-${CACHE}/msgs/install}
-  if [ ! -f "${msgs}/setup.bash" ]; then
+
+  # Rebuild when any .msg is newer than the install, not just when the install
+  # is missing. The messages are generated, so they change whenever the
+  # generator does, and a stale install fails far from its cause: gpsd_client
+  # compiles against message headers that lack a constant or field the
+  # generated fill code references, for every version at once.
+  local stale=""
+  if [ -f "${msgs}/setup.bash" ] && \
+     [ -n "$(find "${REPO_DIR}/gps_extended_msgs/msg" -name '*.msg' \
+                  -newer "${msgs}/setup.bash" -print -quit 2>/dev/null)" ]; then
+    stale=1
+    log "message definitions are newer than ${msgs}; rebuilding them"
+    rm -rf "${msgs}" "$(dirname "${msgs}")/build"
+  fi
+  if [ ! -f "${msgs}/setup.bash" ] || [ -n "${stale}" ]; then
     (cd "${WORKSPACE}" &&
      colcon build --packages-up-to gpsd_client --packages-skip gpsd_client \
        --build-base "$(dirname "${msgs}")/build" --install-base "${msgs}" \

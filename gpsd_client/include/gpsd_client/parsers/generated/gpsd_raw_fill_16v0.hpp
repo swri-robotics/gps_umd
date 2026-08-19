@@ -222,6 +222,108 @@ static_assert(gps_extended_msgs::msg::GPSDRaw16v0::SET_UNION == static_cast<uint
               "SET_UNION disagrees with gps.h's UNION_SET");
 #endif
 
+// Field value constants against the gps.h macros they came from.
+#ifdef SEEN_AIS
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::DEV_FLAG_AIS == static_cast<int32_t>(SEEN_AIS),
+              "DEV_FLAG_AIS disagrees with gps.h's SEEN_AIS");
+#endif
+#ifdef SEEN_GPS
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::DEV_FLAG_GPS == static_cast<int32_t>(SEEN_GPS),
+              "DEV_FLAG_GPS disagrees with gps.h's SEEN_GPS");
+#endif
+#ifdef SEEN_RTCM2
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::DEV_FLAG_RTCM2 == static_cast<int32_t>(SEEN_RTCM2),
+              "DEV_FLAG_RTCM2 disagrees with gps.h's SEEN_RTCM2");
+#endif
+#ifdef SEEN_RTCM3
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::DEV_FLAG_RTCM3 == static_cast<int32_t>(SEEN_RTCM3),
+              "DEV_FLAG_RTCM3 disagrees with gps.h's SEEN_RTCM3");
+#endif
+#ifdef ANT_OK
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_ANT_OK == static_cast<int32_t>(ANT_OK),
+              "FIX_ANT_OK disagrees with gps.h's ANT_OK");
+#endif
+#ifdef ANT_OPEN
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_ANT_OPEN == static_cast<int32_t>(ANT_OPEN),
+              "FIX_ANT_OPEN disagrees with gps.h's ANT_OPEN");
+#endif
+#ifdef ANT_PWR_OFF
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_ANT_PWR_OFF == static_cast<int32_t>(ANT_PWR_OFF),
+              "FIX_ANT_PWR_OFF disagrees with gps.h's ANT_PWR_OFF");
+#endif
+#ifdef ANT_PWR_ON
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_ANT_PWR_ON == static_cast<int32_t>(ANT_PWR_ON),
+              "FIX_ANT_PWR_ON disagrees with gps.h's ANT_PWR_ON");
+#endif
+#ifdef ANT_PWR_UNK
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_ANT_PWR_UNK == static_cast<int32_t>(ANT_PWR_UNK),
+              "FIX_ANT_PWR_UNK disagrees with gps.h's ANT_PWR_UNK");
+#endif
+#ifdef ANT_SHORT
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_ANT_SHORT == static_cast<int32_t>(ANT_SHORT),
+              "FIX_ANT_SHORT disagrees with gps.h's ANT_SHORT");
+#endif
+#ifdef ANT_UNK
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_ANT_UNK == static_cast<int32_t>(ANT_UNK),
+              "FIX_ANT_UNK disagrees with gps.h's ANT_UNK");
+#endif
+#ifdef MODE_2D
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_MODE_2D == static_cast<int32_t>(MODE_2D),
+              "FIX_MODE_2D disagrees with gps.h's MODE_2D");
+#endif
+#ifdef MODE_3D
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_MODE_3D == static_cast<int32_t>(MODE_3D),
+              "FIX_MODE_3D disagrees with gps.h's MODE_3D");
+#endif
+#ifdef MODE_NOT_SEEN
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_MODE_NOT_SEEN == static_cast<int32_t>(MODE_NOT_SEEN),
+              "FIX_MODE_NOT_SEEN disagrees with gps.h's MODE_NOT_SEEN");
+#endif
+#ifdef MODE_NO_FIX
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_MODE_NO_FIX == static_cast<int32_t>(MODE_NO_FIX),
+              "FIX_MODE_NO_FIX disagrees with gps.h's MODE_NO_FIX");
+#endif
+#ifdef STATUS_DGPS
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_STATUS_DGPS == static_cast<int32_t>(STATUS_DGPS),
+              "FIX_STATUS_DGPS disagrees with gps.h's STATUS_DGPS");
+#endif
+#ifdef STATUS_DR
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_STATUS_DR == static_cast<int32_t>(STATUS_DR),
+              "FIX_STATUS_DR disagrees with gps.h's STATUS_DR");
+#endif
+#ifdef STATUS_GNSSDR
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_STATUS_GNSSDR == static_cast<int32_t>(STATUS_GNSSDR),
+              "FIX_STATUS_GNSSDR disagrees with gps.h's STATUS_GNSSDR");
+#endif
+#ifdef STATUS_GPS
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_STATUS_GPS == static_cast<int32_t>(STATUS_GPS),
+              "FIX_STATUS_GPS disagrees with gps.h's STATUS_GPS");
+#endif
+#ifdef STATUS_PPS_FIX
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_STATUS_PPS_FIX == static_cast<int32_t>(STATUS_PPS_FIX),
+              "FIX_STATUS_PPS_FIX disagrees with gps.h's STATUS_PPS_FIX");
+#endif
+#ifdef STATUS_RTK_FIX
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_STATUS_RTK_FIX == static_cast<int32_t>(STATUS_RTK_FIX),
+              "FIX_STATUS_RTK_FIX disagrees with gps.h's STATUS_RTK_FIX");
+#endif
+#ifdef STATUS_RTK_FLT
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_STATUS_RTK_FLT == static_cast<int32_t>(STATUS_RTK_FLT),
+              "FIX_STATUS_RTK_FLT disagrees with gps.h's STATUS_RTK_FLT");
+#endif
+#ifdef STATUS_SIM
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_STATUS_SIM == static_cast<int32_t>(STATUS_SIM),
+              "FIX_STATUS_SIM disagrees with gps.h's STATUS_SIM");
+#endif
+#ifdef STATUS_TIME
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_STATUS_TIME == static_cast<int32_t>(STATUS_TIME),
+              "FIX_STATUS_TIME disagrees with gps.h's STATUS_TIME");
+#endif
+#ifdef STATUS_UNK
+static_assert(gps_extended_msgs::msg::GPSDRaw16v0::FIX_STATUS_UNK == static_cast<int32_t>(STATUS_UNK),
+              "FIX_STATUS_UNK disagrees with gps.h's STATUS_UNK");
+#endif
+
 GPSD_DEFINE_HAS_MEMBER(NED)
 GPSD_DEFINE_HAS_MEMBER(PRN)
 GPSD_DEFINE_HAS_MEMBER(acc_len)

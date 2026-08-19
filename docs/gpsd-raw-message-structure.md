@@ -241,6 +241,46 @@ port across versions even though the message types do not.
 The mask has a significant caveat for union arms; see
 [gpsd-quirks.md](gpsd-quirks.md).
 
+Masks are written in hex with their bit position noted, because rosidl accepts
+only literals in constants — `1 << 4` does not parse, so GPSd's own
+`(1llu<<4)` spelling cannot be carried across. `SET_HIGHEST_BIT` stays decimal:
+it is the *number* of the highest bit GPSd has assigned, not a mask.
+
+## Interpreting the enumerated fields
+
+Four fields carry values GPSd defines as macros rather than plain numbers. The
+message exports those too, so a subscriber does not have to read `gps.h`:
+
+| Field | Constants | Kind |
+|---|---|---|
+| `fix_mode` | `FIX_MODE_NOT_SEEN`, `FIX_MODE_NO_FIX`, `FIX_MODE_2D`, `FIX_MODE_3D` | enumeration |
+| `fix_status` | `FIX_STATUS_*` — `GPS`, `DGPS`, `RTK_FIX`, `RTK_FLT`, `DR`, `GNSSDR`, `TIME`, `SIM`, `PPS_FIX`, `UNK` | enumeration |
+| `fix_ant_stat` | `FIX_ANT_UNK/OK/OPEN/SHORT`, and `FIX_ANT_PWR_UNK/OFF/ON` | two enumerations |
+| `dev_flags`, `devices_list_flags` | `DEV_FLAG_GPS`, `DEV_FLAG_RTCM2`, `DEV_FLAG_RTCM3`, `DEV_FLAG_AIS` | **bitfield** |
+
+```cpp
+if (msg.dev_flags & gps_extended_msgs::msg::GPSDRaw16v1::DEV_FLAG_RTCM3) {
+  // this device has produced RTCM3
+}
+if (msg.fix_mode == gps_extended_msgs::msg::GPSDRaw16v1::FIX_MODE_3D) { … }
+```
+
+`DEV_FLAG_*` is a bitfield so it is written in hex; the enumerations are
+decimal, since `0x00000003` says less than `3` for a mode.
+
+**The prefix is forced, not cosmetic.** `STATUS_GPS`, `MODE_3D`, `SEEN_GPS` and
+`ANT_OK` are all `gps.h` macros, so a message constant of the same name would be
+destroyed by the preprocessor in any translation unit that includes `gps.h` —
+the same hazard that turned `LATLON_SET` into `SET_LATLON`.
+
+Which constants exist follows the version, like everything else here. `ANT_*`
+arrives during API 14 and `ANT_PWR_*` during API 16, and API 9–11 carry GPSd's
+older status spellings (`FIX_STATUS_FIX`, `FIX_STATUS_DGPS_FIX`,
+`FIX_STATUS_NO_FIX`) where API 12 and later carry `FIX_STATUS_GPS`,
+`FIX_STATUS_DGPS` and `FIX_STATUS_UNK`. The values did not change with the
+rename. A `static_assert` checks every constant against the macro it came from,
+so a value that drifts from `gps.h` fails the build rather than a subscriber.
+
 ## Generation
 
 `tools/generate_raw_msgs.py` reads GPSd's `gps.h` at ten revisions and writes

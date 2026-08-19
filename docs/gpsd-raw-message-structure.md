@@ -9,11 +9,11 @@ version. For the GPSd behaviours the mirror has to accommodate, see
 
 GPSd changes `gps_data_t` between API versions: it moves members between
 structs, renames them, and changes their signedness. A single ROS message
-cannot describe all of those states, so `gps_extended_msgs` carries a complete
-set of types per API `(MAJOR, MINOR)` pair, suffixed `<MAJOR>v<MINOR>`.
+cannot describe all of those states, so `gps_msgs` carries one type per API
+`(MAJOR, MINOR)` pair, suffixed `<MAJOR>v<MINOR>`.
 
-`gpsd_client` selects the set matching the `gps.h` it compiled against and
-publishes `gps_extended_msgs/GPSDRaw<MAJOR>v<MINOR>`. Building against GPSd
+`gpsd_client` selects the type matching the `gps.h` it compiled against and
+publishes `gps_msgs/GPSDRaw<MAJOR>v<MINOR>`. Building against GPSd
 3.27.5 publishes `GPSDRaw16v1`; against GPSd 3.20, `GPSDRaw9v0`.
 
 Ten pairs exist, 9.0 through 16.1. `GPSD_API_MAJOR_VERSION` skips 15 — no GPSd
@@ -115,7 +115,7 @@ is here:
 So 57 gated fields at API 9.0, 35 from API 12.0, and 27 from API 14.0 on.
 
 ```cpp
-if (msg.set & gps_extended_msgs::msg::GPSDRaw16v1::SET_OSCILLATOR) {
+if (msg.set & gps_msgs::msg::GPSDRaw16v1::SET_OSCILLATOR) {
   use(msg.osc_delta);           // meaningful only inside this guard
 }
 ```
@@ -227,7 +227,7 @@ mirrors whichever layout its own version uses.
 constants on the message:
 
 ```cpp
-if (msg.set & gps_extended_msgs::msg::GPSDRaw16v1::SET_LATLON) {
+if (msg.set & gps_msgs::msg::GPSDRaw16v1::SET_LATLON) {
   // fix.latitude and fix.longitude belong to this report
 }
 ```
@@ -259,10 +259,10 @@ message exports those too, so a subscriber does not have to read `gps.h`:
 | `dev_flags`, `devices_list_flags` | `DEV_FLAG_GPS`, `DEV_FLAG_RTCM2`, `DEV_FLAG_RTCM3`, `DEV_FLAG_AIS` | **bitfield** |
 
 ```cpp
-if (msg.dev_flags & gps_extended_msgs::msg::GPSDRaw16v1::DEV_FLAG_RTCM3) {
+if (msg.dev_flags & gps_msgs::msg::GPSDRaw16v1::DEV_FLAG_RTCM3) {
   // this device has produced RTCM3
 }
-if (msg.fix_mode == gps_extended_msgs::msg::GPSDRaw16v1::FIX_MODE_3D) { … }
+if (msg.fix_mode == gps_msgs::msg::GPSDRaw16v1::FIX_MODE_3D) { … }
 ```
 
 `DEV_FLAG_*` is a bitfield so it is written in hex; the enumerations are

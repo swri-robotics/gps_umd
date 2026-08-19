@@ -5,7 +5,7 @@
 
 #include <gpsd_client/gpsd_parser_factory.hpp>
 #include <gpsd_client/gpsd_raw_message.hpp>
-#include <gps_extended_msgs/msg/gpsd_json.hpp>
+#include <gps_msgs/msg/gpsd_json.hpp>
 
 #include <chrono>
 #include <cstring>
@@ -111,7 +111,7 @@ namespace gpsd_client
          * arrives here even though gps_data_t::subframe can never hold it.
          */
         gpsd_json_pub_ =
-            create_publisher<gps_extended_msgs::msg::GPSDJson>("gpsd_json", 10);
+            create_publisher<gps_msgs::msg::GPSDJson>("gpsd_json", 10);
         RCLCPP_INFO(this->get_logger(),
                     "Publishing raw GPSd JSON reports on gpsd_json");
       }
@@ -176,7 +176,7 @@ namespace gpsd_client
       {
         return;
       }
-      gps_extended_msgs::msg::GPSDJson msg;
+      gps_msgs::msg::GPSDJson msg;
       msg.header.stamp = this->get_clock()->now();
       msg.header.frame_id = frame_id_;
       msg.json = message;
@@ -246,7 +246,7 @@ namespace gpsd_client
     /// Null unless publish_gpsd_raw is set; doubles as the enabled flag.
     rclcpp::Publisher<GpsdRawMsg>::SharedPtr gpsd_raw_pub_;
     /// Null unless publish_gpsd_json is set; doubles as the enabled flag.
-    rclcpp::Publisher<gps_extended_msgs::msg::GPSDJson>::SharedPtr gpsd_json_pub_;
+    rclcpp::Publisher<gps_msgs::msg::GPSDJson>::SharedPtr gpsd_json_pub_;
 
     /* Declared before gps_data_ on purpose. Members are destroyed in reverse
      * declaration order, so these outlive the connection that holds pointers

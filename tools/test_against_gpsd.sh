@@ -29,10 +29,10 @@
 #                    Full builds cache under install/<ver>-full, separately
 #                    from the libgps-only ones.
 #   GPSD_MSGS_INSTALL
-#                    A colcon install prefix already holding gps_msgs and
-#                    gps_extended_msgs. Those have no libgps dependency, so
-#                    they are built once and reused for every version; point
-#                    this at a restored CI cache to skip building them at all.
+#                    A colcon install prefix already holding gps_msgs. It has
+#                    no libgps dependency, so it is built once and reused for
+#                    every version; point this at a restored CI cache to skip
+#                    building it at all.
 #                    Defaults to <cache>/msgs/install.
 #
 # Requirements: git, scons, colcon, a C/C++ toolchain, and network access
@@ -260,11 +260,9 @@ build_and_test_client() {
 
   # Build the message packages once and share them across every version.
   #
-  # gps_extended_msgs has no libgps dependency -- that is the point of it being
-  # a separate, pure interface package -- so its output is byte-identical for
-  # every API version. Rebuilding roughly 900 messages per version cost about
-  # eight minutes each and proved nothing. Only gpsd_client actually varies, so
-  # only gpsd_client is rebuilt per version below.
+  # gps_msgs has no libgps dependency -- it is a pure interface package -- so
+  # its output is byte-identical for every API version, and only gpsd_client
+  # actually varies. Only gpsd_client is rebuilt per version below.
   #
   # It is also the entire flaky surface: gcc-11 segfaulted twice in four
   # versions compiling the generated typesupport sources, on a different file
@@ -274,9 +272,9 @@ build_and_test_client() {
   # `--packages-up-to gpsd_client --packages-skip gpsd_client` rather than
   # naming the message packages: it builds everything gpsd_client depends on
   # and nothing else, so a dependency added later is picked up without editing
-  # this. Naming gps_extended_msgs alone is what broke CI -- it does not depend
-  # on gps_msgs, so gps_msgs was never built, and gpsd_client then failed to
-  # configure against an install prefix that did not contain it.
+  # this. Naming the message package alone is what broke CI once, when a
+  # dependency of it went unbuilt and gpsd_client then failed to configure
+  # against an install prefix that did not contain it.
   local msgs=${GPSD_MSGS_INSTALL:-${CACHE}/msgs/install}
 
   # Rebuild when any .msg is newer than the install, not just when the install
@@ -286,7 +284,7 @@ build_and_test_client() {
   # generated fill code references, for every version at once.
   local stale=""
   if [ -f "${msgs}/setup.bash" ] && \
-     [ -n "$(find "${REPO_DIR}/gps_extended_msgs/msg" -name '*.msg' \
+     [ -n "$(find "${REPO_DIR}/gps_msgs/msg" -name '*.msg' \
                   -newer "${msgs}/setup.bash" -print -quit 2>/dev/null)" ]; then
     stale=1
     log "message definitions are newer than ${msgs}; rebuilding them"

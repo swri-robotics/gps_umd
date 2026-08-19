@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(ament_cmake REQUIRED)
 
 find_package(gps_msgs REQUIRED)
-find_package(gps_extended_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED rclcpp_components)
 find_package(sensor_msgs REQUIRED)
@@ -49,7 +48,6 @@ target_include_directories(${PROJECT_NAME}
     ${rclcpp_components_INCLUDE_DIRS}
     ${libgps_INCLUDE_DIRS}
     ${gps_msgs_INCLUDE_DIRS}
-    ${gps_extended_msgs_INCLUDE_DIRS}
     ${sensor_msgs_INCLUDE_DIRS})
 
 target_compile_definitions(${PROJECT_NAME}
@@ -59,7 +57,6 @@ rclcpp_components_register_nodes(${PROJECT_NAME} "gpsd_client::GPSDClientCompone
 target_link_libraries(${PROJECT_NAME} PUBLIC
   ${libgps_LIBRARIES}
   ${gps_msgs_TARGETS}
-  ${gps_extended_msgs_TARGETS}
   ${sensor_msgs_TARGETS}
   rclcpp::rclcpp
   rclcpp_components::component

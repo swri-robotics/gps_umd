@@ -408,7 +408,7 @@ class EndToEnd(unittest.TestCase):
         # gps.h being built against. A build that compiles but selects the
         # previous version's message would pass every other test in this
         # package; this is where that shows up.
-        self.assertEqual(f"gps_extended_msgs/msg/{EXPECTED_RAW_MSG}",
+        self.assertEqual(f"gps_msgs/msg/{EXPECTED_RAW_MSG}",
                          self.session.topic_types.get("/gpsd_raw"))
 
     def test_published_positions_are_ones_gpsd_says_this_log_contains(self):

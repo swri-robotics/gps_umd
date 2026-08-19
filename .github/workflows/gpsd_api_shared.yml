@@ -63,22 +63,20 @@ jobs:
       - name: Cache the built message packages
         uses: actions/cache@v4
         with:
-          # gps_extended_msgs has no libgps dependency, so one build serves
-          # every API version -- and every one of these ten workflows. Keyed on
-          # the message sources rather than the commit, so it survives any
-          # change that does not touch them, which is most of them.
+          # gps_msgs has no libgps dependency, so one build serves every API
+          # version -- and every one of these ten workflows. Keyed on the
+          # message sources rather than the commit, so it survives any change
+          # that does not touch them, which is most of them.
           #
           # On a cold cache all ten workflows still build it, since they run
           # concurrently and cannot share a first build; the payoff is on every
-          # run after. Worth having anyway: roughly 900 messages is about eight
-          # minutes and the only place the compiler has ever crashed on us.
+          # run after.
           path: .gpsd_versions/msgs
           key: >-
             msgs-${{ runner.os }}-lyrical-${{
-              hashFiles('src/gps_umd/gps_extended_msgs/msg/*.msg',
-                        'src/gps_umd/gps_extended_msgs/CMakeLists.txt',
-                        'src/gps_umd/gps_extended_msgs/package.xml',
-                        'src/gps_umd/gps_msgs/msg/*.msg') }}
+              hashFiles('src/gps_umd/gps_msgs/msg/*.msg',
+                        'src/gps_umd/gps_msgs/CMakeLists.txt',
+                        'src/gps_umd/gps_msgs/package.xml') }}
 
       - name: Cache gpsd build
         uses: actions/cache@v4

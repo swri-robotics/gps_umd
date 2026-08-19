@@ -55,8 +55,8 @@ def generated():
 
 
 def message_fields(pair, stem):
-    """Field names of gps_extended_msgs/msg/<stem><major>v<minor>.msg, or None."""
-    text = generated().get(f"gps_extended_msgs/msg/{stem}{pair[0]}v{pair[1]}.msg")
+    """Field names of <package>/msg/<stem><major>v<minor>.msg, or None."""
+    text = generated().get(f"{gen.PACKAGE}/msg/{stem}{pair[0]}v{pair[1]}.msg")
     if text is None:
         return None
     return [line.split()[-1] for line in text.splitlines()
@@ -64,7 +64,7 @@ def message_fields(pair, stem):
 
 
 def message_constants(pair, stem="GPSDRaw"):
-    text = generated().get(f"gps_extended_msgs/msg/{stem}{pair[0]}v{pair[1]}.msg") or ""
+    text = generated().get(f"{gen.PACKAGE}/msg/{stem}{pair[0]}v{pair[1]}.msg") or ""
     return {line.split()[1] for line in text.splitlines() if line.startswith("uint64 ")}
 
 
@@ -337,7 +337,7 @@ class ManualExpectations(unittest.TestCase):
 
 def message_typed_fields(pair, stem):
     """{field name: ROS type} for a generated message, or None."""
-    text = generated().get(f"gps_extended_msgs/msg/{stem}{pair[0]}v{pair[1]}.msg")
+    text = generated().get(f"{gen.PACKAGE}/msg/{stem}{pair[0]}v{pair[1]}.msg")
     if text is None:
         return None
     out = {}
@@ -822,13 +822,17 @@ class CheckedInFilesAreUpToDate(unittest.TestCase):
                          "stale generated files; rerun tools/generate_raw_msgs.py")
 
     def test_every_generated_message_is_listed_for_rosidl(self):
-        # gps_extended_msgs globs msg/GPSD*.msg, so a message whose name did not match
-        # the glob would generate cleanly and then never be built.
+        # gps_msgs globs msg/GPSD*.msg, so a message whose name did not match
+        # the glob would generate cleanly and then never be built. The prefix
+        # is also what keeps the generated messages distinct from the
+        # hand-written GPSFix/GPSStatus sharing the directory.
         for path in generated():
             if path.endswith(".msg"):
-                self.assertRegex(os.path.basename(path), r"^GPSD.*\.msg$",
-                                 f"{path} would not be picked up by the glob "
-                                 f"in gps_extended_msgs/CMakeLists.txt")
+                self.assertRegex(
+                    os.path.basename(path),
+                    rf"^{gen.MESSAGE_PREFIX}.*\.msg$",
+                    f"{path} would not be picked up by the glob "
+                    f"in {gen.PACKAGE}/CMakeLists.txt")
 
     def test_one_ci_workflow_per_api_pair(self):
         # Each API pair gets its own workflow so a failure names the version.
@@ -911,7 +915,7 @@ class GeneratedParserCode(unittest.TestCase):
                 f"#include <gpsd_client/parsers/generated/"
                 f"gpsd_raw_fill_{pair[0]}v{pair[1]}.hpp>", ladder)
             self.assertIn(
-                f"using GpsdRawMsg = gps_extended_msgs::msg::GPSDRaw{pair[0]}v{pair[1]};",
+                f"using GpsdRawMsg = {gen.PACKAGE}::msg::GPSDRaw{pair[0]}v{pair[1]};",
                 ladder)
         # Matches the policy in gpsd_parser_factory.cpp: hard error below the
         # minimum, warn and fall back to newest above the maximum.
@@ -1018,7 +1022,7 @@ class GeneratedParserCode(unittest.TestCase):
         for pair in ALL_PAIRS:
             source = self.parser_source(pair)
             suffix = f"{pair[0]}v{pair[1]}"
-            self.assertIn(f"#include <gps_extended_msgs/msg/gpsd_raw{suffix}.hpp>", source)
+            self.assertIn(f"#include <{gen.PACKAGE}/msg/gpsd_raw{suffix}.hpp>", source)
             # One message now, so this is the only include to get right. The
             # acronym split is the part that is easy to regress.
             self.assertNotIn("gpsdraw", source)

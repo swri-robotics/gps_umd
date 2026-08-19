@@ -148,7 +148,7 @@ set & SET_SATELLITE: false
 Test the mask to learn whether a message carries a skyview:
 
 ```cpp
-if (msg.set & gps_extended_msgs::msg::GPSDRaw16v1::SET_SATELLITE) {
+if (msg.set & gps_msgs::msg::GPSDRaw16v1::SET_SATELLITE) {
   // skyview and satellites_visible describe this report
 }
 ```

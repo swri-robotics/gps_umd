@@ -148,7 +148,7 @@ corresponding expectation is an untested version.
 
 ```bash
 tools/test_against_gpsd.sh 3.28              # builds libgps at that rev, then gpsd_client
-colcon test --packages-select gps_extended_msgs gpsd_client
+colcon test --packages-select gps_msgs gpsd_client
 ```
 
 The first builds libgps from source at the requested revision and runs

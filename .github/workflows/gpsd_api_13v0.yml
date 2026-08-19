@@ -17,7 +17,7 @@ on:
     paths:
       # Only the things that can change what this version builds or publishes.
       # A docs-only change should not rebuild GPSd from source.
-      - 'gps_extended_msgs/**'
+      - 'gps_msgs/**'
       - 'gpsd_client/**'
       - 'tools/generate_raw_msgs.py'
       - 'tools/test_against_gpsd.sh'

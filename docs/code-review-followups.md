@@ -16,11 +16,11 @@ should be moved there rather than left to disappear with this file.
 
 | | |
 |---|---|
-| Findings recorded | 2 |
+| Findings recorded | 2, both closed |
 | Decisions settled | 3 of 3 |
-| Implemented | **finding 2 complete** |
+| Implemented | **both findings complete** |
 | Premise checks passed | 1 of 1 |
-| Verified | finding 2: 12/12 sweep + end-to-end, 0 failures |
+| Verified | both findings: 12/12 sweep + end-to-end, 0 failures |
 | Branch | `per_api_version_messages` |
 | Baseline | `8d6147a`, clean, in sync with `origin` |
 
@@ -95,14 +95,56 @@ forced: `<path>_<leaf>`, joined with `_`.
 generated files, the tests in `tools/test_generated_messages.py` that assert
 sub-message shape, and both reference docs.
 
-- [ ] Decide the naming scheme (recommend `<path>_<leaf>`, forced by the collisions)
-- [ ] Decide how `skyview_*` array-length consistency is enforced and tested
-- [ ] Generator: emit one flat `.msg` per API pair
-- [ ] Generator: flatten the fill code to match
-- [ ] Update `test_generated_messages.py` — completeness checks now walk a flat model
-- [ ] Regenerate; confirm the file count drops to 10 and `--check` is clean
-- [ ] Full 12-label sweep
-- [ ] Rewrite the structure doc's layout section and diagram
+**Decisions** *(settled 2026-08-19)*
+
+1. **Names carry their path**: `<path>_<leaf>`, joined with `_` — `fix_time`,
+   `skyview_elevation`, `raw_meas_svid`. Forced rather than chosen: bare leaf
+   names collide 63 times in `GPSDRaw16v1`, path-prefixed collide 0 times.
+
+2. **Union arms flatten to plain scalars**, not to 0-or-1 arrays. `version`,
+   `osc`, `raw` and `error` — 11 fields — become scalars, and `set` says which
+   arm is live, which is already the documented contract. `string error`
+   instead of `string[] error` reads the way a caller expects.
+
+   **This retires the 0-or-1 array convention entirely**, so the structure doc
+   section describing it goes, and the mask stops being optional for anyone
+   reading a union arm.
+
+3. **Length consistency is structural, plus a test.** The generated fill
+   resizes and writes every array in a group from *one* loop, so unequal
+   lengths are unrepresentable rather than merely tested for; a generated test
+   backs it up.
+
+Four real arrays become parallel arrays. Group sizes in `GPSDRaw16v1`:
+
+| Group | Parallel arrays | Length |
+|---|---|---|
+| `imu_*` | 35 | entries before the first empty `msg` |
+| `raw_meas_*` | 16 | `meas[]` entries with a usable `svid` |
+| `skyview_*` | 14 | `satellites_visible` |
+| `devices_list_*` | 14 | `ndevices` |
+
+Result: 274 fields in `GPSDRaw16v1` — 79 arrays, 195 scalars — and 166 in
+`GPSDRaw9v0`.
+
+- [x] Naming scheme decided: `<path>_<leaf>`
+- [x] Array-length consistency decided: one loop + generated test
+- [x] Generator: `flatten_model()` collapses the nested messages into one
+      flat root. **905 → 11 `.msg` files** across both findings
+- [x] Generator: fill rewritten as a tree over the C paths, so `fix.ecef.x`
+      and `fix.ecef.y` share their guards; plus one filler per array group
+- [x] `test_generated_messages.py` reworked — 20 of its tests asserted the
+      nested shape. Completeness now maps each struct to a field *prefix*
+      and matches with `covers()`, since snake_case names contain
+      underscores and a flat name cannot be split back into segments
+- [x] Regenerate: 11 `.msg` (10 `GPSDRaw` + `GPSDJson`), `--check` clean at
+      33 files. `GPSDRaw16v1` is 274 fields: 79 arrays, 195 scalars
+- [x] Full 12-label sweep — all 12 PASS, 60-62 tests each, 0 failures.
+      The 20 end-to-end tests skip on the libgps-only labels, which is
+      correct: they need a full GPSd build
+- [x] Structure doc rewritten: new diagram, the 0-or-1 array section replaced
+      by the mask-gated scalar rule, a parallel-array section with the four
+      groups, and the version table rebuilt as field counts per version
 
 ### 2. RTCM is overkill; publish the raw GPSd JSON instead
 
@@ -295,6 +337,8 @@ that the next session would otherwise rediscover.
 
 | Date | Note |
 |---|---|
+| 2026-08-19 | **Finding 1 complete.** Full 12-label sweep all PASS (60-62 tests per version, 0 failures). Counts still rise monotonically with API version. Net across both findings: **905 → 11 `.msg` files**, 100 → 1 message family, full build ~8 min → ~2 min. |
+| 2026-08-19 | **Finding 1 implemented.** 177 → 11 `.msg`; `GPSDRaw16v1` is one flat message of 274 fields. Three things the measurements did not predict: (1) union arms became scalars but still need the **mask gate in the fill** — the C members share storage, so reading an unnamed arm is still a read of an inactive union member; (2) `raw_meas` is a *filtered* subset (GPSd marks unused entries with svid 0/255), not a prefix, so the group fillers take **source indices** rather than a count — which also covers the prefix groups uniformly; (3) flattening created `skyview_time`, a per-report scalar sitting among the per-satellite `skyview_*` arrays — not a collision but confusable, so it is called out in the docs and special-cased in the completeness test. End-to-end green: 62 tests, 0 failures, 0 skipped. |
 | 2026-08-19 | **Finding 2 complete.** Full 12-label sweep all PASS (58-60 tests per version, 0 failures; the 20 end-to-end tests skip without a full GPSd build, which is correct for the libgps-only labels). Counts still rise monotonically with API version, the weak check that each build really compiled against its own header. |
 | 2026-08-19 | **Finding 2 verified end to end**: 60 tests, 0 failures, **0 skipped**, including the 5-test `JsonTopic` suite. One stale test caught it — `test_subframe_arm_stays_empty` asserted a field that no longer exists and failed with `AttributeError`. Reworked rather than deleted: the class is now `LogIsUnreachableThroughLibgps` (LOG really is still unreachable and the field remains), the SUBFRAME premise guard moved into `JsonTopic` so its assertions cannot pass against a log with no subframes, and the log test shares `JsonTopic`'s capture instead of replaying the same 15s log twice. |
 | 2026-08-19 | **Finding 2 implemented.** 905 → 177 `.msg` files, 100 → 20 families; `gpsd_json` publishes every report per read. Build 8min → 2min. Three things worth carrying forward: (1) `GPSDJson.msg` must be *generated*, since `orphans()` owns all of `msg/` and would delete a hand-written file; (2) the RTCM/subframe dispatch machinery was provably dead — deleting it changed no generated byte; (3) `tools/test_against_gpsd.sh` caches `.gpsd_versions/msgs/install` with **no staleness check against the `.msg` files**, so it silently reused a pre-`GPSDJson` build and failed with a missing header. CI is unaffected (it does not cache that path), but clear it by hand after changing the message set. |

@@ -26,45 +26,89 @@ silently misreading the other.
 
 ## Top-level layout
 
-`GPSDRaw16v1` holds a `std_msgs/Header`, the `set` report mask, the scalar
-members of `gps_data_t`, and these sub-messages. It mirrors the parts of
-`gps_data_t` a socket client can actually reach; what libgps cannot decode
-travels on `gpsd_json` instead.
+`GPSDRaw16v1` is **flat**: a `std_msgs/Header`, the `set` report mask, and every
+value `gps_data_t` reaches, as a field on the message itself. No project-defined
+sub-messages nest inside it — only `std_msgs` and `builtin_interfaces` types do.
+
+It mirrors the parts of `gps_data_t` a socket client can actually reach; what
+libgps cannot decode travels on `gpsd_json` instead.
+
+274 fields at API 16.1, 166 at API 9.0. That is a lot to read at once, and it is
+the point: one type per API version instead of a hundred.
 
 ```mermaid
 graph LR
-  RAW["GPSDRaw&lt;M&gt;v&lt;N&gt;<br/>header, set, scalars"]
+  RAW["GPSDRaw&lt;M&gt;v&lt;N&gt;<br/>one flat message"]
 
-  RAW --> FIX["fix<br/>GPSDFix"]
-  RAW --> DOP["dop<br/>GPSDDop"]
-  RAW --> SKY["skyview[]<br/>GPSDSatellite"]
-  RAW --> DEV["dev / policy / devices<br/>GPSDDevconfig, GPSDPolicy, GPSDRawDevices"]
-  RAW --> GST["gst<br/>GPSDGst"]
-  RAW --> ATT["attitude, imu[]<br/>GPSDAttitude"]
-  RAW --> TIME["toff, pps<br/>GPSDTimedelta"]
-  RAW --> SRC["source<br/>GPSDFixsource"]
-
-  RAW --> UNION["union arms<br/>0-or-1 arrays"]
-  UNION --> RAWD["raw[]<br/>GPSDRawdata"]
-  UNION --> OSC["osc[]<br/>GPSDOscillator"]
-  UNION --> VER["version[]<br/>GPSDVersion"]
-  UNION --> ERR["error<br/>string"]
+  RAW --> SCA["scalars<br/>fix_latitude, dop_hdop,<br/>gst_lat_err_deviation, toff_real"]
+  RAW --> GRP["parallel-array groups<br/>skyview_*, devices_list_*,<br/>imu_*, raw_meas_*"]
+  RAW --> UNI["union arms, scalars<br/>gated by set<br/>version_*, osc_*, error"]
+  RAW --> MASK["set<br/>the report mask"]
 
   JSON["gpsd_json<br/>GPSDJson: Header + string<br/>every report, unversioned"]
 ```
 
-### Union arms are 0-or-1 arrays
+Nothing below `GPSDRaw` is another generated message — those boxes are groups of
+fields on the message itself.
 
-`gps_data_t` carries an anonymous union: one report populates exactly one arm.
-ROS messages have no union, so each arm becomes an array bounded to a single
-element. An empty array means GPSd did not report that arm; one element means it
-did. Read `set` to learn which arm the report filled.
+### Names carry their path
 
-### `skyview` is trimmed
+A member's field name is its path through `gps_data_t`, joined with `_`:
+`gps_fix_t::time` is `fix_time`, `satellite_t::elevation` is
+`skyview_elevation`, `rawdata_t::meas[].svid` is `raw_meas_svid`.
+
+The prefix is not decoration. Flattening to bare leaf names collides 63 times in
+one API version — `time`, `status`, `temp`, `alt_hae` and others each occur in
+several structs.
+
+### Arrays of structs become parallel arrays
+
+One array of structs becomes many arrays of scalars, one per member. Four groups
+exist:
+
+| Group | Length |
+|---|---|
+| `skyview_*` | `satellites_visible` |
+| `devices_list_*` | `devices_ndevices` |
+| `imu_*` | entries before the first empty `imu_msg` |
+| `raw_meas_*` | `meas[]` entries with a usable `svid` |
+
+**Every array in a group has the same length**, and index `i` refers to the same
+satellite, device or measurement across all of them. The generated fill resizes
+and writes each group from a single loop, so unequal lengths are not
+representable rather than merely tested for.
+
+```cpp
+for (size_t i = 0; i < msg.skyview_prn.size(); ++i) {
+  use(msg.skyview_prn[i], msg.skyview_elevation[i], msg.skyview_used[i]);
+}
+```
 
 GPSd sizes `skyview` as a fixed array of 140 or 184 entries and reports the
-valid count separately. The message carries only the valid prefix, so
-`skyview.size()` equals `satellites_visible`.
+valid count separately; only the valid entries are published.
+
+One name to watch: **`skyview_time` is not part of the group.** It is
+`gps_data_t::skyview_time`, a single timestamp for the whole report, and it is a
+scalar. The `skyview_*` arrays come from `skyview[]`.
+
+### Union arms are plain scalars, gated by the mask
+
+`gps_data_t` carries an anonymous union: one report populates exactly one arm.
+Its members are ordinary scalars on the message — `version_release`,
+`osc_delta`, `error` — because a 0-or-1 array would force `msg.osc_delta[0]` on
+every reader without saying anything the mask does not.
+
+**Read `set` before reading a union arm.** The fields exist on every message;
+only the mask says whether they mean anything for this report.
+
+```cpp
+if (msg.set & gps_extended_msgs::msg::GPSDRaw16v1::SET_OSCILLATOR) {
+  use(msg.osc_delta);
+}
+```
+
+The parser honours this too: it copies an arm only when the mask names it, since
+reading another arm would be a read of an inactive union member.
 
 ### RTCM and subframe travel as raw JSON
 
@@ -106,24 +150,20 @@ omits.
 
 ## What varies between API versions
 
-19 versioned message families, plus the unversioned `GPSDJson`. 16 exist in all
-ten API versions; three appear as GPSd adds struct members.
-
-| Family | Present in | Reason |
-|---|---|---|
-| `GPSDLog` | 9.1 → | GPSd adds `gps_log_t` |
-| `GPSDBaseline` | 13.0 → | GPSd adds `baseline_t` |
-| `GPSDFixsource` | 14.0 → | GPSd adds `gps_data_t::source` |
-
-Message count per version:
+One message type per API version, so what varies is the *field list* rather
+than the set of messages.
 
 | API | 9.0 | 9.1 | 10.0 | 10.1 | 11.0 | 12.0 | 13.0 | 14.0 | 16.0 | 16.1 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Messages | 16 | 17 | 17 | 17 | 17 | 17 | 18 | 19 | 19 | 19 |
+| Fields | 166 | 191 | 198 | 198 | 198 | 228 | 249 | 270 | 274 | 274 |
 
-Moving RTCM and subframe onto `gpsd_json` removed most of the churn along with
-most of the messages: the families that used to appear and disappear between
-versions were overwhelmingly RTCM arms.
+Fields appear as GPSd adds struct members — `log_*` at 9.1, `imu_*` at 12.0,
+`fix_base_*` at 13.0, `source_spec` at 14.0 — and the count only ever grows
+across this range.
+
+Because the names are paths, a member moving between structs *renames* its
+field. That is deliberate: the rename is visible at compile time rather than
+silently reading a different value.
 
 ## Fields that move between versions
 
@@ -132,11 +172,11 @@ mirrors whichever layout its own version uses.
 
 | Member | 9.0 – 9.1 | 10.0 → |
 |---|---|---|
-| Fix status | `status` on `GPSDRaw` | `fix.status` on `GPSDFix` |
+| Fix status | `status` | `fix_status` |
 
 | Member | 9.0 – 11.0 | 12.0 → |
 |---|---|---|
-| `attitude` | union arm | standalone member, plus `imu[]` |
+| `attitude` | union arm (`attitude_*`, gated by the mask) | standalone member, plus the `imu_*` group |
 
 ## Reading the `set` mask
 

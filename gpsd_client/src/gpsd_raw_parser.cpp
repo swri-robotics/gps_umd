@@ -1,6 +1,8 @@
 #include <gpsd_client/gpsd_raw_parser.hpp>
 
 #include <algorithm>
+#include <cstddef>
+#include <vector>
 
 namespace gpsd_client
 {
@@ -34,27 +36,28 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
   msg.header.stamp = stamp;
   msg.header.frame_id = context_.frame_id;
 
-  // Everything with a fixed shape, including the nested fix/dop sub-messages.
+  // Every scalar, including the members that used to live in sub-messages.
   generated::fill(data, msg);
 
-  // The generator skips skyview: its count lives in a sibling field rather
-  // than in the type.
-  const std::size_t visible = skyviewCount(data);
-  msg.skyview.resize(visible);
-  for (std::size_t i = 0; i < visible; ++i)
-  {
-    generated::fill(data.skyview[i], msg.skyview[i]);
-  }
+  /* The parallel-array groups. The generated filler writes each group from a
+   * single loop, so its arrays cannot end up different lengths; this side only
+   * decides *which* source elements are valid, which the generator cannot know.
+   */
+  std::vector<std::size_t> idx;
+  auto prefix = [&idx](std::size_t n) -> const std::vector<std::size_t>& {
+    idx.resize(n);
+    for (std::size_t i = 0; i < n; ++i)
+    {
+      idx[i] = i;
+    }
+    return idx;
+  };
 
-  // The device list, trimmed the same way. gps_data_t has carried `devices`
-  // since API 9, so this needs no version guard -- unlike imu[] and source
-  // below, which arrived later.
-  const std::size_t devices = deviceCount(data);
-  msg.devices.list.resize(devices);
-  for (std::size_t i = 0; i < devices; ++i)
-  {
-    generated::fill(data.devices.list[i], msg.devices.list[i]);
-  }
+  generated::fill_skyview(data, msg, prefix(skyviewCount(data)));
+
+  // gps_data_t has carried `devices` since API 9, so this needs no guard --
+  // unlike the imu and raw groups below, which arrived later.
+  generated::fill_devices_list(data, msg, prefix(deviceCount(data)));
 
 #if GPSD_API_MAJOR_VERSION >= 12
   /* imu[] is the one array with no count anywhere: gps_data_t carries a fixed
@@ -73,11 +76,7 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
   {
     ++imu_count;
   }
-  msg.imu.resize(imu_count);
-  for (std::size_t i = 0; i < imu_count; ++i)
-  {
-    generated::fill(data.imu[i], msg.imu[i]);
-  }
+  generated::fill_imu(data, msg, prefix(imu_count));
 #endif
 
   /* rawdata_t::meas[] carries neither a count nor a terminator. GPSd fills
@@ -85,24 +84,22 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
    * own dumper walks all MAXCHANNELS and skips the empty entries rather than
    * stopping at the first (gpsd/gpsd_json.c). It skips svid 255 too, which
    * GLONASS uses for "unknown". Applying the same rule publishes the same
-   * measurements GPSd reports.
-   *
-   * meas lives in the report union, so msg.raw is empty unless this report is
-   * a RAW one.
+   * measurements GPSd reports -- and is why the fillers take indices rather
+   * than a count: this group is a filtered subset, not a prefix.
    */
-  if (!msg.raw.empty())
+  const std::size_t max_meas = sizeof(data.raw.meas) / sizeof(data.raw.meas[0]);
+  std::vector<std::size_t> meas;
+  if (0 != (data.set & RAW_SET))
   {
-    const std::size_t max_meas = sizeof(data.raw.meas) / sizeof(data.raw.meas[0]);
     for (std::size_t i = 0; i < max_meas; ++i)
     {
-      if (0 == data.raw.meas[i].svid || 255 == data.raw.meas[i].svid)
+      if (0 != data.raw.meas[i].svid && 255 != data.raw.meas[i].svid)
       {
-        continue;
+        meas.push_back(i);
       }
-      msg.raw[0].meas.emplace_back();
-      generated::fill(data.raw.meas[i], msg.raw[0].meas.back());
     }
   }
+  generated::fill_raw_meas(data, msg, meas);
 
   return msg;
 }

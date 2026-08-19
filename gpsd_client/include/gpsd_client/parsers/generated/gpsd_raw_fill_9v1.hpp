@@ -6,27 +6,14 @@
 #include <gpsd_client/parsers/generated/gpsd_has_member.hpp>
 
 #include <gps_extended_msgs/msg/gpsd_raw9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_fix9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_fix_ecef9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_fix_ned9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_log9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_dop9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_satellite9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_devconfig9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_policy9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_raw_devices9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_attitude9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_rawdata9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_meas9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_gst9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_oscillator9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_version9v1.hpp>
-#include <gps_extended_msgs/msg/gpsd_timedelta9v1.hpp>
 
 #include <gps.h>
 
+#include <cstddef>
 #include <cstring>
 #include <iterator>
+#include <type_traits>
+#include <vector>
 
 // Which pair this build actually uses. gpsd_raw_message.hpp sets these
 // before including one fill header, so a libgps newer than anything
@@ -402,38 +389,6 @@ GPSD_DEFINE_HAS_MEMBER(z)
 // Forward declarations; see the note in the generator.
 template <typename T>
 inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDFix9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDFixEcef9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDFixNed9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDLog9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDDop9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSatellite9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDDevconfig9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDPolicy9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawDevices9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDAttitude9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawdata9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDMeas9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDGst9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDOscillator9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDVersion9v1& out);
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDTimedelta9v1& out);
 
 template <typename T>
 inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw9v1& out)
@@ -448,10 +403,210 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw9v1& out)
     out.online.nanosec = static_cast<uint32_t>(in.online.tv_nsec);
   }
   if constexpr (has_fix<T>::value) {
-    fill(in.fix, out.fix);
+    using T_fix = std::decay_t<decltype(in.fix)>;
+    if constexpr (has_time<T_fix>::value) {
+      out.fix_time.sec = static_cast<int32_t>(in.fix.time.tv_sec);
+      out.fix_time.nanosec = static_cast<uint32_t>(in.fix.time.tv_nsec);
+    }
+    if constexpr (has_mode<T_fix>::value) {
+      out.fix_mode = in.fix.mode;
+    }
+    if constexpr (has_ept<T_fix>::value) {
+      out.fix_ept = in.fix.ept;
+    }
+    if constexpr (has_latitude<T_fix>::value) {
+      out.fix_latitude = in.fix.latitude;
+    }
+    if constexpr (has_epy<T_fix>::value) {
+      out.fix_epy = in.fix.epy;
+    }
+    if constexpr (has_longitude<T_fix>::value) {
+      out.fix_longitude = in.fix.longitude;
+    }
+    if constexpr (has_epx<T_fix>::value) {
+      out.fix_epx = in.fix.epx;
+    }
+    if constexpr (has_altitude<T_fix>::value) {
+      out.fix_altitude = in.fix.altitude;
+    }
+    if constexpr (has_altHAE<T_fix>::value) {
+      out.fix_alt_hae = in.fix.altHAE;
+    }
+    if constexpr (has_altMSL<T_fix>::value) {
+      out.fix_alt_msl = in.fix.altMSL;
+    }
+    if constexpr (has_epv<T_fix>::value) {
+      out.fix_epv = in.fix.epv;
+    }
+    if constexpr (has_track<T_fix>::value) {
+      out.fix_track = in.fix.track;
+    }
+    if constexpr (has_epd<T_fix>::value) {
+      out.fix_epd = in.fix.epd;
+    }
+    if constexpr (has_speed<T_fix>::value) {
+      out.fix_speed = in.fix.speed;
+    }
+    if constexpr (has_eps<T_fix>::value) {
+      out.fix_eps = in.fix.eps;
+    }
+    if constexpr (has_climb<T_fix>::value) {
+      out.fix_climb = in.fix.climb;
+    }
+    if constexpr (has_epc<T_fix>::value) {
+      out.fix_epc = in.fix.epc;
+    }
+    if constexpr (has_eph<T_fix>::value) {
+      out.fix_eph = in.fix.eph;
+    }
+    if constexpr (has_sep<T_fix>::value) {
+      out.fix_sep = in.fix.sep;
+    }
+    if constexpr (has_geoid_sep<T_fix>::value) {
+      out.fix_geoid_sep = in.fix.geoid_sep;
+    }
+    if constexpr (has_magnetic_track<T_fix>::value) {
+      out.fix_magnetic_track = in.fix.magnetic_track;
+    }
+    if constexpr (has_magnetic_var<T_fix>::value) {
+      out.fix_magnetic_var = in.fix.magnetic_var;
+    }
+    if constexpr (has_depth<T_fix>::value) {
+      out.fix_depth = in.fix.depth;
+    }
+    if constexpr (has_ecef<T_fix>::value) {
+      using T_fix_ecef = std::decay_t<decltype(in.fix.ecef)>;
+      if constexpr (has_x<T_fix_ecef>::value) {
+        out.fix_ecef_x = in.fix.ecef.x;
+      }
+      if constexpr (has_y<T_fix_ecef>::value) {
+        out.fix_ecef_y = in.fix.ecef.y;
+      }
+      if constexpr (has_z<T_fix_ecef>::value) {
+        out.fix_ecef_z = in.fix.ecef.z;
+      }
+      if constexpr (has_pAcc<T_fix_ecef>::value) {
+        out.fix_ecef_p_acc = in.fix.ecef.pAcc;
+      }
+      if constexpr (has_vx<T_fix_ecef>::value) {
+        out.fix_ecef_vx = in.fix.ecef.vx;
+      }
+      if constexpr (has_vy<T_fix_ecef>::value) {
+        out.fix_ecef_vy = in.fix.ecef.vy;
+      }
+      if constexpr (has_vz<T_fix_ecef>::value) {
+        out.fix_ecef_vz = in.fix.ecef.vz;
+      }
+      if constexpr (has_vAcc<T_fix_ecef>::value) {
+        out.fix_ecef_v_acc = in.fix.ecef.vAcc;
+      }
+    }
+    if constexpr (has_NED<T_fix>::value) {
+      using T_fix_NED = std::decay_t<decltype(in.fix.NED)>;
+      if constexpr (has_relPosN<T_fix_NED>::value) {
+        out.fix_ned_rel_pos_n = in.fix.NED.relPosN;
+      }
+      if constexpr (has_relPosE<T_fix_NED>::value) {
+        out.fix_ned_rel_pos_e = in.fix.NED.relPosE;
+      }
+      if constexpr (has_relPosD<T_fix_NED>::value) {
+        out.fix_ned_rel_pos_d = in.fix.NED.relPosD;
+      }
+      if constexpr (has_velN<T_fix_NED>::value) {
+        out.fix_ned_vel_n = in.fix.NED.velN;
+      }
+      if constexpr (has_velE<T_fix_NED>::value) {
+        out.fix_ned_vel_e = in.fix.NED.velE;
+      }
+      if constexpr (has_velD<T_fix_NED>::value) {
+        out.fix_ned_vel_d = in.fix.NED.velD;
+      }
+    }
+    if constexpr (has_datum<T_fix>::value) {
+      out.fix_datum.assign(in.fix.datum, strnlen(in.fix.datum, sizeof(in.fix.datum)));
+    }
+    if constexpr (has_dgps_age<T_fix>::value) {
+      out.fix_dgps_age = in.fix.dgps_age;
+    }
+    if constexpr (has_dgps_station<T_fix>::value) {
+      out.fix_dgps_station = in.fix.dgps_station;
+    }
   }
   if constexpr (has_log<T>::value) {
-    fill(in.log, out.log);
+    using T_log = std::decay_t<decltype(in.log)>;
+    if constexpr (has_lon<T_log>::value) {
+      out.log_lon = in.log.lon;
+    }
+    if constexpr (has_lat<T_log>::value) {
+      out.log_lat = in.log.lat;
+    }
+    if constexpr (has_altHAE<T_log>::value) {
+      out.log_alt_hae = in.log.altHAE;
+    }
+    if constexpr (has_altMSL<T_log>::value) {
+      out.log_alt_msl = in.log.altMSL;
+    }
+    if constexpr (has_gSpeed<T_log>::value) {
+      out.log_g_speed = in.log.gSpeed;
+    }
+    if constexpr (has_heading<T_log>::value) {
+      out.log_heading = in.log.heading;
+    }
+    if constexpr (has_tAcc<T_log>::value) {
+      out.log_t_acc = in.log.tAcc;
+    }
+    if constexpr (has_hAcc<T_log>::value) {
+      out.log_h_acc = in.log.hAcc;
+    }
+    if constexpr (has_vAcc<T_log>::value) {
+      out.log_v_acc = in.log.vAcc;
+    }
+    if constexpr (has_sAcc<T_log>::value) {
+      out.log_s_acc = in.log.sAcc;
+    }
+    if constexpr (has_headAcc<T_log>::value) {
+      out.log_head_acc = in.log.headAcc;
+    }
+    if constexpr (has_velN<T_log>::value) {
+      out.log_vel_n = in.log.velN;
+    }
+    if constexpr (has_velE<T_log>::value) {
+      out.log_vel_e = in.log.velE;
+    }
+    if constexpr (has_velD<T_log>::value) {
+      out.log_vel_d = in.log.velD;
+    }
+    if constexpr (has_pDOP<T_log>::value) {
+      out.log_p_dop = in.log.pDOP;
+    }
+    if constexpr (has_distance<T_log>::value) {
+      out.log_distance = in.log.distance;
+    }
+    if constexpr (has_totalDistance<T_log>::value) {
+      out.log_total_distance = in.log.totalDistance;
+    }
+    if constexpr (has_distanceStd<T_log>::value) {
+      out.log_distance_std = in.log.distanceStd;
+    }
+    if constexpr (has_then<T_log>::value) {
+      out.log_then.sec = static_cast<int32_t>(in.log.then.tv_sec);
+      out.log_then.nanosec = static_cast<uint32_t>(in.log.then.tv_nsec);
+    }
+    if constexpr (has_status<T_log>::value) {
+      out.log_status = in.log.status;
+    }
+    if constexpr (has_index_cnt<T_log>::value) {
+      out.log_index_cnt = in.log.index_cnt;
+    }
+    if constexpr (has_fixType<T_log>::value) {
+      out.log_fix_type = in.log.fixType;
+    }
+    if constexpr (has_numSV<T_log>::value) {
+      out.log_num_sv = in.log.numSV;
+    }
+    if constexpr (has_string<T_log>::value) {
+      out.log_string.assign(in.log.string, strnlen(in.log.string, sizeof(in.log.string)));
+    }
   }
   if constexpr (has_status<T>::value) {
     out.status = in.status;
@@ -463,7 +618,28 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw9v1& out)
     out.satellites_used = in.satellites_used;
   }
   if constexpr (has_dop<T>::value) {
-    fill(in.dop, out.dop);
+    using T_dop = std::decay_t<decltype(in.dop)>;
+    if constexpr (has_xdop<T_dop>::value) {
+      out.dop_xdop = in.dop.xdop;
+    }
+    if constexpr (has_ydop<T_dop>::value) {
+      out.dop_ydop = in.dop.ydop;
+    }
+    if constexpr (has_pdop<T_dop>::value) {
+      out.dop_pdop = in.dop.pdop;
+    }
+    if constexpr (has_hdop<T_dop>::value) {
+      out.dop_hdop = in.dop.hdop;
+    }
+    if constexpr (has_vdop<T_dop>::value) {
+      out.dop_vdop = in.dop.vdop;
+    }
+    if constexpr (has_tdop<T_dop>::value) {
+      out.dop_tdop = in.dop.tdop;
+    }
+    if constexpr (has_gdop<T_dop>::value) {
+      out.dop_gdop = in.dop.gdop;
+    }
   }
   if constexpr (has_skyview_time<T>::value) {
     out.skyview_time.sec = static_cast<int32_t>(in.skyview_time.tv_sec);
@@ -472,47 +648,267 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw9v1& out)
   if constexpr (has_satellites_visible<T>::value) {
     out.satellites_visible = in.satellites_visible;
   }
-  // skyview: filled by the caller, which knows the valid element count
   if constexpr (has_dev<T>::value) {
-    fill(in.dev, out.dev);
-  }
-  if constexpr (has_policy<T>::value) {
-    fill(in.policy, out.policy);
-  }
-  if constexpr (has_devices<T>::value) {
-    fill(in.devices, out.devices);
-  }
-  // attitude: union arm, left empty until its discriminator dispatch lands
-  if constexpr (has_raw<T>::value) {
-    if (0 != (in.set & RAW_SET)) {
-      out.raw.resize(1);
-      fill(in.raw, out.raw[0]);
+    using T_dev = std::decay_t<decltype(in.dev)>;
+    if constexpr (has_path<T_dev>::value) {
+      out.dev_path.assign(in.dev.path, strnlen(in.dev.path, sizeof(in.dev.path)));
+    }
+    if constexpr (has_flags<T_dev>::value) {
+      out.dev_flags = in.dev.flags;
+    }
+    if constexpr (has_driver<T_dev>::value) {
+      out.dev_driver.assign(in.dev.driver, strnlen(in.dev.driver, sizeof(in.dev.driver)));
+    }
+    if constexpr (has_subtype<T_dev>::value) {
+      out.dev_subtype.assign(in.dev.subtype, strnlen(in.dev.subtype, sizeof(in.dev.subtype)));
+    }
+    if constexpr (has_subtype1<T_dev>::value) {
+      out.dev_subtype1.assign(in.dev.subtype1, strnlen(in.dev.subtype1, sizeof(in.dev.subtype1)));
+    }
+    if constexpr (has_hexdata<T_dev>::value) {
+      out.dev_hexdata.assign(in.dev.hexdata, strnlen(in.dev.hexdata, sizeof(in.dev.hexdata)));
+    }
+    if constexpr (has_activated<T_dev>::value) {
+      out.dev_activated.sec = static_cast<int32_t>(in.dev.activated.tv_sec);
+      out.dev_activated.nanosec = static_cast<uint32_t>(in.dev.activated.tv_nsec);
+    }
+    if constexpr (has_baudrate<T_dev>::value) {
+      out.dev_baudrate = in.dev.baudrate;
+    }
+    if constexpr (has_stopbits<T_dev>::value) {
+      out.dev_stopbits = in.dev.stopbits;
+    }
+    if constexpr (has_parity<T_dev>::value) {
+      out.dev_parity = in.dev.parity;
+    }
+    if constexpr (has_cycle<T_dev>::value) {
+      out.dev_cycle.sec = static_cast<int32_t>(in.dev.cycle.tv_sec);
+      out.dev_cycle.nanosec = static_cast<uint32_t>(in.dev.cycle.tv_nsec);
+    }
+    if constexpr (has_mincycle<T_dev>::value) {
+      out.dev_mincycle.sec = static_cast<int32_t>(in.dev.mincycle.tv_sec);
+      out.dev_mincycle.nanosec = static_cast<uint32_t>(in.dev.mincycle.tv_nsec);
+    }
+    if constexpr (has_driver_mode<T_dev>::value) {
+      out.dev_driver_mode = in.dev.driver_mode;
     }
   }
-  // gst: union arm, left empty until its discriminator dispatch lands
+  if constexpr (has_policy<T>::value) {
+    using T_policy = std::decay_t<decltype(in.policy)>;
+    if constexpr (has_watcher<T_policy>::value) {
+      out.policy_watcher = in.policy.watcher;
+    }
+    if constexpr (has_json<T_policy>::value) {
+      out.policy_json = in.policy.json;
+    }
+    if constexpr (has_nmea<T_policy>::value) {
+      out.policy_nmea = in.policy.nmea;
+    }
+    if constexpr (has_raw<T_policy>::value) {
+      out.policy_raw = in.policy.raw;
+    }
+    if constexpr (has_scaled<T_policy>::value) {
+      out.policy_scaled = in.policy.scaled;
+    }
+    if constexpr (has_timing<T_policy>::value) {
+      out.policy_timing = in.policy.timing;
+    }
+    if constexpr (has_split24<T_policy>::value) {
+      out.policy_split24 = in.policy.split24;
+    }
+    if constexpr (has_pps<T_policy>::value) {
+      out.policy_pps = in.policy.pps;
+    }
+    if constexpr (has_loglevel<T_policy>::value) {
+      out.policy_loglevel = in.policy.loglevel;
+    }
+    if constexpr (has_devpath<T_policy>::value) {
+      out.policy_devpath.assign(in.policy.devpath, strnlen(in.policy.devpath, sizeof(in.policy.devpath)));
+    }
+    if constexpr (has_remote<T_policy>::value) {
+      out.policy_remote.assign(in.policy.remote, strnlen(in.policy.remote, sizeof(in.policy.remote)));
+    }
+  }
+  if constexpr (has_devices<T>::value) {
+    using T_devices = std::decay_t<decltype(in.devices)>;
+    if constexpr (has_time<T_devices>::value) {
+      out.devices_time.sec = static_cast<int32_t>(in.devices.time.tv_sec);
+      out.devices_time.nanosec = static_cast<uint32_t>(in.devices.time.tv_nsec);
+    }
+    if constexpr (has_ndevices<T_devices>::value) {
+      out.devices_ndevices = in.devices.ndevices;
+    }
+  }
+  if constexpr (has_attitude<T>::value) {
+    using T_attitude = std::decay_t<decltype(in.attitude)>;
+    if constexpr (has_mtime<T_attitude>::value) {
+      out.attitude_mtime.sec = static_cast<int32_t>(in.attitude.mtime.tv_sec);
+      out.attitude_mtime.nanosec = static_cast<uint32_t>(in.attitude.mtime.tv_nsec);
+    }
+    if constexpr (has_acc_len<T_attitude>::value) {
+      out.attitude_acc_len = in.attitude.acc_len;
+    }
+    if constexpr (has_acc_x<T_attitude>::value) {
+      out.attitude_acc_x = in.attitude.acc_x;
+    }
+    if constexpr (has_acc_y<T_attitude>::value) {
+      out.attitude_acc_y = in.attitude.acc_y;
+    }
+    if constexpr (has_acc_z<T_attitude>::value) {
+      out.attitude_acc_z = in.attitude.acc_z;
+    }
+    if constexpr (has_depth<T_attitude>::value) {
+      out.attitude_depth = in.attitude.depth;
+    }
+    if constexpr (has_dip<T_attitude>::value) {
+      out.attitude_dip = in.attitude.dip;
+    }
+    if constexpr (has_gyro_x<T_attitude>::value) {
+      out.attitude_gyro_x = in.attitude.gyro_x;
+    }
+    if constexpr (has_gyro_y<T_attitude>::value) {
+      out.attitude_gyro_y = in.attitude.gyro_y;
+    }
+    if constexpr (has_heading<T_attitude>::value) {
+      out.attitude_heading = in.attitude.heading;
+    }
+    if constexpr (has_mag_len<T_attitude>::value) {
+      out.attitude_mag_len = in.attitude.mag_len;
+    }
+    if constexpr (has_mag_x<T_attitude>::value) {
+      out.attitude_mag_x = in.attitude.mag_x;
+    }
+    if constexpr (has_mag_y<T_attitude>::value) {
+      out.attitude_mag_y = in.attitude.mag_y;
+    }
+    if constexpr (has_mag_z<T_attitude>::value) {
+      out.attitude_mag_z = in.attitude.mag_z;
+    }
+    if constexpr (has_pitch<T_attitude>::value) {
+      out.attitude_pitch = in.attitude.pitch;
+    }
+    if constexpr (has_roll<T_attitude>::value) {
+      out.attitude_roll = in.attitude.roll;
+    }
+    if constexpr (has_temp<T_attitude>::value) {
+      out.attitude_temp = in.attitude.temp;
+    }
+    if constexpr (has_yaw<T_attitude>::value) {
+      out.attitude_yaw = in.attitude.yaw;
+    }
+    if constexpr (has_mag_st<T_attitude>::value) {
+      out.attitude_mag_st = in.attitude.mag_st;
+    }
+    if constexpr (has_pitch_st<T_attitude>::value) {
+      out.attitude_pitch_st = in.attitude.pitch_st;
+    }
+    if constexpr (has_roll_st<T_attitude>::value) {
+      out.attitude_roll_st = in.attitude.roll_st;
+    }
+    if constexpr (has_yaw_st<T_attitude>::value) {
+      out.attitude_yaw_st = in.attitude.yaw_st;
+    }
+  }
+  if constexpr (has_raw<T>::value) {
+    if (0 != (in.set & RAW_SET)) {
+      using T_raw = std::decay_t<decltype(in.raw)>;
+      if constexpr (has_mtime<T_raw>::value) {
+        out.raw_mtime.sec = static_cast<int32_t>(in.raw.mtime.tv_sec);
+        out.raw_mtime.nanosec = static_cast<uint32_t>(in.raw.mtime.tv_nsec);
+      }
+    }
+  }
+  if constexpr (has_gst<T>::value) {
+    using T_gst = std::decay_t<decltype(in.gst)>;
+    if constexpr (has_utctime<T_gst>::value) {
+      out.gst_utctime.sec = static_cast<int32_t>(in.gst.utctime.tv_sec);
+      out.gst_utctime.nanosec = static_cast<uint32_t>(in.gst.utctime.tv_nsec);
+    }
+    if constexpr (has_rms_deviation<T_gst>::value) {
+      out.gst_rms_deviation = in.gst.rms_deviation;
+    }
+    if constexpr (has_smajor_deviation<T_gst>::value) {
+      out.gst_smajor_deviation = in.gst.smajor_deviation;
+    }
+    if constexpr (has_sminor_deviation<T_gst>::value) {
+      out.gst_sminor_deviation = in.gst.sminor_deviation;
+    }
+    if constexpr (has_smajor_orientation<T_gst>::value) {
+      out.gst_smajor_orientation = in.gst.smajor_orientation;
+    }
+    if constexpr (has_lat_err_deviation<T_gst>::value) {
+      out.gst_lat_err_deviation = in.gst.lat_err_deviation;
+    }
+    if constexpr (has_lon_err_deviation<T_gst>::value) {
+      out.gst_lon_err_deviation = in.gst.lon_err_deviation;
+    }
+    if constexpr (has_alt_err_deviation<T_gst>::value) {
+      out.gst_alt_err_deviation = in.gst.alt_err_deviation;
+    }
+  }
   if constexpr (has_osc<T>::value) {
     if (0 != (in.set & OSCILLATOR_SET)) {
-      out.osc.resize(1);
-      fill(in.osc, out.osc[0]);
+      using T_osc = std::decay_t<decltype(in.osc)>;
+      if constexpr (has_running<T_osc>::value) {
+        out.osc_running = in.osc.running;
+      }
+      if constexpr (has_reference<T_osc>::value) {
+        out.osc_reference = in.osc.reference;
+      }
+      if constexpr (has_disciplined<T_osc>::value) {
+        out.osc_disciplined = in.osc.disciplined;
+      }
+      if constexpr (has_delta<T_osc>::value) {
+        out.osc_delta = in.osc.delta;
+      }
     }
   }
   if constexpr (has_version<T>::value) {
     if (0 != (in.set & VERSION_SET)) {
-      out.version.resize(1);
-      fill(in.version, out.version[0]);
+      using T_version = std::decay_t<decltype(in.version)>;
+      if constexpr (has_release<T_version>::value) {
+        out.version_release.assign(in.version.release, strnlen(in.version.release, sizeof(in.version.release)));
+      }
+      if constexpr (has_rev<T_version>::value) {
+        out.version_rev.assign(in.version.rev, strnlen(in.version.rev, sizeof(in.version.rev)));
+      }
+      if constexpr (has_proto_major<T_version>::value) {
+        out.version_proto_major = in.version.proto_major;
+      }
+      if constexpr (has_proto_minor<T_version>::value) {
+        out.version_proto_minor = in.version.proto_minor;
+      }
+      if constexpr (has_remote<T_version>::value) {
+        out.version_remote.assign(in.version.remote, strnlen(in.version.remote, sizeof(in.version.remote)));
+      }
     }
   }
   if constexpr (has_error<T>::value) {
     if (0 != (in.set & ERROR_SET)) {
-      out.error.resize(1);
-      out.error[0].assign(in.error, strnlen(in.error, sizeof(in.error)));
+      out.error.assign(in.error, strnlen(in.error, sizeof(in.error)));
     }
   }
   if constexpr (has_toff<T>::value) {
-    fill(in.toff, out.toff);
+    using T_toff = std::decay_t<decltype(in.toff)>;
+    if constexpr (has_real<T_toff>::value) {
+      out.toff_real.sec = static_cast<int32_t>(in.toff.real.tv_sec);
+      out.toff_real.nanosec = static_cast<uint32_t>(in.toff.real.tv_nsec);
+    }
+    if constexpr (has_clock<T_toff>::value) {
+      out.toff_clock.sec = static_cast<int32_t>(in.toff.clock.tv_sec);
+      out.toff_clock.nanosec = static_cast<uint32_t>(in.toff.clock.tv_nsec);
+    }
   }
   if constexpr (has_pps<T>::value) {
-    fill(in.pps, out.pps);
+    using T_pps = std::decay_t<decltype(in.pps)>;
+    if constexpr (has_real<T_pps>::value) {
+      out.pps_real.sec = static_cast<int32_t>(in.pps.real.tv_sec);
+      out.pps_real.nanosec = static_cast<uint32_t>(in.pps.real.tv_nsec);
+    }
+    if constexpr (has_clock<T_pps>::value) {
+      out.pps_clock.sec = static_cast<int32_t>(in.pps.clock.tv_sec);
+      out.pps_clock.nanosec = static_cast<uint32_t>(in.pps.clock.tv_nsec);
+    }
   }
   if constexpr (has_qErr<T>::value) {
     out.q_err = in.qErr;
@@ -523,629 +919,266 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw9v1& out)
   }
 }
 
+/// Fill the skyview_* arrays from in.skyview, taking the
+/// elements named by idx. One loop, so every array in the group ends
+/// the same length.
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDFix9v1& out)
+inline void fill_skyview(const T& in, gps_extended_msgs::msg::GPSDRaw9v1& out,
+                          const std::vector<std::size_t>& idx)
 {
   (void)in;
   (void)out;
-  if constexpr (has_time<T>::value) {
-    out.time.sec = static_cast<int32_t>(in.time.tv_sec);
-    out.time.nanosec = static_cast<uint32_t>(in.time.tv_nsec);
-  }
-  if constexpr (has_mode<T>::value) {
-    out.mode = in.mode;
-  }
-  if constexpr (has_ept<T>::value) {
-    out.ept = in.ept;
-  }
-  if constexpr (has_latitude<T>::value) {
-    out.latitude = in.latitude;
-  }
-  if constexpr (has_epy<T>::value) {
-    out.epy = in.epy;
-  }
-  if constexpr (has_longitude<T>::value) {
-    out.longitude = in.longitude;
-  }
-  if constexpr (has_epx<T>::value) {
-    out.epx = in.epx;
-  }
-  if constexpr (has_altitude<T>::value) {
-    out.altitude = in.altitude;
-  }
-  if constexpr (has_altHAE<T>::value) {
-    out.alt_hae = in.altHAE;
-  }
-  if constexpr (has_altMSL<T>::value) {
-    out.alt_msl = in.altMSL;
-  }
-  if constexpr (has_epv<T>::value) {
-    out.epv = in.epv;
-  }
-  if constexpr (has_track<T>::value) {
-    out.track = in.track;
-  }
-  if constexpr (has_epd<T>::value) {
-    out.epd = in.epd;
-  }
-  if constexpr (has_speed<T>::value) {
-    out.speed = in.speed;
-  }
-  if constexpr (has_eps<T>::value) {
-    out.eps = in.eps;
-  }
-  if constexpr (has_climb<T>::value) {
-    out.climb = in.climb;
-  }
-  if constexpr (has_epc<T>::value) {
-    out.epc = in.epc;
-  }
-  if constexpr (has_eph<T>::value) {
-    out.eph = in.eph;
-  }
-  if constexpr (has_sep<T>::value) {
-    out.sep = in.sep;
-  }
-  if constexpr (has_geoid_sep<T>::value) {
-    out.geoid_sep = in.geoid_sep;
-  }
-  if constexpr (has_magnetic_track<T>::value) {
-    out.magnetic_track = in.magnetic_track;
-  }
-  if constexpr (has_magnetic_var<T>::value) {
-    out.magnetic_var = in.magnetic_var;
-  }
-  if constexpr (has_depth<T>::value) {
-    out.depth = in.depth;
-  }
-  if constexpr (has_ecef<T>::value) {
-    fill(in.ecef, out.ecef);
-  }
-  if constexpr (has_NED<T>::value) {
-    fill(in.NED, out.ned);
-  }
-  if constexpr (has_datum<T>::value) {
-    out.datum.assign(in.datum, strnlen(in.datum, sizeof(in.datum)));
-  }
-  if constexpr (has_dgps_age<T>::value) {
-    out.dgps_age = in.dgps_age;
-  }
-  if constexpr (has_dgps_station<T>::value) {
-    out.dgps_station = in.dgps_station;
+  (void)idx;
+  const std::size_t count = idx.size();
+  if constexpr (has_skyview<T>::value) {
+    using T_skyview = std::decay_t<decltype(in.skyview)>;
+    out.skyview_ss.resize(count);
+    out.skyview_used.resize(count);
+    out.skyview_prn.resize(count);
+    out.skyview_elevation.resize(count);
+    out.skyview_azimuth.resize(count);
+    out.skyview_gnssid.resize(count);
+    out.skyview_svid.resize(count);
+    out.skyview_sigid.resize(count);
+    out.skyview_freqid.resize(count);
+    out.skyview_health.resize(count);
+    for (std::size_t i = 0; i < count; ++i) {
+      const std::size_t src = idx[i];
+      using T_elem_skyview_ss = std::decay_t<decltype(in.skyview[src])>;
+      if constexpr (has_ss<T_elem_skyview_ss>::value) {
+        out.skyview_ss[i] = in.skyview[src].ss;
+      }
+      using T_elem_skyview_used = std::decay_t<decltype(in.skyview[src])>;
+      if constexpr (has_used<T_elem_skyview_used>::value) {
+        out.skyview_used[i] = in.skyview[src].used;
+      }
+      using T_elem_skyview_prn = std::decay_t<decltype(in.skyview[src])>;
+      if constexpr (has_PRN<T_elem_skyview_prn>::value) {
+        out.skyview_prn[i] = in.skyview[src].PRN;
+      }
+      using T_elem_skyview_elevation = std::decay_t<decltype(in.skyview[src])>;
+      if constexpr (has_elevation<T_elem_skyview_elevation>::value) {
+        out.skyview_elevation[i] = in.skyview[src].elevation;
+      }
+      using T_elem_skyview_azimuth = std::decay_t<decltype(in.skyview[src])>;
+      if constexpr (has_azimuth<T_elem_skyview_azimuth>::value) {
+        out.skyview_azimuth[i] = in.skyview[src].azimuth;
+      }
+      using T_elem_skyview_gnssid = std::decay_t<decltype(in.skyview[src])>;
+      if constexpr (has_gnssid<T_elem_skyview_gnssid>::value) {
+        out.skyview_gnssid[i] = in.skyview[src].gnssid;
+      }
+      using T_elem_skyview_svid = std::decay_t<decltype(in.skyview[src])>;
+      if constexpr (has_svid<T_elem_skyview_svid>::value) {
+        out.skyview_svid[i] = in.skyview[src].svid;
+      }
+      using T_elem_skyview_sigid = std::decay_t<decltype(in.skyview[src])>;
+      if constexpr (has_sigid<T_elem_skyview_sigid>::value) {
+        out.skyview_sigid[i] = in.skyview[src].sigid;
+      }
+      using T_elem_skyview_freqid = std::decay_t<decltype(in.skyview[src])>;
+      if constexpr (has_freqid<T_elem_skyview_freqid>::value) {
+        out.skyview_freqid[i] = in.skyview[src].freqid;
+      }
+      using T_elem_skyview_health = std::decay_t<decltype(in.skyview[src])>;
+      if constexpr (has_health<T_elem_skyview_health>::value) {
+        out.skyview_health[i] = in.skyview[src].health;
+      }
+    }
   }
 }
 
+/// Fill the devices_list_* arrays from in.devices.list, taking the
+/// elements named by idx. One loop, so every array in the group ends
+/// the same length.
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDFixEcef9v1& out)
+inline void fill_devices_list(const T& in, gps_extended_msgs::msg::GPSDRaw9v1& out,
+                          const std::vector<std::size_t>& idx)
 {
   (void)in;
   (void)out;
-  if constexpr (has_x<T>::value) {
-    out.x = in.x;
+  (void)idx;
+  const std::size_t count = idx.size();
+  if constexpr (has_devices<T>::value) {
+    using T_devices = std::decay_t<decltype(in.devices)>;
+  if constexpr (has_list<T_devices>::value) {
+    using T_devices_list = std::decay_t<decltype(in.devices.list)>;
+    out.devices_list_path.resize(count);
+    out.devices_list_flags.resize(count);
+    out.devices_list_driver.resize(count);
+    out.devices_list_subtype.resize(count);
+    out.devices_list_subtype1.resize(count);
+    out.devices_list_hexdata.resize(count);
+    out.devices_list_activated.resize(count);
+    out.devices_list_baudrate.resize(count);
+    out.devices_list_stopbits.resize(count);
+    out.devices_list_parity.resize(count);
+    out.devices_list_cycle.resize(count);
+    out.devices_list_mincycle.resize(count);
+    out.devices_list_driver_mode.resize(count);
+    for (std::size_t i = 0; i < count; ++i) {
+      const std::size_t src = idx[i];
+      using T_elem_devices_list_path = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_path<T_elem_devices_list_path>::value) {
+        out.devices_list_path[i].assign(in.devices.list[src].path, strnlen(in.devices.list[src].path, sizeof(in.devices.list[src].path)));
+      }
+      using T_elem_devices_list_flags = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_flags<T_elem_devices_list_flags>::value) {
+        out.devices_list_flags[i] = in.devices.list[src].flags;
+      }
+      using T_elem_devices_list_driver = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_driver<T_elem_devices_list_driver>::value) {
+        out.devices_list_driver[i].assign(in.devices.list[src].driver, strnlen(in.devices.list[src].driver, sizeof(in.devices.list[src].driver)));
+      }
+      using T_elem_devices_list_subtype = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_subtype<T_elem_devices_list_subtype>::value) {
+        out.devices_list_subtype[i].assign(in.devices.list[src].subtype, strnlen(in.devices.list[src].subtype, sizeof(in.devices.list[src].subtype)));
+      }
+      using T_elem_devices_list_subtype1 = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_subtype1<T_elem_devices_list_subtype1>::value) {
+        out.devices_list_subtype1[i].assign(in.devices.list[src].subtype1, strnlen(in.devices.list[src].subtype1, sizeof(in.devices.list[src].subtype1)));
+      }
+      using T_elem_devices_list_hexdata = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_hexdata<T_elem_devices_list_hexdata>::value) {
+        out.devices_list_hexdata[i].assign(in.devices.list[src].hexdata, strnlen(in.devices.list[src].hexdata, sizeof(in.devices.list[src].hexdata)));
+      }
+      using T_elem_devices_list_activated = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_activated<T_elem_devices_list_activated>::value) {
+        out.devices_list_activated[i].sec = static_cast<int32_t>(in.devices.list[src].activated.tv_sec);
+        out.devices_list_activated[i].nanosec = static_cast<uint32_t>(in.devices.list[src].activated.tv_nsec);
+      }
+      using T_elem_devices_list_baudrate = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_baudrate<T_elem_devices_list_baudrate>::value) {
+        out.devices_list_baudrate[i] = in.devices.list[src].baudrate;
+      }
+      using T_elem_devices_list_stopbits = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_stopbits<T_elem_devices_list_stopbits>::value) {
+        out.devices_list_stopbits[i] = in.devices.list[src].stopbits;
+      }
+      using T_elem_devices_list_parity = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_parity<T_elem_devices_list_parity>::value) {
+        out.devices_list_parity[i] = in.devices.list[src].parity;
+      }
+      using T_elem_devices_list_cycle = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_cycle<T_elem_devices_list_cycle>::value) {
+        out.devices_list_cycle[i].sec = static_cast<int32_t>(in.devices.list[src].cycle.tv_sec);
+        out.devices_list_cycle[i].nanosec = static_cast<uint32_t>(in.devices.list[src].cycle.tv_nsec);
+      }
+      using T_elem_devices_list_mincycle = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_mincycle<T_elem_devices_list_mincycle>::value) {
+        out.devices_list_mincycle[i].sec = static_cast<int32_t>(in.devices.list[src].mincycle.tv_sec);
+        out.devices_list_mincycle[i].nanosec = static_cast<uint32_t>(in.devices.list[src].mincycle.tv_nsec);
+      }
+      using T_elem_devices_list_driver_mode = std::decay_t<decltype(in.devices.list[src])>;
+      if constexpr (has_driver_mode<T_elem_devices_list_driver_mode>::value) {
+        out.devices_list_driver_mode[i] = in.devices.list[src].driver_mode;
+      }
+    }
   }
-  if constexpr (has_y<T>::value) {
-    out.y = in.y;
-  }
-  if constexpr (has_z<T>::value) {
-    out.z = in.z;
-  }
-  if constexpr (has_pAcc<T>::value) {
-    out.p_acc = in.pAcc;
-  }
-  if constexpr (has_vx<T>::value) {
-    out.vx = in.vx;
-  }
-  if constexpr (has_vy<T>::value) {
-    out.vy = in.vy;
-  }
-  if constexpr (has_vz<T>::value) {
-    out.vz = in.vz;
-  }
-  if constexpr (has_vAcc<T>::value) {
-    out.v_acc = in.vAcc;
   }
 }
 
+/// Fill the raw_meas_* arrays from in.raw.meas, taking the
+/// elements named by idx. One loop, so every array in the group ends
+/// the same length.
 template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDFixNed9v1& out)
+inline void fill_raw_meas(const T& in, gps_extended_msgs::msg::GPSDRaw9v1& out,
+                          const std::vector<std::size_t>& idx)
 {
   (void)in;
   (void)out;
-  if constexpr (has_relPosN<T>::value) {
-    out.rel_pos_n = in.relPosN;
-  }
-  if constexpr (has_relPosE<T>::value) {
-    out.rel_pos_e = in.relPosE;
-  }
-  if constexpr (has_relPosD<T>::value) {
-    out.rel_pos_d = in.relPosD;
-  }
-  if constexpr (has_velN<T>::value) {
-    out.vel_n = in.velN;
-  }
-  if constexpr (has_velE<T>::value) {
-    out.vel_e = in.velE;
-  }
-  if constexpr (has_velD<T>::value) {
-    out.vel_d = in.velD;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDLog9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_lon<T>::value) {
-    out.lon = in.lon;
-  }
-  if constexpr (has_lat<T>::value) {
-    out.lat = in.lat;
-  }
-  if constexpr (has_altHAE<T>::value) {
-    out.alt_hae = in.altHAE;
-  }
-  if constexpr (has_altMSL<T>::value) {
-    out.alt_msl = in.altMSL;
-  }
-  if constexpr (has_gSpeed<T>::value) {
-    out.g_speed = in.gSpeed;
-  }
-  if constexpr (has_heading<T>::value) {
-    out.heading = in.heading;
-  }
-  if constexpr (has_tAcc<T>::value) {
-    out.t_acc = in.tAcc;
-  }
-  if constexpr (has_hAcc<T>::value) {
-    out.h_acc = in.hAcc;
-  }
-  if constexpr (has_vAcc<T>::value) {
-    out.v_acc = in.vAcc;
-  }
-  if constexpr (has_sAcc<T>::value) {
-    out.s_acc = in.sAcc;
-  }
-  if constexpr (has_headAcc<T>::value) {
-    out.head_acc = in.headAcc;
-  }
-  if constexpr (has_velN<T>::value) {
-    out.vel_n = in.velN;
-  }
-  if constexpr (has_velE<T>::value) {
-    out.vel_e = in.velE;
-  }
-  if constexpr (has_velD<T>::value) {
-    out.vel_d = in.velD;
-  }
-  if constexpr (has_pDOP<T>::value) {
-    out.p_dop = in.pDOP;
-  }
-  if constexpr (has_distance<T>::value) {
-    out.distance = in.distance;
-  }
-  if constexpr (has_totalDistance<T>::value) {
-    out.total_distance = in.totalDistance;
-  }
-  if constexpr (has_distanceStd<T>::value) {
-    out.distance_std = in.distanceStd;
-  }
-  if constexpr (has_then<T>::value) {
-    out.then.sec = static_cast<int32_t>(in.then.tv_sec);
-    out.then.nanosec = static_cast<uint32_t>(in.then.tv_nsec);
-  }
-  if constexpr (has_status<T>::value) {
-    out.status = in.status;
-  }
-  if constexpr (has_index_cnt<T>::value) {
-    out.index_cnt = in.index_cnt;
-  }
-  if constexpr (has_fixType<T>::value) {
-    out.fix_type = in.fixType;
-  }
-  if constexpr (has_numSV<T>::value) {
-    out.num_sv = in.numSV;
-  }
-  if constexpr (has_string<T>::value) {
-    out.string.assign(in.string, strnlen(in.string, sizeof(in.string)));
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDDop9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_xdop<T>::value) {
-    out.xdop = in.xdop;
-  }
-  if constexpr (has_ydop<T>::value) {
-    out.ydop = in.ydop;
-  }
-  if constexpr (has_pdop<T>::value) {
-    out.pdop = in.pdop;
-  }
-  if constexpr (has_hdop<T>::value) {
-    out.hdop = in.hdop;
-  }
-  if constexpr (has_vdop<T>::value) {
-    out.vdop = in.vdop;
-  }
-  if constexpr (has_tdop<T>::value) {
-    out.tdop = in.tdop;
-  }
-  if constexpr (has_gdop<T>::value) {
-    out.gdop = in.gdop;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDSatellite9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_ss<T>::value) {
-    out.ss = in.ss;
-  }
-  if constexpr (has_used<T>::value) {
-    out.used = in.used;
-  }
-  if constexpr (has_PRN<T>::value) {
-    out.prn = in.PRN;
-  }
-  if constexpr (has_elevation<T>::value) {
-    out.elevation = in.elevation;
-  }
-  if constexpr (has_azimuth<T>::value) {
-    out.azimuth = in.azimuth;
-  }
-  if constexpr (has_gnssid<T>::value) {
-    out.gnssid = in.gnssid;
-  }
-  if constexpr (has_svid<T>::value) {
-    out.svid = in.svid;
-  }
-  if constexpr (has_sigid<T>::value) {
-    out.sigid = in.sigid;
-  }
-  if constexpr (has_freqid<T>::value) {
-    out.freqid = in.freqid;
-  }
-  if constexpr (has_health<T>::value) {
-    out.health = in.health;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDDevconfig9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_path<T>::value) {
-    out.path.assign(in.path, strnlen(in.path, sizeof(in.path)));
-  }
-  if constexpr (has_flags<T>::value) {
-    out.flags = in.flags;
-  }
-  if constexpr (has_driver<T>::value) {
-    out.driver.assign(in.driver, strnlen(in.driver, sizeof(in.driver)));
-  }
-  if constexpr (has_subtype<T>::value) {
-    out.subtype.assign(in.subtype, strnlen(in.subtype, sizeof(in.subtype)));
-  }
-  if constexpr (has_subtype1<T>::value) {
-    out.subtype1.assign(in.subtype1, strnlen(in.subtype1, sizeof(in.subtype1)));
-  }
-  if constexpr (has_hexdata<T>::value) {
-    out.hexdata.assign(in.hexdata, strnlen(in.hexdata, sizeof(in.hexdata)));
-  }
-  if constexpr (has_activated<T>::value) {
-    out.activated.sec = static_cast<int32_t>(in.activated.tv_sec);
-    out.activated.nanosec = static_cast<uint32_t>(in.activated.tv_nsec);
-  }
-  if constexpr (has_baudrate<T>::value) {
-    out.baudrate = in.baudrate;
-  }
-  if constexpr (has_stopbits<T>::value) {
-    out.stopbits = in.stopbits;
-  }
-  if constexpr (has_parity<T>::value) {
-    out.parity = in.parity;
-  }
-  if constexpr (has_cycle<T>::value) {
-    out.cycle.sec = static_cast<int32_t>(in.cycle.tv_sec);
-    out.cycle.nanosec = static_cast<uint32_t>(in.cycle.tv_nsec);
-  }
-  if constexpr (has_mincycle<T>::value) {
-    out.mincycle.sec = static_cast<int32_t>(in.mincycle.tv_sec);
-    out.mincycle.nanosec = static_cast<uint32_t>(in.mincycle.tv_nsec);
-  }
-  if constexpr (has_driver_mode<T>::value) {
-    out.driver_mode = in.driver_mode;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDPolicy9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_watcher<T>::value) {
-    out.watcher = in.watcher;
-  }
-  if constexpr (has_json<T>::value) {
-    out.json = in.json;
-  }
-  if constexpr (has_nmea<T>::value) {
-    out.nmea = in.nmea;
-  }
+  (void)idx;
+  const std::size_t count = idx.size();
   if constexpr (has_raw<T>::value) {
-    out.raw = in.raw;
+    using T_raw = std::decay_t<decltype(in.raw)>;
+  if constexpr (has_meas<T_raw>::value) {
+    using T_raw_meas = std::decay_t<decltype(in.raw.meas)>;
+    if (0 != (in.set & RAW_SET)) {
+      out.raw_meas_gnssid.resize(count);
+      out.raw_meas_svid.resize(count);
+      out.raw_meas_sigid.resize(count);
+      out.raw_meas_snr.resize(count);
+      out.raw_meas_freqid.resize(count);
+      out.raw_meas_lli.resize(count);
+      out.raw_meas_obs_code.resize(count);
+      out.raw_meas_codephase.resize(count);
+      out.raw_meas_carrierphase.resize(count);
+      out.raw_meas_pseudorange.resize(count);
+      out.raw_meas_deltarange.resize(count);
+      out.raw_meas_doppler.resize(count);
+      out.raw_meas_locktime.resize(count);
+      out.raw_meas_l2c.resize(count);
+      out.raw_meas_c2c.resize(count);
+      out.raw_meas_satstat.resize(count);
+      for (std::size_t i = 0; i < count; ++i) {
+        const std::size_t src = idx[i];
+        using T_elem_raw_meas_gnssid = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_gnssid<T_elem_raw_meas_gnssid>::value) {
+          out.raw_meas_gnssid[i] = in.raw.meas[src].gnssid;
+        }
+        using T_elem_raw_meas_svid = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_svid<T_elem_raw_meas_svid>::value) {
+          out.raw_meas_svid[i] = in.raw.meas[src].svid;
+        }
+        using T_elem_raw_meas_sigid = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_sigid<T_elem_raw_meas_sigid>::value) {
+          out.raw_meas_sigid[i] = in.raw.meas[src].sigid;
+        }
+        using T_elem_raw_meas_snr = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_snr<T_elem_raw_meas_snr>::value) {
+          out.raw_meas_snr[i] = in.raw.meas[src].snr;
+        }
+        using T_elem_raw_meas_freqid = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_freqid<T_elem_raw_meas_freqid>::value) {
+          out.raw_meas_freqid[i] = in.raw.meas[src].freqid;
+        }
+        using T_elem_raw_meas_lli = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_lli<T_elem_raw_meas_lli>::value) {
+          out.raw_meas_lli[i] = in.raw.meas[src].lli;
+        }
+        using T_elem_raw_meas_obs_code = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_obs_code<T_elem_raw_meas_obs_code>::value) {
+          out.raw_meas_obs_code[i].assign(in.raw.meas[src].obs_code, strnlen(in.raw.meas[src].obs_code, sizeof(in.raw.meas[src].obs_code)));
+        }
+        using T_elem_raw_meas_codephase = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_codephase<T_elem_raw_meas_codephase>::value) {
+          out.raw_meas_codephase[i] = in.raw.meas[src].codephase;
+        }
+        using T_elem_raw_meas_carrierphase = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_carrierphase<T_elem_raw_meas_carrierphase>::value) {
+          out.raw_meas_carrierphase[i] = in.raw.meas[src].carrierphase;
+        }
+        using T_elem_raw_meas_pseudorange = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_pseudorange<T_elem_raw_meas_pseudorange>::value) {
+          out.raw_meas_pseudorange[i] = in.raw.meas[src].pseudorange;
+        }
+        using T_elem_raw_meas_deltarange = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_deltarange<T_elem_raw_meas_deltarange>::value) {
+          out.raw_meas_deltarange[i] = in.raw.meas[src].deltarange;
+        }
+        using T_elem_raw_meas_doppler = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_doppler<T_elem_raw_meas_doppler>::value) {
+          out.raw_meas_doppler[i] = in.raw.meas[src].doppler;
+        }
+        using T_elem_raw_meas_locktime = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_locktime<T_elem_raw_meas_locktime>::value) {
+          out.raw_meas_locktime[i] = in.raw.meas[src].locktime;
+        }
+        using T_elem_raw_meas_l2c = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_l2c<T_elem_raw_meas_l2c>::value) {
+          out.raw_meas_l2c[i] = in.raw.meas[src].l2c;
+        }
+        using T_elem_raw_meas_c2c = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_c2c<T_elem_raw_meas_c2c>::value) {
+          out.raw_meas_c2c[i] = in.raw.meas[src].c2c;
+        }
+        using T_elem_raw_meas_satstat = std::decay_t<decltype(in.raw.meas[src])>;
+        if constexpr (has_satstat<T_elem_raw_meas_satstat>::value) {
+          out.raw_meas_satstat[i] = in.raw.meas[src].satstat;
+        }
+      }
+    }
   }
-  if constexpr (has_scaled<T>::value) {
-    out.scaled = in.scaled;
-  }
-  if constexpr (has_timing<T>::value) {
-    out.timing = in.timing;
-  }
-  if constexpr (has_split24<T>::value) {
-    out.split24 = in.split24;
-  }
-  if constexpr (has_pps<T>::value) {
-    out.pps = in.pps;
-  }
-  if constexpr (has_loglevel<T>::value) {
-    out.loglevel = in.loglevel;
-  }
-  if constexpr (has_devpath<T>::value) {
-    out.devpath.assign(in.devpath, strnlen(in.devpath, sizeof(in.devpath)));
-  }
-  if constexpr (has_remote<T>::value) {
-    out.remote.assign(in.remote, strnlen(in.remote, sizeof(in.remote)));
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawDevices9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_time<T>::value) {
-    out.time.sec = static_cast<int32_t>(in.time.tv_sec);
-    out.time.nanosec = static_cast<uint32_t>(in.time.tv_nsec);
-  }
-  if constexpr (has_ndevices<T>::value) {
-    out.ndevices = in.ndevices;
-  }
-  // list: filled by the caller, which knows the valid element count
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDAttitude9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_mtime<T>::value) {
-    out.mtime.sec = static_cast<int32_t>(in.mtime.tv_sec);
-    out.mtime.nanosec = static_cast<uint32_t>(in.mtime.tv_nsec);
-  }
-  if constexpr (has_acc_len<T>::value) {
-    out.acc_len = in.acc_len;
-  }
-  if constexpr (has_acc_x<T>::value) {
-    out.acc_x = in.acc_x;
-  }
-  if constexpr (has_acc_y<T>::value) {
-    out.acc_y = in.acc_y;
-  }
-  if constexpr (has_acc_z<T>::value) {
-    out.acc_z = in.acc_z;
-  }
-  if constexpr (has_depth<T>::value) {
-    out.depth = in.depth;
-  }
-  if constexpr (has_dip<T>::value) {
-    out.dip = in.dip;
-  }
-  if constexpr (has_gyro_x<T>::value) {
-    out.gyro_x = in.gyro_x;
-  }
-  if constexpr (has_gyro_y<T>::value) {
-    out.gyro_y = in.gyro_y;
-  }
-  if constexpr (has_heading<T>::value) {
-    out.heading = in.heading;
-  }
-  if constexpr (has_mag_len<T>::value) {
-    out.mag_len = in.mag_len;
-  }
-  if constexpr (has_mag_x<T>::value) {
-    out.mag_x = in.mag_x;
-  }
-  if constexpr (has_mag_y<T>::value) {
-    out.mag_y = in.mag_y;
-  }
-  if constexpr (has_mag_z<T>::value) {
-    out.mag_z = in.mag_z;
-  }
-  if constexpr (has_pitch<T>::value) {
-    out.pitch = in.pitch;
-  }
-  if constexpr (has_roll<T>::value) {
-    out.roll = in.roll;
-  }
-  if constexpr (has_temp<T>::value) {
-    out.temp = in.temp;
-  }
-  if constexpr (has_yaw<T>::value) {
-    out.yaw = in.yaw;
-  }
-  if constexpr (has_mag_st<T>::value) {
-    out.mag_st = in.mag_st;
-  }
-  if constexpr (has_pitch_st<T>::value) {
-    out.pitch_st = in.pitch_st;
-  }
-  if constexpr (has_roll_st<T>::value) {
-    out.roll_st = in.roll_st;
-  }
-  if constexpr (has_yaw_st<T>::value) {
-    out.yaw_st = in.yaw_st;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDRawdata9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_mtime<T>::value) {
-    out.mtime.sec = static_cast<int32_t>(in.mtime.tv_sec);
-    out.mtime.nanosec = static_cast<uint32_t>(in.mtime.tv_nsec);
-  }
-  // meas: filled by the caller, which knows the valid element count
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDMeas9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_gnssid<T>::value) {
-    out.gnssid = in.gnssid;
-  }
-  if constexpr (has_svid<T>::value) {
-    out.svid = in.svid;
-  }
-  if constexpr (has_sigid<T>::value) {
-    out.sigid = in.sigid;
-  }
-  if constexpr (has_snr<T>::value) {
-    out.snr = in.snr;
-  }
-  if constexpr (has_freqid<T>::value) {
-    out.freqid = in.freqid;
-  }
-  if constexpr (has_lli<T>::value) {
-    out.lli = in.lli;
-  }
-  if constexpr (has_obs_code<T>::value) {
-    out.obs_code.assign(in.obs_code, strnlen(in.obs_code, sizeof(in.obs_code)));
-  }
-  if constexpr (has_codephase<T>::value) {
-    out.codephase = in.codephase;
-  }
-  if constexpr (has_carrierphase<T>::value) {
-    out.carrierphase = in.carrierphase;
-  }
-  if constexpr (has_pseudorange<T>::value) {
-    out.pseudorange = in.pseudorange;
-  }
-  if constexpr (has_deltarange<T>::value) {
-    out.deltarange = in.deltarange;
-  }
-  if constexpr (has_doppler<T>::value) {
-    out.doppler = in.doppler;
-  }
-  if constexpr (has_locktime<T>::value) {
-    out.locktime = in.locktime;
-  }
-  if constexpr (has_l2c<T>::value) {
-    out.l2c = in.l2c;
-  }
-  if constexpr (has_c2c<T>::value) {
-    out.c2c = in.c2c;
-  }
-  if constexpr (has_satstat<T>::value) {
-    out.satstat = in.satstat;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDGst9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_utctime<T>::value) {
-    out.utctime.sec = static_cast<int32_t>(in.utctime.tv_sec);
-    out.utctime.nanosec = static_cast<uint32_t>(in.utctime.tv_nsec);
-  }
-  if constexpr (has_rms_deviation<T>::value) {
-    out.rms_deviation = in.rms_deviation;
-  }
-  if constexpr (has_smajor_deviation<T>::value) {
-    out.smajor_deviation = in.smajor_deviation;
-  }
-  if constexpr (has_sminor_deviation<T>::value) {
-    out.sminor_deviation = in.sminor_deviation;
-  }
-  if constexpr (has_smajor_orientation<T>::value) {
-    out.smajor_orientation = in.smajor_orientation;
-  }
-  if constexpr (has_lat_err_deviation<T>::value) {
-    out.lat_err_deviation = in.lat_err_deviation;
-  }
-  if constexpr (has_lon_err_deviation<T>::value) {
-    out.lon_err_deviation = in.lon_err_deviation;
-  }
-  if constexpr (has_alt_err_deviation<T>::value) {
-    out.alt_err_deviation = in.alt_err_deviation;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDOscillator9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_running<T>::value) {
-    out.running = in.running;
-  }
-  if constexpr (has_reference<T>::value) {
-    out.reference = in.reference;
-  }
-  if constexpr (has_disciplined<T>::value) {
-    out.disciplined = in.disciplined;
-  }
-  if constexpr (has_delta<T>::value) {
-    out.delta = in.delta;
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDVersion9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_release<T>::value) {
-    out.release.assign(in.release, strnlen(in.release, sizeof(in.release)));
-  }
-  if constexpr (has_rev<T>::value) {
-    out.rev.assign(in.rev, strnlen(in.rev, sizeof(in.rev)));
-  }
-  if constexpr (has_proto_major<T>::value) {
-    out.proto_major = in.proto_major;
-  }
-  if constexpr (has_proto_minor<T>::value) {
-    out.proto_minor = in.proto_minor;
-  }
-  if constexpr (has_remote<T>::value) {
-    out.remote.assign(in.remote, strnlen(in.remote, sizeof(in.remote)));
-  }
-}
-
-template <typename T>
-inline void fill(const T& in, gps_extended_msgs::msg::GPSDTimedelta9v1& out)
-{
-  (void)in;
-  (void)out;
-  if constexpr (has_real<T>::value) {
-    out.real.sec = static_cast<int32_t>(in.real.tv_sec);
-    out.real.nanosec = static_cast<uint32_t>(in.real.tv_nsec);
-  }
-  if constexpr (has_clock<T>::value) {
-    out.clock.sec = static_cast<int32_t>(in.clock.tv_sec);
-    out.clock.nanosec = static_cast<uint32_t>(in.clock.tv_nsec);
   }
 }
 

@@ -668,6 +668,10 @@ class Field:
     c_expr: str = ""              # C member path relative to its parent
     array: bool = False
     union_arm: bool = False       # a 0-or-1 array standing in for a union arm
+    # Set by flatten_model(), for the flat root only.
+    path: Tuple[str, ...] = ()    # C member names, outermost first
+    gate: str = ""                # set-mask bit guarding a union arm's data
+    group: str = ""               # parallel-array group this leaf belongs to
 
 
 class Model:
@@ -865,6 +869,62 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
 
     fields.append(Field(ros_type=ros, name=name, kind="scalar",
                         c_expr=member.name))
+
+
+def flatten_model(model: Model) -> None:
+    """Collapse the nested messages into one flat root, in place.
+
+    Every project-defined sub-message is inlined: its fields join the root
+    under a path-prefixed name (`fix` + `time` -> `fix_time`). Only standard
+    ROS types stay nested. Path prefixes are not cosmetic -- bare leaf names
+    collide 63 times in one API version, since `time`, `status` and `temp`
+    each appear in several structs.
+
+    Two rules on array-ness:
+
+    * A real array (`skyview`, `imu`, `devices.list`, `raw.meas`) turns each
+      leaf below it into a parallel array. Members of one group always have the
+      same length, which the generated fill guarantees by resizing and writing
+      them from a single loop.
+    * A union arm contributes nothing. Its leaves stay scalars and the `set`
+      mask says whether they mean anything -- the same contract the mask
+      already carries for AIS. Making them 0-or-1 arrays instead would force
+      `msg.osc_delta[0]` on every reader for no added information.
+    """
+    root = versioned(MESSAGE_PREFIX + "Raw", model.pair)
+    flat: List[Field] = []
+
+    def base(ros_type: str) -> str:
+        return ros_type[:-2] if ros_type.endswith("[]") else ros_type
+
+    def walk(message_name: str, prefix: str, path: Tuple[str, ...],
+             group: str, gate: str) -> None:
+        for f in model.messages[message_name]:
+            if f.kind == "header":
+                if not prefix:
+                    flat.append(f)
+                continue
+            name = f"{prefix}{f.name}"
+            hop = path + (f.c_expr,) if f.c_expr else path
+            child = base(f.ros_type)
+            # A real array (not a union arm) opens a new parallel-array group.
+            inner = name if (f.array and not f.union_arm) else group
+            # A union arm's data is only readable when the mask names it;
+            # reading any other arm is a read of an inactive union member.
+            gated = gate or (REPORT_UNION_BITS.get(f.c_expr, "")
+                             if f.union_arm else "")
+            if child in model.messages:
+                walk(child, name + "_", hop, inner, gated)
+            else:
+                flat.append(Field(
+                    ros_type=child + ("[]" if inner else ""),
+                    name=name, comment=f.comment, kind=f.kind,
+                    c_expr=".".join(hop), array=bool(inner),
+                    union_arm=False, path=hop, gate=gated, group=inner))
+
+    walk(root, "", (), "", "")
+    model.messages = {root: flat}
+    model.order = [root]
 
 
 def emit_struct(model: Model, message_name: str, members: List[Member],
@@ -1115,8 +1175,11 @@ def emit_parser(model: Model, rev: str, constants=()) -> str:
         "",
         "#include <gps.h>",
         "",
+        "#include <cstddef>",
         "#include <cstring>",
         "#include <iterator>",
+        "#include <type_traits>",
+        "#include <vector>",
         "",
         "// Which pair this build actually uses. gpsd_raw_message.hpp sets these",
         "// before including one fill header, so a libgps newer than anything",
@@ -1141,9 +1204,11 @@ def emit_parser(model: Model, rev: str, constants=()) -> str:
     if constants:
         out += emit_mask_asserts(model, constants)
 
-    # Member-detection traits, one per distinct member name.
-    names = sorted({f.c_expr for fields in model.messages.values()
-                    for f in fields if f.c_expr})
+    # Member-detection traits, one per distinct C member *segment*. Paths are
+    # flattened now, so `fix.ecef.x` needs traits for fix, ecef and x -- one
+    # per hop, since each hop is guarded separately.
+    names = sorted({seg for fields in model.messages.values()
+                    for f in fields for seg in f.path})
     for member_name in names:
         out.append(f"GPSD_DEFINE_HAS_MEMBER({member_name})")
     out.append("")
@@ -1173,14 +1238,17 @@ def emit_parser(model: Model, rev: str, constants=()) -> str:
 
 
 def emit_fill_function(model: Model, message_name: str) -> List[str]:
-    """One fill() overload per message.
+    """The flat root's fill, plus one filler per parallel-array group.
 
-    Templated on the source type rather than naming it. Two reasons: the
-    anonymous inline structs (gps_fix_t::ecef, ::NED) have no C type name to
-    write down, and deducing T is what lets the has_<member><T> traits
-    resolve against whatever the build's gps.h actually declares.
+    Scalars are emitted as a tree over their C paths, so `fix.ecef.x` and
+    `fix.ecef.y` share one `if constexpr (has_fix<T>)` and one
+    `if constexpr (has_ecef<...>)` rather than repeating the chain per leaf.
+    Every hop is guarded, because an API pair spans a range of header states.
+
+    Union arms are gated on the set mask as well. Their leaves are plain
+    scalars now, but the underlying C members still share storage, so reading
+    an arm the mask does not name is a read of an inactive union member.
     """
-    is_root = message_name == versioned(MESSAGE_PREFIX + "Raw", model.pair)
     out = [
         "template <typename T>",
         f"inline void fill(const T& in, {PACKAGE}::msg::{message_name}& out)",
@@ -1188,66 +1256,136 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
         "  (void)in;",
         "  (void)out;",
     ]
+    scalars = [f for f in model.messages[message_name]
+               if f.kind != "header" and not f.group]
+    out += emit_path_tree(scalars, 0, "in", "T", "  ")
+    out += ["}", ""]
+
+    for group in group_names(model, message_name):
+        out += emit_group_fill(model, message_name, group)
+    return out
+
+
+def group_names(model: Model, message_name: str) -> List[str]:
+    seen: List[str] = []
     for f in model.messages[message_name]:
-        if f.kind == "header":
-            continue
-        if f.union_arm:
-            bit = REPORT_UNION_BITS.get(f.c_expr) if is_root else None
-            if bit is None:
-                # No dispatch rule for this union yet -- rtcm2_t's arms and
-                # subframe_t's pages are selected by mappings that live in
-                # GPSd's C rather than in the header. Left empty rather
-                # than filled speculatively: an empty arm honestly says "not
-                # decoded", a filled one would assert a report type.
-                out.append(f"  // {f.name}: union arm, left empty until its "
-                           f"discriminator dispatch lands")
-                continue
+        if f.group and f.group not in seen:
+            seen.append(f.group)
+    return seen
 
-            # gps_data_t's report union, selected by the set mask. Only
-            # the arm the mask names is touched; reading any other would be
-            # reading an inactive union member.
-            body = (f"out.{f.name}[0].assign(in.{f.c_expr}, "
-                    f"strnlen(in.{f.c_expr}, sizeof(in.{f.c_expr})));"
-                    if f.kind == "string"
-                    else f"fill(in.{f.c_expr}, out.{f.name}[0]);")
-            out.append(f"  if constexpr (has_{f.c_expr}<T>::value) {{")
-            out.append(f"    if (0 != (in.set & {bit})) {{")
-            out.append(f"      out.{f.name}.resize(1);")
-            out.append(f"      {body}")
-            out.append("    }")
-            out.append("  }")
-            continue
 
-        if f.kind == "struct" and f.array:
-            # Variable-length arrays of structs are filled by the hand-written
-            # parser, which is the only place that knows the valid count
-            # (satellites_visible, devices.ndevices, ...). Emitting a blind
-            # loop over the whole C array would publish MAXCHANNELS entries of
-            # garbage.
-            out.append(f"  // {f.name}: filled by the caller, which knows the "
-                       f"valid element count")
-            continue
-        guard = f"has_{f.c_expr}<T>::value"
-        if f.kind == "time":
-            assign = [
-                f"out.{f.name}.sec = static_cast<int32_t>(in.{f.c_expr}.tv_sec);",
-                f"out.{f.name}.nanosec = "
-                f"static_cast<uint32_t>(in.{f.c_expr}.tv_nsec);",
-            ]
-        elif f.kind == "string":
-            assign = [f"out.{f.name}.assign(in.{f.c_expr}, strnlen(in.{f.c_expr}, "
-                      f"sizeof(in.{f.c_expr})));"]
-        elif f.kind == "struct":
-            assign = [f"fill(in.{f.c_expr}, out.{f.name});"]
-        elif f.array:
-            assign = [f"out.{f.name}.assign(std::begin(in.{f.c_expr}), "
-                      f"std::end(in.{f.c_expr}));"]
-        else:
-            assign = [f"out.{f.name} = in.{f.c_expr};"]
-        out.append(f"  if constexpr ({guard}) {{")
-        out += [f"    {line}" for line in assign]
+def leaf_assign(f: Field, expr: str, target: str) -> List[str]:
+    """The assignment itself, once every guard is open."""
+    if f.kind == "time":
+        return [f"{target}.sec = static_cast<int32_t>({expr}.tv_sec);",
+                f"{target}.nanosec = static_cast<uint32_t>({expr}.tv_nsec);"]
+    if f.kind == "string":
+        return [f"{target}.assign({expr}, strnlen({expr}, sizeof({expr})));"]
+    if f.kind == "bytes" or (f.array and f.kind == "scalar" and not f.group):
+        return [f"{target}.assign(std::begin({expr}), std::end({expr}));"]
+    return [f"{target} = {expr};"]
+
+
+def emit_path_tree(fields: List[Field], depth: int, in_expr: str,
+                   tname: str, indent: str) -> List[str]:
+    """Nested `if constexpr` blocks mirroring the C member paths."""
+    out: List[str] = []
+    buckets: Dict[str, List[Field]] = {}
+    for f in fields:
+        buckets.setdefault(f.path[depth], []).append(f)
+
+    for seg, group in buckets.items():
+        leaves = [f for f in group if len(f.path) == depth + 1]
+        deeper = [f for f in group if len(f.path) > depth + 1]
+        expr = f"{in_expr}.{seg}"
+        out.append(f"{indent}if constexpr (has_{seg}<{tname}>::value) {{")
+        body_indent = indent + "  "
+
+        # A union arm's storage is shared; only the arm the mask names may be
+        # read. Emitted once for the whole arm rather than per leaf.
+        gate = group[0].gate if depth == 0 and group[0].gate else ""
+        if gate and all(f.gate == gate for f in group):
+            out.append(f"{body_indent}if (0 != (in.set & {gate})) {{")
+            body_indent += "  "
+
+        for f in leaves:
+            for line in leaf_assign(f, expr, f"out.{f.name}"):
+                out.append(f"{body_indent}{line}")
+        if deeper:
+            alias = "T_" + "_".join(deeper[0].path[:depth + 1])
+            out.append(f"{body_indent}using {alias} = "
+                       f"std::decay_t<decltype({expr})>;")
+            out += emit_path_tree(deeper, depth + 1, expr, alias, body_indent)
+
+        if gate and all(f.gate == gate for f in group):
+            out.append(f"{indent}  }}")
+        out.append(f"{indent}}}")
+    return out
+
+
+def emit_group_fill(model: Model, message_name: str, group: str) -> List[str]:
+    """One filler per parallel-array group, resizing and writing in one loop.
+
+    Every array in a group therefore has the same length by construction --
+    unequal lengths are not representable rather than merely untested.
+
+    The caller passes *source indices* rather than a count, because only it
+    knows which elements are valid and the rule differs per group. skyview,
+    devices.list and imu take a prefix; rawdata_t::meas does not -- GPSd fills
+    it at arbitrary indices and marks unused entries with an svid of 0 or 255,
+    so its valid set is a filtered subset. Indices express both.
+    """
+    fields = [f for f in model.messages[message_name] if f.group == group]
+    # The C path down to the array, and the member path below each element.
+    array_depth = len(group.split("_"))
+    lead = fields[0].path[:array_depth]
+    out = [
+        f"/// Fill the {group}_* arrays from in.{'.'.join(lead)}, taking the",
+        "/// elements named by idx. One loop, so every array in the group ends",
+        "/// the same length.",
+        "template <typename T>",
+        f"inline void fill_{group}(const T& in, "
+        f"{PACKAGE}::msg::{message_name}& out,",
+        "                          const std::vector<std::size_t>& idx)",
+        "{",
+        "  (void)in;",
+        "  (void)out;",
+        "  (void)idx;",
+        "  const std::size_t count = idx.size();",
+    ]
+    guards = []
+    expr = "in"
+    tname = "T"
+    for i, seg in enumerate(lead):
+        guards.append(f"  if constexpr (has_{seg}<{tname}>::value) {{")
+        expr = f"{expr}.{seg}"
+        tname = "T_" + "_".join(lead[:i + 1])
+        guards.append(f"    using {tname} = std::decay_t<decltype({expr})>;")
+    out += guards
+    gate = fields[0].gate
+    body = "    "
+    if gate:
+        out.append(f"    if (0 != (in.set & {gate})) {{")
+        body = "      "
+    for f in fields:
+        out.append(f"{body}out.{f.name}.resize(count);")
+    out.append(f"{body}for (std::size_t i = 0; i < count; ++i) {{")
+    out.append(f"{body}  const std::size_t src = idx[i];")
+    for f in fields:
+        elem = f"{expr}[src]" + "".join(f".{p}" for p in f.path[array_depth:])
+        inner = "T_elem_" + f.name
+        out.append(f"{body}  using {inner} = "
+                   f"std::decay_t<decltype({expr}[src])>;")
+        out.append(f"{body}  if constexpr (has_{f.path[array_depth]}"
+                   f"<{inner}>::value) {{")
+        for line in leaf_assign(f, elem, f"out.{f.name}[i]"):
+            out.append(f"{body}    {line}")
+        out.append(f"{body}  }}")
+    out.append(f"{body}}}")
+    if gate:
+        out.append("    }")
+    for _ in lead:
         out.append("  }")
-
     out += ["}", ""]
     return out
 
@@ -1469,6 +1607,7 @@ def generate(repo: str, scope: str) -> Dict[str, str]:
                              f"says {EXPECTED_MAXCHANNELS[pair]}")
 
         model = build_model(pair, src, scope_members)
+        flatten_model(model)
         constants = mask_constants(src)
         assert_no_macro_collisions(constants, src, rev)
         root = versioned("GPSDRaw", pair)

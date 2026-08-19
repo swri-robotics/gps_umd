@@ -79,20 +79,45 @@ class ManualExpectations(unittest.TestCase):
     message is no longer a faithful picture of that API version.
     """
 
+    # What used to be a sub-message is now a prefix on the flat root. The
+    # assertions below still name the struct they care about; this maps it to
+    # where those fields live.
+    STEM_TO_PREFIX = {
+        "GPSDRaw": "",
+        "GPSDFix": "fix_",
+        "GPSDSatellite": "skyview_",
+        "GPSDDop": "dop_",
+        "GPSDDevconfig": "dev_",
+        "GPSDPolicy": "policy_",
+        "GPSDGst": "gst_",
+        "GPSDAttitude": "attitude_",
+        "GPSDLog": "log_",
+        "GPSDTimedelta": "toff_",
+        "GPSDFixsource": "source_",
+        "GPSDRawDevices": "devices_",
+    }
+
+    def flat(self, pair, stem):
+        return fields_under(pair, self.STEM_TO_PREFIX[stem])
+
     def assertHas(self, pair, stem, field, why):
-        fields = message_fields(pair, stem)
-        self.assertIsNotNone(fields, f"{stem} missing entirely for API "
-                                     f"{pair[0]}.{pair[1]} ({why})")
-        self.assertIn(field, fields,
-                      f"API {pair[0]}.{pair[1]}: {stem} should have {field!r} -- {why}")
+        fields = self.flat(pair, stem)
+        self.assertTrue(fields, f"{stem} fields missing entirely for API "
+                                f"{pair[0]}.{pair[1]} ({why})")
+        # `covers` rather than equality: a member that was itself a struct is
+        # flattened further, so gps_fix_t::ecef shows up as ecef_x, ecef_y...
+        self.assertTrue(
+            any(covers(field, f) for f in fields),
+            f"API {pair[0]}.{pair[1]}: {stem} should have {field!r} -- {why}")
 
     def assertLacks(self, pair, stem, field, why):
-        fields = message_fields(pair, stem)
-        if fields is None:
+        fields = self.flat(pair, stem)
+        if not fields:
             return
-        self.assertNotIn(field, fields,
-                         f"API {pair[0]}.{pair[1]}: {stem} should NOT have "
-                         f"{field!r} -- {why}")
+        self.assertFalse(
+            any(covers(field, f) for f in fields),
+            f"API {pair[0]}.{pair[1]}: {stem} should NOT have "
+            f"{field!r} -- {why}")
 
     def test_status_lives_in_gps_data_t_only_on_api_9(self):
         # The defining API 9 -> 10 change: gps_data_t.status moved into
@@ -117,17 +142,16 @@ class ManualExpectations(unittest.TestCase):
                 self.assertHas(pair, "GPSDRaw", "leap_seconds",
                                "present from API 9.1 on")
 
-    def test_baseline_message_only_exists_from_13_0(self):
-        # API 13 added struct baseline_t and gps_fix_t::base. Before that the
-        # message must not exist at all, not merely be empty.
+    def test_baseline_fields_only_exist_from_13_0(self):
+        # API 13 added struct baseline_t and gps_fix_t::base. Flattened, that
+        # is fix_base_*; before API 13 no such field may exist at all.
         for pair in ALL_PAIRS:
-            fields = message_fields(pair, "GPSDBaseline")
             if pair >= (13, 0):
-                self.assertIsNotNone(fields, f"API {pair}: baseline_t exists from 13.0")
-                self.assertHas(pair, "GPSDFix", "base", "gps_fix_t::base added at API 13")
+                self.assertHas(pair, "GPSDFix", "base",
+                               "gps_fix_t::base added at API 13")
             else:
-                self.assertIsNone(fields, f"API {pair}: baseline_t did not exist yet")
-                self.assertLacks(pair, "GPSDFix", "base", "gps_fix_t::base added at API 13")
+                self.assertLacks(pair, "GPSDFix", "base",
+                                 "gps_fix_t::base added at API 13")
 
     def test_api_14_gps_fix_t_additions(self):
         # These six landed *within* API 14.0 (after 3.24 shipped), which is the
@@ -324,6 +348,30 @@ def message_typed_fields(pair, stem):
     return out
 
 
+def fields_under(pair, prefix):
+    """Flat root fields under a path prefix, with the prefix stripped.
+
+    Messages are flat now: what used to be GPSDFix's fields are the root's
+    `fix_*` fields. Tests still ask "does every member of gps_fix_t reach the
+    message", which is the assertion that matters; only where to look changed.
+    """
+    fields = message_fields(pair, "GPSDRaw")
+    if fields is None:
+        return None
+    return [f[len(prefix):] for f in fields if f.startswith(prefix)]
+
+
+def covers(member_snake, field):
+    """Does `field` come from `member_snake`?
+
+    Exact for a leaf (`mode` -> `mode`), prefixed for a struct that was itself
+    flattened (`ecef` -> `ecef_x`). Matching on the member rather than
+    splitting the field is deliberate: snake_case names contain underscores,
+    so `alt_hae` cannot be split back into segments unambiguously.
+    """
+    return field == member_snake or field.startswith(member_snake + "_")
+
+
 def message_fields_of(text):
     return [line.split()[-1] for line in text.splitlines()
             if line and not line.startswith("#") and "=" not in line]
@@ -416,42 +464,48 @@ class Completeness(unittest.TestCase):
     # Every struct reachable from a published gps_data_t member. Structs that
     # do not exist in an older gps.h are handled per-pair below rather than
     # excluded, so "message absent" and "struct absent" must agree.
-    STRUCT_TO_MESSAGE = {
+    # struct tag -> the flat field prefix its members land under. Where a
+    # struct appears twice (attitude_t as both `attitude` and `imu`,
+    # timedelta_t as `toff` and `pps`), one representative is enough: the
+    # generator emits them from the same code path.
+    STRUCT_TO_PREFIX = {
         # Core fix members
-        "gps_fix_t": "GPSDFix",
-        "satellite_t": "GPSDSatellite",
-        "dop_t": "GPSDDop",
+        "gps_fix_t": "fix_",
+        "satellite_t": "skyview_",
+        "dop_t": "dop_",
         # Sensor and device members
-        "devconfig_t": "GPSDDevconfig",
-        "gps_policy_t": "GPSDPolicy",
-        "gst_t": "GPSDGst",
-        "attitude_t": "GPSDAttitude",
-        "gps_log_t": "GPSDLog",
-        "timedelta_t": "GPSDTimedelta",
-        "fixsource_t": "GPSDFixsource",
+        "devconfig_t": "dev_",
+        "gps_policy_t": "policy_",
+        "gst_t": "gst_",
+        "attitude_t": "attitude_",
+        "gps_log_t": "log_",
+        "timedelta_t": "toff_",
+        "fixsource_t": "source_",
     }
 
     def test_every_struct_member_reaches_its_message(self):
         for pair in ALL_PAIRS:
             src = read_gps_h(gen.REFERENCE_REVS[pair])
-            for tag, stem in self.STRUCT_TO_MESSAGE.items():
-                fields = message_fields(pair, stem)
+            for tag, prefix in self.STRUCT_TO_PREFIX.items():
+                fields = fields_under(pair, prefix)
                 declared = scan_struct_members(src, tag)
-                if fields is None:
-                    # No message is only acceptable when gps.h has no such
+                if not fields:
+                    # No fields is only acceptable when gps.h has no such
                     # struct at this revision. Otherwise a struct was dropped.
                     self.assertEqual(
                         declared, set(),
                         f"API {pair[0]}.{pair[1]}: {tag} exists in gps.h but "
-                        f"{stem} was not generated")
+                        f"no {prefix}* fields were generated")
                     continue
                 for member in sorted(declared):
                     if member in gen.EXCLUDED_MEMBERS:
                         continue
-                    self.assertIn(
-                        gen.snake_case(member), fields,
+                    snake = gen.snake_case(member)
+                    self.assertTrue(
+                        any(covers(snake, f) for f in fields),
                         f"API {pair[0]}.{pair[1]} ({gen.REFERENCE_REVS[pair]}): "
-                        f"{tag}.{member} exists in gps.h but no field in {stem}")
+                        f"{tag}.{member} exists in gps.h but no {prefix}{snake} "
+                        f"field")
 
     def test_fix_scope_members_of_gps_data_t_reach_the_root_message(self):
         for pair in ALL_PAIRS:
@@ -461,10 +515,11 @@ class Completeness(unittest.TestCase):
             for member in sorted(declared):
                 if member in gen.EXCLUDED_MEMBERS or member not in gen.FIX_MEMBERS:
                     continue
-                self.assertIn(
-                    gen.snake_case(member), fields,
-                    f"API {pair[0]}.{pair[1]}: gps_data_t.{member} is in the fix scope but "
-                    f"has no field in GPSDRaw")
+                snake = gen.snake_case(member)
+                self.assertTrue(
+                    any(covers(snake, f) for f in fields),
+                    f"API {pair[0]}.{pair[1]}: gps_data_t.{member} is in the "
+                    f"fix scope but has no field in GPSDRaw")
 
     def test_scanner_disagrees_with_nothing_it_should_agree_with(self):
         # Guard on the guard: if the independent scanner silently returned
@@ -482,15 +537,22 @@ class Completeness(unittest.TestCase):
         # fabricated value in a message that claims to be raw.
         for pair in ALL_PAIRS:
             src = read_gps_h(gen.REFERENCE_REVS[pair])
-            for tag, stem in self.STRUCT_TO_MESSAGE.items():
-                fields = message_fields(pair, stem)
-                if fields is None:
+            root_members = {gen.snake_case(m)
+                            for m in scan_struct_members(src, "gps_data_t")}
+            for tag, prefix in self.STRUCT_TO_PREFIX.items():
+                fields = fields_under(pair, prefix)
+                if not fields:
                     continue
                 declared = {gen.snake_case(m) for m in scan_struct_members(src, tag)}
                 for field in fields:
-                    self.assertIn(
-                        field, declared,
-                        f"API {pair[0]}.{pair[1]}: {stem}.{field} has no "
+                    # A prefix can also match a gps_data_t member of its own:
+                    # `skyview_time` is gps_data_t::skyview_time, not a
+                    # satellite_t field that happens to sit under skyview_.
+                    if prefix + field in root_members:
+                        continue
+                    self.assertTrue(
+                        any(covers(m, field) for m in declared),
+                        f"API {pair[0]}.{pair[1]}: {prefix}{field} has no "
                         f"corresponding member in {tag}")
 
 
@@ -542,39 +604,54 @@ class FieldTypes(unittest.TestCase):
                     ("xdop", "ydop", "pdop", "hdop", "vdop", "tdop", "gdop")},
     }
 
+    # Prefix each STABLE group lands under, and whether it became a parallel
+    # array. skyview is the only one here that did.
+    STEM_TO_PREFIX = {"GPSDRaw": "", "GPSDFix": "fix_",
+                      "GPSDSatellite": "skyview_", "GPSDDop": "dop_"}
+    ARRAY_STEMS = {"GPSDSatellite"}
+
     def test_stable_field_types(self):
         for pair in ALL_PAIRS:
+            actual = message_typed_fields(pair, "GPSDRaw")
+            self.assertIsNotNone(actual, f"API {pair}: GPSDRaw not generated")
             for stem, expected in self.STABLE.items():
-                actual = message_typed_fields(pair, stem)
-                self.assertIsNotNone(actual, f"API {pair}: {stem} not generated")
+                prefix = self.STEM_TO_PREFIX[stem]
+                suffix = "[]" if stem in self.ARRAY_STEMS else ""
                 for name, ros_type in expected.items():
-                    if name not in actual:
+                    flat = prefix + name
+                    if flat not in actual:
                         continue        # covered by the membership tests
                     self.assertEqual(
-                        actual[name], ros_type,
-                        f"API {pair[0]}.{pair[1]}: {stem}.{name} should be "
-                        f"{ros_type}, got {actual[name]}")
+                        actual[flat], ros_type + suffix,
+                        f"API {pair[0]}.{pair[1]}: {flat} should be "
+                        f"{ros_type}{suffix}, got {actual[flat]}")
 
-    def test_sub_message_references_are_version_suffixed(self):
-        # A GPSDRaw16v1 pointing at GPSDFix14v0 would compile and be wrong.
+    def test_no_project_defined_sub_messages_remain(self):
+        """Flattening's defining property: only standard ROS types nest.
+
+        Replaces the old check that sub-message references carried the version
+        suffix. There are no sub-messages to get wrong now -- which is the
+        stronger guarantee, since a GPSDRaw16v1 pointing at a GPSDFix14v0 was
+        the failure that check existed to catch.
+        """
         for pair in ALL_PAIRS:
-            suffix = f"{pair[0]}v{pair[1]}"
-            raw = message_typed_fields(pair, "GPSDRaw")
-            self.assertEqual(raw["fix"], f"GPSDFix{suffix}")
-            self.assertEqual(raw["dop"], f"GPSDDop{suffix}")
-            self.assertEqual(raw["skyview"], f"GPSDSatellite{suffix}[]")
-            fix = message_typed_fields(pair, "GPSDFix")
-            self.assertEqual(fix["ecef"], f"GPSDFixEcef{suffix}")
-            self.assertEqual(fix["ned"], f"GPSDFixNed{suffix}")
-            if "base" in fix:
-                self.assertEqual(fix["base"], f"GPSDBaseline{suffix}")
+            for name, ros_type in message_typed_fields(pair, "GPSDRaw").items():
+                base = ros_type[:-2] if ros_type.endswith("[]") else ros_type
+                self.assertFalse(
+                    base.startswith(gen.MESSAGE_PREFIX),
+                    f"API {pair[0]}.{pair[1]}: {name} is {ros_type}; the root "
+                    f"message must not reference another generated message")
+                if "/" in base:
+                    self.assertIn(base.split("/")[0],
+                                  ("std_msgs", "builtin_interfaces"),
+                                  f"{name}: unexpected package for {ros_type}")
 
     def test_skyview_is_an_unbounded_array(self):
         # MAXCHANNELS is 140 or 184 depending on the rev and is not a
         # function of the API pair, so it must not appear in any message type.
         for pair in ALL_PAIRS:
             self.assertTrue(
-                message_typed_fields(pair, "GPSDRaw")["skyview"].endswith("[]"))
+                message_typed_fields(pair, "GPSDRaw")["skyview_prn"].endswith("[]"))
         for path, text in generated().items():
             if path.endswith(".msg"):
                 self.assertNotRegex(text, r"\[\s*\d+\s*\]",
@@ -582,9 +659,9 @@ class FieldTypes(unittest.TestCase):
 
     def test_char_array_becomes_string(self):
         for pair in ALL_PAIRS:
-            fix = message_typed_fields(pair, "GPSDFix")
-            if "datum" in fix:              # char datum[40]
-                self.assertEqual(fix["datum"], "string")
+            raw = message_typed_fields(pair, "GPSDRaw")
+            if "fix_datum" in raw:          # char datum[40]
+                self.assertEqual(raw["fix_datum"], "string")
 
     def test_types_agree_with_the_c_declarations(self):
         """Independent cross-check: re-read each C type and map it separately."""
@@ -599,22 +676,27 @@ class FieldTypes(unittest.TestCase):
             "timespec_t": "builtin_interfaces/Time",
             "gps_mask_t": "uint64", "gnssid_t": "uint8", "time_t": "int64",
         }
+        # Groups that flattened into parallel arrays carry a [] the C
+        # declaration does not; everything else keeps its scalar type.
+        array_prefixes = ("skyview_", "imu_", "devices_list_", "raw_meas_")
         checked = 0
         for pair in ALL_PAIRS:
             src = read_gps_h(gen.REFERENCE_REVS[pair])
-            for tag, stem in Completeness.STRUCT_TO_MESSAGE.items():
-                actual = message_typed_fields(pair, stem)
+            actual = message_typed_fields(pair, "GPSDRaw")
+            for tag, prefix in Completeness.STRUCT_TO_PREFIX.items():
                 for member, ctype in scan_member_types(src, tag).items():
                     if member in gen.EXCLUDED_MEMBERS:
                         continue
                     want = expected_for_c.get(ctype)
-                    name = gen.snake_case(member)
+                    name = prefix + gen.snake_case(member)
                     if want is None or name not in actual:
                         continue
+                    if name.startswith(array_prefixes):
+                        want += "[]"
                     self.assertEqual(
                         actual[name], want,
                         f"API {pair[0]}.{pair[1]}: {tag}.{member} is {ctype!r} "
-                        f"so {stem}.{name} should be {want}, got {actual[name]}")
+                        f"so {name} should be {want}, got {actual[name]}")
                     checked += 1
         # Guard on the guard: a scanner that returned nothing would pass.
         self.assertGreater(checked, 300, "cross-check covered too few fields")
@@ -822,24 +904,39 @@ class GeneratedParserCode(unittest.TestCase):
             self.assertGreater(source.count("if constexpr (has_"), 20,
                                f"API {pair}: too few member guards to be real")
 
-    def test_struct_arrays_are_not_filled_by_generated_code(self):
-        # Only the hand-written parser knows the valid element count; a blind
-        # loop would publish MAXCHANNELS entries of garbage.
+    def test_array_groups_are_filled_from_one_loop(self):
+        """Parallel arrays in a group must be written together.
+
+        Flattening removed the type-level guarantee that one array of structs
+        stays self-consistent, so the generated filler resizes and writes every
+        array in a group inside a single loop. A per-array loop would compile
+        and pass every membership test while letting the arrays drift apart.
+
+        Also checks the count still comes from the caller: only it knows how
+        many elements are valid, and a blind loop over the C array would
+        publish MAXCHANNELS entries of garbage.
+        """
         for pair in ALL_PAIRS:
             source = self.parser_source(pair)
-            self.assertIn("filled by the caller", source)
-            self.assertNotIn("out.skyview.assign", source)
-            self.assertNotIn("out.skyview.push_back", source)
+            self.assertIn("inline void fill_skyview(", source)
+            self.assertIn("const std::vector<std::size_t>& idx", source)
+            body = source[source.index("inline void fill_skyview("):]
+            body = body[:body.index("\ninline void ", 1)] if "\ninline void " \
+                in body[1:] else body
+            self.assertEqual(
+                1, body.count("for (std::size_t i = 0"),
+                f"API {pair}: fill_skyview must write its arrays from one loop")
+            self.assertGreater(body.count(".resize(count)"), 5,
+                               f"API {pair}: too few arrays resized together")
 
     def test_includes_match_rosidl_header_names(self):
         for pair in ALL_PAIRS:
             source = self.parser_source(pair)
             suffix = f"{pair[0]}v{pair[1]}"
             self.assertIn(f"#include <gps_extended_msgs/msg/gpsd_raw{suffix}.hpp>", source)
-            self.assertIn(f"#include <gps_extended_msgs/msg/gpsd_fix{suffix}.hpp>", source)
-            # The acronym split is the part that is easy to regress.
+            # One message now, so this is the only include to get right. The
+            # acronym split is the part that is easy to regress.
             self.assertNotIn("gpsdraw", source)
-            self.assertNotIn("gpsdfix", source)
 
 
 if __name__ == "__main__":

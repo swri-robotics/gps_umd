@@ -77,19 +77,19 @@ TEST(GpsdRawParser, CopiesScalarsAndNestedStructs)
   gps_data_t data = gpsd_client::test::makeThreeDFixFromJson();
   gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(42, 0));
 
-  EXPECT_DOUBLE_EQ(msg.fix.latitude, 29.44);
-  EXPECT_DOUBLE_EQ(msg.fix.longitude, -98.61);
-  EXPECT_DOUBLE_EQ(msg.fix.altitude, 250.0);
-  EXPECT_DOUBLE_EQ(msg.fix.speed, 2.5);
-  EXPECT_EQ(msg.fix.mode, MODE_3D);
+  EXPECT_DOUBLE_EQ(msg.fix_latitude, 29.44);
+  EXPECT_DOUBLE_EQ(msg.fix_longitude, -98.61);
+  EXPECT_DOUBLE_EQ(msg.fix_altitude, 250.0);
+  EXPECT_DOUBLE_EQ(msg.fix_speed, 2.5);
+  EXPECT_EQ(msg.fix_mode, MODE_3D);
 
-  EXPECT_DOUBLE_EQ(msg.dop.hdop, 1.2);
-  EXPECT_DOUBLE_EQ(msg.dop.pdop, 1.1);
-  EXPECT_DOUBLE_EQ(msg.dop.gdop, 1.5);
+  EXPECT_DOUBLE_EQ(msg.dop_hdop, 1.2);
+  EXPECT_DOUBLE_EQ(msg.dop_pdop, 1.1);
+  EXPECT_DOUBLE_EQ(msg.dop_gdop, 1.5);
 
   // timespec_t -> builtin_interfaces/Time keeps the nanoseconds.
-  EXPECT_EQ(msg.fix.time.sec, 1700000000);
-  EXPECT_EQ(msg.fix.time.nanosec, 500000000u);
+  EXPECT_EQ(msg.fix_time.sec, 1700000000);
+  EXPECT_EQ(msg.fix_time.nanosec, 500000000u);
   EXPECT_EQ(msg.online.sec, 100);
 }
 
@@ -101,16 +101,16 @@ TEST(GpsdRawParser, SkyviewIsTruncatedToTheValidCount)
   gps_data_t data = gpsd_client::test::makeThreeDFixFromJson();
   gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(42, 0));
 
-  ASSERT_EQ(msg.skyview.size(), 3u);
-  EXPECT_LT(msg.skyview.size(), static_cast<std::size_t>(MAXCHANNELS));
+  ASSERT_EQ(msg.skyview_prn.size(), 3u);
+  EXPECT_LT(msg.skyview_prn.size(), static_cast<std::size_t>(MAXCHANNELS));
 
-  EXPECT_EQ(msg.skyview[0].prn, 10);
-  EXPECT_DOUBLE_EQ(msg.skyview[0].elevation, 30.0);
-  EXPECT_DOUBLE_EQ(msg.skyview[0].azimuth, 100.0);
-  EXPECT_DOUBLE_EQ(msg.skyview[0].ss, 40.0);
-  EXPECT_TRUE(msg.skyview[0].used);
-  EXPECT_EQ(msg.skyview[2].prn, 12);
-  EXPECT_FALSE(msg.skyview[2].used);
+  EXPECT_EQ(msg.skyview_prn[0], 10);
+  EXPECT_DOUBLE_EQ(msg.skyview_elevation[0], 30.0);
+  EXPECT_DOUBLE_EQ(msg.skyview_azimuth[0], 100.0);
+  EXPECT_DOUBLE_EQ(msg.skyview_ss[0], 40.0);
+  EXPECT_TRUE(msg.skyview_used[0]);
+  EXPECT_EQ(msg.skyview_prn[2], 12);
+  EXPECT_FALSE(msg.skyview_used[2]);
 }
 
 TEST(GpsdRawParser, SkyviewCountIsClampedAgainstGarbage)
@@ -121,10 +121,10 @@ TEST(GpsdRawParser, SkyviewCountIsClampedAgainstGarbage)
   gps_data_t data = gpsd_client::test::makeEmptyData();
 
   data.satellites_visible = -1;
-  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).skyview.size(), 0u);
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).skyview_prn.size(), 0u);
 
   data.satellites_visible = MAXCHANNELS + 500;
-  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).skyview.size(),
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).skyview_prn.size(),
             static_cast<std::size_t>(MAXCHANNELS));
 }
 
@@ -135,9 +135,9 @@ TEST(GpsdRawParser, PreservesNanRatherThanZeroing)
   gps_data_t data = gpsd_client::test::makeEmptyData();
   gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
 
-  EXPECT_TRUE(std::isnan(msg.fix.latitude));
-  EXPECT_TRUE(std::isnan(msg.fix.longitude));
-  EXPECT_TRUE(std::isnan(msg.dop.hdop));
+  EXPECT_TRUE(std::isnan(msg.fix_latitude));
+  EXPECT_TRUE(std::isnan(msg.fix_longitude));
+  EXPECT_TRUE(std::isnan(msg.dop_hdop));
 }
 
 TEST(GpsdRawParser, CarriesTheSetMaskVerbatim)
@@ -166,7 +166,7 @@ TEST(GpsdRawParser, FixStatusIsCarriedWhereverThisVersionKeepsIt)
 
   gpsd_client::GpsdRawMsg msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
 #ifdef HAVE_GPS_FIX_STATUS
-  EXPECT_EQ(msg.fix.status, kStatusGps);
+  EXPECT_EQ(msg.fix_status, kStatusGps);
 #else
   EXPECT_EQ(msg.status, kStatusGps);
 #endif
@@ -189,17 +189,17 @@ TEST(GpsdRawParser, DeviceListIsTrimmedToNdevices)
            "/dev/ttyS1");
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
-  ASSERT_EQ(msg.devices.list.size(), 2u);
-  EXPECT_LT(msg.devices.list.size(), capacity);
-  EXPECT_EQ(msg.devices.list[0].path, "/dev/ttyS0");
-  EXPECT_EQ(msg.devices.list[1].path, "/dev/ttyS1");
-  EXPECT_EQ(msg.devices.ndevices, 2);
+  ASSERT_EQ(msg.devices_list_path.size(), 2u);
+  EXPECT_LT(msg.devices_list_path.size(), capacity);
+  EXPECT_EQ(msg.devices_list_path[0], "/dev/ttyS0");
+  EXPECT_EQ(msg.devices_list_path[1], "/dev/ttyS1");
+  EXPECT_EQ(msg.devices_ndevices, 2);
 
   // Same garbage-clamping as skyview: ndevices is a plain int.
   data.devices.ndevices = -1;
-  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).devices.list.size(), 0u);
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).devices_list_path.size(), 0u);
   data.devices.ndevices = static_cast<int>(capacity) + 100;
-  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).devices.list.size(),
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).devices_list_path.size(),
             capacity);
 }
 
@@ -214,26 +214,26 @@ TEST(GpsdRawParser, ImuIsTerminatedByAnEmptyMsg)
   const std::size_t max_imu = sizeof(data.imu) / sizeof(data.imu[0]);
 
   // Nothing stamped: nothing published, rather than ten empty entries.
-  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu.size(), 0u);
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu_msg.size(), 0u);
 
   snprintf(data.imu[0].msg, sizeof(data.imu[0].msg), "UBX-ESF-RAW");
   snprintf(data.imu[1].msg, sizeof(data.imu[1].msg), "UBX-ESF-RAW");
   data.imu[1].gyro_x = 1.5;
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
-  ASSERT_EQ(msg.imu.size(), 2u);
-  EXPECT_EQ(msg.imu[0].msg, "UBX-ESF-RAW");
-  EXPECT_DOUBLE_EQ(msg.imu[1].gyro_x, 1.5);
+  ASSERT_EQ(msg.imu_msg.size(), 2u);
+  EXPECT_EQ(msg.imu_msg[0], "UBX-ESF-RAW");
+  EXPECT_DOUBLE_EQ(msg.imu_gyro_x[1], 1.5);
 
   // A gap terminates: entry 3 is stamped but unreachable past the empty 2.
   snprintf(data.imu[3].msg, sizeof(data.imu[3].msg), "UBX-ESF-RAW");
-  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu.size(), 2u);
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu_msg.size(), 2u);
 
   // All ten stamped: bounded by the array, never past it.
   for (std::size_t i = 0; i < max_imu; ++i)
   {
     snprintf(data.imu[i].msg, sizeof(data.imu[i].msg), "UBX-ESF-RAW");
   }
-  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu.size(), max_imu);
+  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu_msg.size(), max_imu);
 }
 #endif
 
@@ -253,7 +253,7 @@ TEST(GpsdRawParser, PointerMembersAreNotPublished)
   snprintf(data.source.spec, sizeof(data.source.spec), "localhost:2947");
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
-  EXPECT_EQ(msg.source.spec, "localhost:2947");
+  EXPECT_EQ(msg.source_spec, "localhost:2947");
 }
 #endif  // HAVE_GPS_DATA_SOURCE -- added during API 14.0, at GPSd 3.25
 
@@ -270,8 +270,8 @@ TEST(GpsdRawParser, AnUnterminatedCharArrayStopsAtTheEndOfTheArray)
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
 
-  EXPECT_EQ(sizeof(data.dev.path), msg.dev.path.size());
-  EXPECT_EQ(std::string(sizeof(data.dev.path), 'x'), msg.dev.path);
+  EXPECT_EQ(sizeof(data.dev.path), msg.dev_path.size());
+  EXPECT_EQ(std::string(sizeof(data.dev.path), 'x'), msg.dev_path);
 }
 
 TEST(GpsdRawParser, ATerminatedCharArrayStopsAtTheTerminator)
@@ -284,7 +284,7 @@ TEST(GpsdRawParser, ATerminatedCharArrayStopsAtTheTerminator)
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
 
-  EXPECT_EQ("/dev/ttyS0", msg.dev.path);
+  EXPECT_EQ("/dev/ttyS0", msg.dev_path);
 }
 
 // --- Time transfer: TOFF, PPS and qErr ------------------------------------
@@ -329,13 +329,13 @@ TEST(GpsdRawParser, ToffReportReachesTheMessage)
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
 
   EXPECT_TRUE(msg.set & gpsd_client::GpsdRawMsg::SET_TOFF);
-  EXPECT_EQ(msg.toff.real.sec, 1700000000);
-  EXPECT_EQ(msg.toff.real.nanosec, 250000000u);
-  EXPECT_EQ(msg.toff.clock.sec, 1700000000);
+  EXPECT_EQ(msg.toff_real.sec, 1700000000);
+  EXPECT_EQ(msg.toff_real.nanosec, 250000000u);
+  EXPECT_EQ(msg.toff_clock.sec, 1700000000);
   // The point of TOFF: the offset between the two clocks. The two nsec values
   // differ by 123 while the sec values match, so a real/clock mix-up shows up
   // here and nowhere else.
-  EXPECT_EQ(msg.toff.clock.nanosec, 250000123u);
+  EXPECT_EQ(msg.toff_clock.nanosec, 250000123u);
 }
 
 TEST(GpsdRawParser, PpsReportReachesTheMessageIncludingQErr)
@@ -352,9 +352,9 @@ TEST(GpsdRawParser, PpsReportReachesTheMessageIncludingQErr)
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
 
   EXPECT_TRUE(msg.set & gpsd_client::GpsdRawMsg::SET_PPS);
-  EXPECT_EQ(msg.pps.real.sec, 1700000001);
-  EXPECT_EQ(msg.pps.clock.sec, 1700000000);
-  EXPECT_EQ(msg.pps.clock.nanosec, 999999000u);
+  EXPECT_EQ(msg.pps_real.sec, 1700000001);
+  EXPECT_EQ(msg.pps_clock.sec, 1700000000);
+  EXPECT_EQ(msg.pps_clock.nanosec, 999999000u);
 
   // qErr rides in on the PPS report but lives in its own member, not in pps.
   // It is signed picoseconds, so a negative value is the interesting case: a
@@ -386,10 +386,10 @@ TEST(GpsdRawParser, ToffAndPpsFillIndependently)
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
 
-  EXPECT_EQ(msg.toff.real.sec, 33);
-  EXPECT_EQ(msg.toff.clock.sec, 44);
-  EXPECT_EQ(msg.pps.real.sec, 11);
-  EXPECT_EQ(msg.pps.clock.sec, 22);
+  EXPECT_EQ(msg.toff_real.sec, 33);
+  EXPECT_EQ(msg.toff_clock.sec, 44);
+  EXPECT_EQ(msg.pps_real.sec, 11);
+  EXPECT_EQ(msg.pps_clock.sec, 22);
   // qErr rides in on PPS but lives outside both timedelta_t members.
   EXPECT_EQ(msg.q_err, 7);
 }
@@ -398,20 +398,36 @@ TEST(GpsdRawParser, ToffAndPpsFillIndependently)
 
 TEST(GpsdRawParser, ReportUnionFillsOnlyTheArmTheMaskNames)
 {
-  // gps_data_t packs its report arms into a union; the set mask says which is
-  // live. Filling any other would be reading an inactive union member, so the
-  // arms are 0-or-1 arrays and only the named one is ever non-empty.
+  /* gps_data_t packs its report arms into a union, so only the arm the set
+   * mask names may be read -- touching another is a read of an inactive union
+   * member. The arms are plain scalars in the message, so the mask is what
+   * tells a subscriber whether they mean anything; this asserts the parser
+   * honours it rather than copying whatever the union happened to hold.
+   */
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  snprintf(data.dev.path, sizeof(data.dev.path), "/dev/ttyS0");
+  snprintf(data.version.release, sizeof(data.version.release), "3.27.5");
   data.set = DEVICE_SET | VERSION_SET;
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
-  ASSERT_EQ(msg.version.size(), 1u) << "VERSION_SET was set";
+  EXPECT_EQ(msg.version_release, "3.27.5") << "VERSION_SET was set";
 
-  // Every other arm stays empty -- that is what says "not this kind of report".
+  // The other arms share that storage and were not named by the mask.
   EXPECT_TRUE(msg.error.empty());
-  EXPECT_TRUE(msg.osc.empty());
-  EXPECT_TRUE(msg.raw.empty());
+  EXPECT_FALSE(msg.osc_running);
+  EXPECT_EQ(msg.osc_delta, 0);
+}
+
+TEST(GpsdRawParser, UnionArmsStayAtTheirDefaultsWithoutTheirBit)
+{
+  // The converse: the union holds a VERSION report, but the mask does not say
+  // so, so nothing may be copied out of it.
+  gps_data_t data = gpsd_client::test::makeEmptyData();
+  snprintf(data.version.release, sizeof(data.version.release), "3.27.5");
+  data.set = LATLON_SET;
+
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+  EXPECT_TRUE(msg.version_release.empty())
+      << "copied a union arm the mask did not name";
 }
 
 TEST(GpsdRawParser, ErrorArmIsAStringFromTheMask)
@@ -421,8 +437,28 @@ TEST(GpsdRawParser, ErrorArmIsAStringFromTheMask)
   data.set = ERROR_SET;
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
-  ASSERT_EQ(msg.error.size(), 1u);
-  EXPECT_EQ(msg.error[0], "no such device");
+  EXPECT_EQ(msg.error, "no such device");
+}
+
+TEST(GpsdRawParser, ParallelArraysInAGroupAgreeInLength)
+{
+  /* Flattening turns one array of structs into many arrays of scalars, and
+   * nothing in the type system keeps them the same length any more. The
+   * generated filler writes each group from a single loop, so this is a
+   * backstop against that guarantee being lost.
+   */
+  gps_data_t data = gpsd_client::test::makeThreeDFixFromJson();
+  auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
+
+  const std::size_t n = msg.skyview_prn.size();
+  EXPECT_EQ(msg.skyview_ss.size(), n);
+  EXPECT_EQ(msg.skyview_elevation.size(), n);
+  EXPECT_EQ(msg.skyview_azimuth.size(), n);
+  EXPECT_EQ(msg.skyview_used.size(), n);
+  EXPECT_EQ(msg.skyview_gnssid.size(), n);
+
+  const std::size_t d = msg.devices_list_path.size();
+  EXPECT_EQ(msg.devices_list_driver.size(), d);
 }
 
 int main(int argc, char** argv)

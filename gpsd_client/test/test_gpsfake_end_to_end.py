@@ -437,7 +437,9 @@ class EndToEnd(unittest.TestCase):
         raws = self.raws()
         self.assertTrue(raws, "no raw messages captured")
         for msg in raws:
-            self.assertEqual(len(msg.skyview), msg.satellites_visible)
+            self.assertEqual(len(msg.skyview_prn), msg.satellites_visible)
+            # the group must agree with itself, too
+            self.assertEqual(len(msg.skyview_ss), len(msg.skyview_prn))
 
     def test_satellite_counts_are_ones_gpsd_reports_for_this_log(self):
         truth = {len(r.get("satellites", [])) for r in self.chk.get("SKY", [])}
@@ -465,7 +467,8 @@ class EndToEnd(unittest.TestCase):
         # the chain -- including by message serialization, which no unit test
         # in this package exercises.
         raws = self.raws()
-        unknowns = [m for m in raws if m.fix.eph != m.fix.eph or m.fix.epv != m.fix.epv]
+        unknowns = [m for m in raws
+                    if m.fix_eph != m.fix_eph or m.fix_epv != m.fix_epv]
         if not unknowns:
             self.skipTest("this replay never produced an unknown error estimate")
         self.assertTrue(unknowns)
@@ -488,8 +491,8 @@ class GstReports(unittest.TestCase):
         self.assertTrue(truth, "gr8013-w.log.chk carries no GST latitude error")
         raws = self.session.messages.get("/gpsd_raw", [])
         self.assertTrue(raws, "no raw messages captured")
-        seen = {rounded(m.gst.lat_err_deviation) for m in raws
-                if m.gst.lat_err_deviation == m.gst.lat_err_deviation}
+        seen = {rounded(m.gst_lat_err_deviation) for m in raws
+                if m.gst_lat_err_deviation == m.gst_lat_err_deviation}
         if not seen:
             self.skipTest("this replay sampled no GST report")
         self.assertEqual(set(), seen - truth,
@@ -537,16 +540,17 @@ class AttitudeReports(unittest.TestCase):
                 truth = {rounded(r[field]) for r in reports if field in r}
                 self.assertTrue(truth, f"no ATT report carries {field}")
                 # NaN is GPSd's "unset"; compare only what was actually filled.
-                seen = {rounded(getattr(m.attitude, field)) for m in raws
-                        if getattr(m.attitude, field) == getattr(m.attitude, field)}
+                seen = {rounded(getattr(m, "attitude_" + field)) for m in raws
+                        if getattr(m, "attitude_" + field)
+                        == getattr(m, "attitude_" + field)}
                 self.assertTrue(
                     seen,
-                    f"no attitude.{field} reached the topic, though the log "
+                    f"no attitude_{field} reached the topic, though the log "
                     f"reports {len(truth)} distinct values\n"
                     f"{self.session.diagnostics()}")
                 self.assertEqual(
                     set(), seen - truth,
-                    f"attitude.{field} values published that GPSd does not report")
+                    f"attitude_{field} values published that GPSd does not report")
 
     def test_attitude_tracks_the_replay(self):
         """Every field must move, not just be present once.
@@ -572,11 +576,12 @@ class AttitudeReports(unittest.TestCase):
         for field in self.FIELDS:
             with self.subTest(field=field):
                 truth = {rounded(r[field]) for r in reports if field in r}
-                seen = {rounded(getattr(m.attitude, field)) for m in raws
-                        if getattr(m.attitude, field) == getattr(m.attitude, field)}
+                seen = {rounded(getattr(m, "attitude_" + field)) for m in raws
+                        if getattr(m, "attitude_" + field)
+                        == getattr(m, "attitude_" + field)}
                 self.assertGreaterEqual(
                     len(seen), len(truth) // 2,
-                    f"attitude.{field} barely moved across the replay: "
+                    f"attitude_{field} barely moved across the replay: "
                     f"{len(seen)} distinct values published of {len(truth)} "
                     f"reported -- it is being filled once and then held, not "
                     f"tracked\n{sorted(seen)}")
@@ -613,8 +618,8 @@ class LogIsUnreachableThroughLibgps(unittest.TestCase):
         self.assertTrue(raws, "no raw messages captured")
         # gps_data_t::log is a plain member, not a union arm, so "unset" means
         # its NaN sentinel survived rather than the arm being absent.
-        self.assertTrue(all(m.log.lat != m.log.lat for m in raws),
-                        "log.lat carried a value; libgps has no LOG reader")
+        self.assertTrue(all(m.log_lat != m.log_lat for m in raws),
+                        "log_lat carried a value; libgps has no LOG reader")
 
 
 @unittest.skipIf(SKIP, SKIP or "")
@@ -629,13 +634,21 @@ class RawMeasurements(unittest.TestCase):
     def test_raw_arm_carries_measurements(self):
         raws = self.session.messages.get("/gpsd_raw", [])
         self.assertTrue(raws, "no raw messages captured")
-        seen = [m.raw[0] for m in raws if m.raw]
+        # The RAW arm is scalars now; the mask says whether it means
+        # anything, and meas[] is a parallel-array group beneath it.
+        bit = type(raws[0]).SET_RAW
+        seen = [m for m in raws if m.set & bit]
         if not seen:
             self.skipTest("this replay sampled no RAW report")
         # Every RAW report in the corpus carries at least one measurement, so
-        # an empty meas[] means the arm was copied without its payload.
-        self.assertTrue(any(len(r.meas) > 0 for r in seen),
+        # an empty group means the arm was copied without its payload.
+        self.assertTrue(any(len(m.raw_meas_svid) > 0 for m in seen),
                         "RAW arm published with no measurements in any sample")
+        # The group must stay self-consistent: one loop fills all of it.
+        for m in seen:
+            n = len(m.raw_meas_svid)
+            self.assertEqual(len(m.raw_meas_gnssid), n)
+            self.assertEqual(len(m.raw_meas_pseudorange), n)
 
 
 @unittest.skipIf(SKIP, SKIP or "")
@@ -654,12 +667,13 @@ class OscillatorReports(unittest.TestCase):
     def test_oscillator_arm_matches_the_chk(self):
         raws = self.session.messages.get("/gpsd_raw", [])
         self.assertTrue(raws, "no raw messages captured")
-        seen = [m.osc[0] for m in raws if m.osc]
+        bit = type(raws[0]).SET_OSCILLATOR
+        seen = [m for m in raws if m.set & bit]
         if not seen:
             self.skipTest("this replay sampled no OSC report")
         truth = {r["delta"] for r in self.chk.get("OSC", []) if "delta" in r}
         self.assertTrue(truth)
-        self.assertEqual(set(), {o.delta for o in seen} - truth,
+        self.assertEqual(set(), {m.osc_delta for m in seen} - truth,
                          "oscillator delta values GPSd does not report")
 
 
@@ -679,7 +693,7 @@ class ImuReports(unittest.TestCase):
     def test_imu_entries_are_trimmed_and_labelled(self):
         raws = self.session.messages.get("/gpsd_raw", [])
         self.assertTrue(raws, "no raw messages captured")
-        populated = [m for m in raws if m.imu]
+        populated = [m for m in raws if m.imu_msg]
         if not populated:
             self.skipTest("this replay sampled no IMU report")
         truth = {r["msg"] for r in self.chk.get("IMU", []) if "msg" in r}
@@ -687,9 +701,11 @@ class ImuReports(unittest.TestCase):
         for msg in populated:
             # The terminator rule: every published entry must have a non-empty
             # msg, or the trim ran past the end of the real data.
-            for entry in msg.imu:
-                self.assertTrue(entry.msg, "published an imu entry with no msg")
-            self.assertEqual(set(), {e.msg for e in msg.imu} - truth)
+            for name in msg.imu_msg:
+                self.assertTrue(name, "published an imu entry with no msg")
+            self.assertEqual(set(), set(msg.imu_msg) - truth)
+            # One loop fills the group, so its arrays agree in length.
+            self.assertEqual(len(msg.imu_heading), len(msg.imu_msg))
 
 
 @unittest.skipIf(SKIP, SKIP or "")

@@ -51,6 +51,12 @@ class MessageNames(unittest.TestCase):
         self.assertEqual(gen.versioned("GPSDRaw", (16, 1)), "GPSDRaw16v1")
         self.assertEqual(gen.versioned("GPSDRaw", (9, 0)), "GPSDRaw9v0")
 
+    def test_versioned_rejects_a_stem_ending_in_a_digit(self):
+        # Foo1 + 30v0 and Foo13 + 0v0 are the same string, so the generator
+        # refuses rather than emitting a name that cannot be read back.
+        with self.assertRaises(SystemExit):
+            gen.versioned("GPSDFoo1", (30, 0))
+
 
 class SplitMembers(unittest.TestCase):
     def parse(self, body):

@@ -455,10 +455,10 @@ def split_members(body: str) -> List[Member]:
                 spliced = split_members(body[inner_start:cursor - 1])
                 if inline.group(0).lstrip().startswith("union"):
                     # Only one of these is ever valid, exactly as for a named
-                    # union, so they get the same 0-or-1 array treatment. Both
-                    # gps_data_t's report union and rtcm2_t's arm union are
-                    # declarator-less, so without this the representation would
-                    # depend on whether GPSd happened to name the union.
+                    # union, so they are marked the same way. gps_data_t's
+                    # report union is declarator-less, so without this the
+                    # representation would depend on whether GPSd happened to
+                    # name the union.
                     for member in spliced:
                         member.union_arm = True
                 members += spliced
@@ -589,23 +589,19 @@ def message_base_name(cname: str) -> str:
 
 
 def versioned(base: str, pair: Tuple[int, int]) -> str:
-    """Append the API pair, keeping the boundary readable.
+    """Append the API pair: `<Stem><MAJOR>v<MINOR>`, e.g. GPSDRaw16v1.
 
-    The plain form is `<Stem><MAJOR>v<MINOR>` -- GPSDFix16v1 -- which is what
-    the specified root name GPSDRaw<MAJOR>v<MINOR> uses.
-
-    A stem that itself *ends in a digit* would run into the version and become
-    ambiguous: the rtcm3 arm `rtcm3_1001` at API 9.0 would read
-    GPSDRtcm3100 19v0 / GPSDRtcm31001 9v0 with no way to tell, and even the
-    plain GPSDRtcm3 + 16v1 gives GPSDRtcm316v1. Those stems get a 'V'
-    separator. rosidl rejects underscores in message names, so a letter is the
-    only option.
-
-    Applied only where the ambiguity exists, so the many stems that end in a
-    letter keep the shorter, spec-matching form.
+    A stem ending in a digit would run into the version and become ambiguous --
+    `Foo1` at API 30.0 and `Foo13` at API 0.0 both concatenate to Foo130v0 --
+    so it is rejected rather than encoded around. rosidl forbids underscores in
+    message names, leaving no separator that reads well, and no stem here ends
+    in a digit: GPSDRaw and GPSDJson are the whole set.
     """
     if base and base[-1].isdigit():
-        return f"{base}V{pair[0]}v{pair[1]}"
+        raise SystemExit(
+            f"message stem {base!r} ends in a digit, so appending the API pair "
+            f"would be ambiguous. Rename the member it came from, or give "
+            f"message_base_name() an explicit mapping for it.")
     return f"{base}{pair[0]}v{pair[1]}"
 
 
@@ -673,7 +669,7 @@ class Field:
     kind: str = "scalar"          # scalar | string | bytes | time | struct
     c_expr: str = ""              # C member path relative to its parent
     array: bool = False
-    union_arm: bool = False       # a 0-or-1 array standing in for a union arm
+    union_arm: bool = False       # one arm of a union; only one is ever valid
     # Set by flatten_model(), for the flat root only.
     path: Tuple[str, ...] = ()    # C member names, outermost first
     gate: str = ""                # set-mask bit guarding a union arm's data
@@ -935,18 +931,13 @@ def flatten_model(model: Model) -> None:
 
 def emit_struct(model: Model, message_name: str, members: List[Member],
                 parent: str, as_union: bool = False) -> None:
-    """Emit one message for a struct, or for a union's arms.
+    """Build the intermediate model for one struct, or for a union's arms.
 
-    A union's arms become **0-or-1 element arrays** rather than plain fields.
-    ROS has no variant type, and a flat message would serialise all 26 rtcm3
-    arms on every report -- roughly 180 dead fields of wire and CPU per RTCM3
-    message -- while also requiring the reader to know the discriminator to
-    tell which one means anything. As arrays, an inactive arm costs the four
-    bytes of its length, and `!msg.rtcm3_1005.empty()` says outright that the
-    report is a type 1005.
-
-    It also keeps the parser from reading an inactive union member, which is
-    undefined behaviour, not merely wasteful.
+    Marks a union's arms `union_arm`, which flatten_model() then turns into
+    mask-gated scalars on the flat root. The mark is what carries "only one of
+    these is valid at a time" through to the fill, where reading an arm the
+    mask does not name would be a read of an inactive union member --
+    undefined behaviour, not merely a wasted copy.
     """
     fields = model.message(message_name)
     mapped, skipped = [], []

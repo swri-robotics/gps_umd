@@ -93,22 +93,65 @@ scalar. The `skyview_*` arrays come from `skyview[]`.
 
 ### Union arms are plain scalars, gated by the mask
 
-`gps_data_t` carries an anonymous union: one report populates exactly one arm.
-Its members are ordinary scalars on the message — `version_release`,
-`osc_delta`, `error` — because a 0-or-1 array would force `msg.osc_delta[0]` on
-every reader without saying anything the mask does not.
+`gps_data_t` carries an anonymous union: one report populates exactly one arm,
+and the others share its storage. Those members are ordinary scalars on the
+message — `version_release`, `osc_delta`, `error` — because a 0-or-1 array would
+force `msg.osc_delta[0]` on every reader without saying anything the mask does
+not.
 
-**Read `set` before reading a union arm.** The fields exist on every message;
-only the mask says whether they mean anything for this report.
+**These are the only fields whose presence the mask decides.** Everything else
+is filled on every report. Nothing in the message shape marks them, so the list
+is here:
+
+| Prefix | Read only when | Fields | Gated on |
+|---|---|---|---|
+| `raw_*` (incl. `raw_meas_*`) | `SET_RAW` | 17 | every version |
+| `version_*` | `SET_VERSION` | 5 | every version |
+| `osc_*` | `SET_OSCILLATOR` | 4 | every version |
+| `error` | `SET_ERROR` | 1 | every version |
+| `gst_*` | `SET_GST` | 8 | **API 9.0 – 13.0 only** |
+| `attitude_*` | `SET_ATTITUDE` | 22 | **API 9.0 – 11.0 only** |
+
+So 57 gated fields at API 9.0, 35 from API 12.0, and 27 from API 14.0 on.
 
 ```cpp
 if (msg.set & gps_extended_msgs::msg::GPSDRaw16v1::SET_OSCILLATOR) {
-  use(msg.osc_delta);
+  use(msg.osc_delta);           // meaningful only inside this guard
 }
 ```
 
-The parser honours this too: it copies an arm only when the mask names it, since
-reading another arm would be a read of an inactive union member.
+**Reading one without checking gives you a default, not a stale value.** The
+parser builds a fresh message per report and copies an arm only when the mask
+names it, so an ungated read yields `0` or `""` rather than data left over from
+an earlier report. That is a deliberate guarantee, and a test pins it — but it
+still tells you nothing about this report, so the guard is what you want.
+
+The parser cannot simply copy every arm: reading one the mask does not name is a
+read of an inactive union member, which is undefined behaviour rather than a
+merely wrong number.
+
+#### The list is version-dependent
+
+Two members leave the union as GPSd evolves, and the field names do not change
+when they do:
+
+* **`attitude_*`** is union-carried on API 9.0 – 11.0 and an ordinary member
+  from API 12.0.
+* **`gst_*`** is union-carried on API 9.0 – 13.0 and an ordinary member from
+  API 14.0.
+
+On the later versions those fields are filled on every report and need no
+guard. Code that must span versions can simply always check the bit: the mask
+is still set when the data is present, so the guard is correct everywhere and
+merely redundant on newer GPSd.
+
+The generator decides this from the struct layout at each revision rather than
+from a hand-kept list, and a test re-scans `gps_data_t`'s union out of `gps.h`
+and fails if any published arm reaches the message without its guard.
+
+`ais` and `navdata` are union arms this package does not publish at all, so no
+field and no guard exists for them. `SET_AIS` still reports that GPSd decoded
+AIS data the message omits.
 
 ### RTCM and subframe travel as raw JSON
 

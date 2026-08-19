@@ -94,13 +94,29 @@ a raw subscriber testing a union bit still needs this caveat.
 Non-union bits — `SET_LATLON`, `SET_ALTITUDE`, `SET_SATELLITE` and friends —
 mean what you expect. The caveat applies only to the union.
 
-## `UNION_SET` lists members that sit outside the union
+## Union membership is not what the mask says, and it changes by version
 
-**GPSd:** the `UNION_SET` macro includes `TOFF_SET` and `PPS_SET`, but `toff`
-and `pps` are plain members past the union's closing brace.
+**GPSd:** two independent traps here.
 
-**Here:** the generator decides which fields are union arms from the struct
-layout, never from the mask.
+*The mask is not a membership list.* `UNION_SET` includes `TOFF_SET` and
+`PPS_SET`, but `toff` and `pps` are plain members past the union's closing
+brace. The macro over-reports.
+
+*Membership moves.* Members leave the union between versions without changing
+name or type. `attitude` is inside it through API 11.0 and outside from API
+12.0; `gst` is inside through API 13.0 and outside from API 14.0.
+
+That matters because reading a union member the report did not populate is a
+read of an inactive union member — undefined behaviour, not merely a stale
+value — so whether a given member needs a mask check depends on the version.
+
+**Here:** the generator decides which members are union arms from the struct
+layout at each revision, never from the mask and never from a hand-kept list.
+The generated fill guards exactly those on `gps_data_t::set`, and a test
+re-scans the union out of `gps.h` and fails if any published arm is copied
+without its guard. See
+[gpsd-raw-message-structure.md](gpsd-raw-message-structure.md) for which message
+fields that makes conditional.
 
 ## `gps_read()` ignores the caller's buffer length
 

@@ -786,31 +786,33 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw12v0& out)
     }
   }
   if constexpr (has_gst<T>::value) {
-    using T_gst = std::decay_t<decltype(in.gst)>;
-    if constexpr (has_utctime<T_gst>::value) {
-      out.gst_utctime.sec = static_cast<int32_t>(in.gst.utctime.tv_sec);
-      out.gst_utctime.nanosec = static_cast<uint32_t>(in.gst.utctime.tv_nsec);
-    }
-    if constexpr (has_rms_deviation<T_gst>::value) {
-      out.gst_rms_deviation = in.gst.rms_deviation;
-    }
-    if constexpr (has_smajor_deviation<T_gst>::value) {
-      out.gst_smajor_deviation = in.gst.smajor_deviation;
-    }
-    if constexpr (has_sminor_deviation<T_gst>::value) {
-      out.gst_sminor_deviation = in.gst.sminor_deviation;
-    }
-    if constexpr (has_smajor_orientation<T_gst>::value) {
-      out.gst_smajor_orientation = in.gst.smajor_orientation;
-    }
-    if constexpr (has_lat_err_deviation<T_gst>::value) {
-      out.gst_lat_err_deviation = in.gst.lat_err_deviation;
-    }
-    if constexpr (has_lon_err_deviation<T_gst>::value) {
-      out.gst_lon_err_deviation = in.gst.lon_err_deviation;
-    }
-    if constexpr (has_alt_err_deviation<T_gst>::value) {
-      out.gst_alt_err_deviation = in.gst.alt_err_deviation;
+    if (0 != (in.set & GST_SET)) {
+      using T_gst = std::decay_t<decltype(in.gst)>;
+      if constexpr (has_utctime<T_gst>::value) {
+        out.gst_utctime.sec = static_cast<int32_t>(in.gst.utctime.tv_sec);
+        out.gst_utctime.nanosec = static_cast<uint32_t>(in.gst.utctime.tv_nsec);
+      }
+      if constexpr (has_rms_deviation<T_gst>::value) {
+        out.gst_rms_deviation = in.gst.rms_deviation;
+      }
+      if constexpr (has_smajor_deviation<T_gst>::value) {
+        out.gst_smajor_deviation = in.gst.smajor_deviation;
+      }
+      if constexpr (has_sminor_deviation<T_gst>::value) {
+        out.gst_sminor_deviation = in.gst.sminor_deviation;
+      }
+      if constexpr (has_smajor_orientation<T_gst>::value) {
+        out.gst_smajor_orientation = in.gst.smajor_orientation;
+      }
+      if constexpr (has_lat_err_deviation<T_gst>::value) {
+        out.gst_lat_err_deviation = in.gst.lat_err_deviation;
+      }
+      if constexpr (has_lon_err_deviation<T_gst>::value) {
+        out.gst_lon_err_deviation = in.gst.lon_err_deviation;
+      }
+      if constexpr (has_alt_err_deviation<T_gst>::value) {
+        out.gst_alt_err_deviation = in.gst.alt_err_deviation;
+      }
     }
   }
   if constexpr (has_osc<T>::value) {

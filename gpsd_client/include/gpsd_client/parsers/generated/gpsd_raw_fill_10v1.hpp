@@ -768,73 +768,75 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw10v1& out)
     }
   }
   if constexpr (has_attitude<T>::value) {
-    using T_attitude = std::decay_t<decltype(in.attitude)>;
-    if constexpr (has_mtime<T_attitude>::value) {
-      out.attitude_mtime.sec = static_cast<int32_t>(in.attitude.mtime.tv_sec);
-      out.attitude_mtime.nanosec = static_cast<uint32_t>(in.attitude.mtime.tv_nsec);
-    }
-    if constexpr (has_acc_len<T_attitude>::value) {
-      out.attitude_acc_len = in.attitude.acc_len;
-    }
-    if constexpr (has_acc_x<T_attitude>::value) {
-      out.attitude_acc_x = in.attitude.acc_x;
-    }
-    if constexpr (has_acc_y<T_attitude>::value) {
-      out.attitude_acc_y = in.attitude.acc_y;
-    }
-    if constexpr (has_acc_z<T_attitude>::value) {
-      out.attitude_acc_z = in.attitude.acc_z;
-    }
-    if constexpr (has_depth<T_attitude>::value) {
-      out.attitude_depth = in.attitude.depth;
-    }
-    if constexpr (has_dip<T_attitude>::value) {
-      out.attitude_dip = in.attitude.dip;
-    }
-    if constexpr (has_gyro_x<T_attitude>::value) {
-      out.attitude_gyro_x = in.attitude.gyro_x;
-    }
-    if constexpr (has_gyro_y<T_attitude>::value) {
-      out.attitude_gyro_y = in.attitude.gyro_y;
-    }
-    if constexpr (has_heading<T_attitude>::value) {
-      out.attitude_heading = in.attitude.heading;
-    }
-    if constexpr (has_mag_len<T_attitude>::value) {
-      out.attitude_mag_len = in.attitude.mag_len;
-    }
-    if constexpr (has_mag_x<T_attitude>::value) {
-      out.attitude_mag_x = in.attitude.mag_x;
-    }
-    if constexpr (has_mag_y<T_attitude>::value) {
-      out.attitude_mag_y = in.attitude.mag_y;
-    }
-    if constexpr (has_mag_z<T_attitude>::value) {
-      out.attitude_mag_z = in.attitude.mag_z;
-    }
-    if constexpr (has_pitch<T_attitude>::value) {
-      out.attitude_pitch = in.attitude.pitch;
-    }
-    if constexpr (has_roll<T_attitude>::value) {
-      out.attitude_roll = in.attitude.roll;
-    }
-    if constexpr (has_temp<T_attitude>::value) {
-      out.attitude_temp = in.attitude.temp;
-    }
-    if constexpr (has_yaw<T_attitude>::value) {
-      out.attitude_yaw = in.attitude.yaw;
-    }
-    if constexpr (has_mag_st<T_attitude>::value) {
-      out.attitude_mag_st = in.attitude.mag_st;
-    }
-    if constexpr (has_pitch_st<T_attitude>::value) {
-      out.attitude_pitch_st = in.attitude.pitch_st;
-    }
-    if constexpr (has_roll_st<T_attitude>::value) {
-      out.attitude_roll_st = in.attitude.roll_st;
-    }
-    if constexpr (has_yaw_st<T_attitude>::value) {
-      out.attitude_yaw_st = in.attitude.yaw_st;
+    if (0 != (in.set & ATTITUDE_SET)) {
+      using T_attitude = std::decay_t<decltype(in.attitude)>;
+      if constexpr (has_mtime<T_attitude>::value) {
+        out.attitude_mtime.sec = static_cast<int32_t>(in.attitude.mtime.tv_sec);
+        out.attitude_mtime.nanosec = static_cast<uint32_t>(in.attitude.mtime.tv_nsec);
+      }
+      if constexpr (has_acc_len<T_attitude>::value) {
+        out.attitude_acc_len = in.attitude.acc_len;
+      }
+      if constexpr (has_acc_x<T_attitude>::value) {
+        out.attitude_acc_x = in.attitude.acc_x;
+      }
+      if constexpr (has_acc_y<T_attitude>::value) {
+        out.attitude_acc_y = in.attitude.acc_y;
+      }
+      if constexpr (has_acc_z<T_attitude>::value) {
+        out.attitude_acc_z = in.attitude.acc_z;
+      }
+      if constexpr (has_depth<T_attitude>::value) {
+        out.attitude_depth = in.attitude.depth;
+      }
+      if constexpr (has_dip<T_attitude>::value) {
+        out.attitude_dip = in.attitude.dip;
+      }
+      if constexpr (has_gyro_x<T_attitude>::value) {
+        out.attitude_gyro_x = in.attitude.gyro_x;
+      }
+      if constexpr (has_gyro_y<T_attitude>::value) {
+        out.attitude_gyro_y = in.attitude.gyro_y;
+      }
+      if constexpr (has_heading<T_attitude>::value) {
+        out.attitude_heading = in.attitude.heading;
+      }
+      if constexpr (has_mag_len<T_attitude>::value) {
+        out.attitude_mag_len = in.attitude.mag_len;
+      }
+      if constexpr (has_mag_x<T_attitude>::value) {
+        out.attitude_mag_x = in.attitude.mag_x;
+      }
+      if constexpr (has_mag_y<T_attitude>::value) {
+        out.attitude_mag_y = in.attitude.mag_y;
+      }
+      if constexpr (has_mag_z<T_attitude>::value) {
+        out.attitude_mag_z = in.attitude.mag_z;
+      }
+      if constexpr (has_pitch<T_attitude>::value) {
+        out.attitude_pitch = in.attitude.pitch;
+      }
+      if constexpr (has_roll<T_attitude>::value) {
+        out.attitude_roll = in.attitude.roll;
+      }
+      if constexpr (has_temp<T_attitude>::value) {
+        out.attitude_temp = in.attitude.temp;
+      }
+      if constexpr (has_yaw<T_attitude>::value) {
+        out.attitude_yaw = in.attitude.yaw;
+      }
+      if constexpr (has_mag_st<T_attitude>::value) {
+        out.attitude_mag_st = in.attitude.mag_st;
+      }
+      if constexpr (has_pitch_st<T_attitude>::value) {
+        out.attitude_pitch_st = in.attitude.pitch_st;
+      }
+      if constexpr (has_roll_st<T_attitude>::value) {
+        out.attitude_roll_st = in.attitude.roll_st;
+      }
+      if constexpr (has_yaw_st<T_attitude>::value) {
+        out.attitude_yaw_st = in.attitude.yaw_st;
+      }
     }
   }
   if constexpr (has_raw<T>::value) {
@@ -847,31 +849,33 @@ inline void fill(const T& in, gps_extended_msgs::msg::GPSDRaw10v1& out)
     }
   }
   if constexpr (has_gst<T>::value) {
-    using T_gst = std::decay_t<decltype(in.gst)>;
-    if constexpr (has_utctime<T_gst>::value) {
-      out.gst_utctime.sec = static_cast<int32_t>(in.gst.utctime.tv_sec);
-      out.gst_utctime.nanosec = static_cast<uint32_t>(in.gst.utctime.tv_nsec);
-    }
-    if constexpr (has_rms_deviation<T_gst>::value) {
-      out.gst_rms_deviation = in.gst.rms_deviation;
-    }
-    if constexpr (has_smajor_deviation<T_gst>::value) {
-      out.gst_smajor_deviation = in.gst.smajor_deviation;
-    }
-    if constexpr (has_sminor_deviation<T_gst>::value) {
-      out.gst_sminor_deviation = in.gst.sminor_deviation;
-    }
-    if constexpr (has_smajor_orientation<T_gst>::value) {
-      out.gst_smajor_orientation = in.gst.smajor_orientation;
-    }
-    if constexpr (has_lat_err_deviation<T_gst>::value) {
-      out.gst_lat_err_deviation = in.gst.lat_err_deviation;
-    }
-    if constexpr (has_lon_err_deviation<T_gst>::value) {
-      out.gst_lon_err_deviation = in.gst.lon_err_deviation;
-    }
-    if constexpr (has_alt_err_deviation<T_gst>::value) {
-      out.gst_alt_err_deviation = in.gst.alt_err_deviation;
+    if (0 != (in.set & GST_SET)) {
+      using T_gst = std::decay_t<decltype(in.gst)>;
+      if constexpr (has_utctime<T_gst>::value) {
+        out.gst_utctime.sec = static_cast<int32_t>(in.gst.utctime.tv_sec);
+        out.gst_utctime.nanosec = static_cast<uint32_t>(in.gst.utctime.tv_nsec);
+      }
+      if constexpr (has_rms_deviation<T_gst>::value) {
+        out.gst_rms_deviation = in.gst.rms_deviation;
+      }
+      if constexpr (has_smajor_deviation<T_gst>::value) {
+        out.gst_smajor_deviation = in.gst.smajor_deviation;
+      }
+      if constexpr (has_sminor_deviation<T_gst>::value) {
+        out.gst_sminor_deviation = in.gst.sminor_deviation;
+      }
+      if constexpr (has_smajor_orientation<T_gst>::value) {
+        out.gst_smajor_orientation = in.gst.smajor_orientation;
+      }
+      if constexpr (has_lat_err_deviation<T_gst>::value) {
+        out.gst_lat_err_deviation = in.gst.lat_err_deviation;
+      }
+      if constexpr (has_lon_err_deviation<T_gst>::value) {
+        out.gst_lon_err_deviation = in.gst.lon_err_deviation;
+      }
+      if constexpr (has_alt_err_deviation<T_gst>::value) {
+        out.gst_alt_err_deviation = in.gst.alt_err_deviation;
+      }
     }
   }
   if constexpr (has_osc<T>::value) {

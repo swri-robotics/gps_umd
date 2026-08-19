@@ -234,6 +234,13 @@ REPORT_UNION_BITS = {
     "osc": "OSCILLATOR_SET",
     "version": "VERSION_SET",
     "error": "ERROR_SET",
+    # attitude and gst sit *inside* the union on API 9-11 and move out of it
+    # at API 12. Listed here so they are mask-gated on the versions where they
+    # are union arms; flatten_model() only applies a gate when the struct
+    # layout says the member really is one, so on API 12+ these are ignored
+    # and the fields are copied unconditionally, which is then correct.
+    "attitude": "ATTITUDE_SET",
+    "gst": "GST_SET",
 }
 
 # `sub4` is declared in gps.h and never written by GPSd -- no driver or daemon

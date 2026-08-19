@@ -702,6 +702,47 @@ class FieldTypes(unittest.TestCase):
         self.assertGreater(checked, 300, "cross-check covered too few fields")
 
 
+def union_members(src, tag):
+    """Names of the members inside a struct's anonymous union.
+
+    Independent of the generator, like scan_struct_members: sharing that code
+    would let a dropped arm be dropped from the expectation too.
+    """
+    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    src = re.sub(r"//[^\n]*", "", src)
+    match = re.search(rf"^struct\s+{tag}\s*\{{", src, re.M)
+    if not match:
+        return set()
+    index, depth = match.end(), 1
+    while depth:
+        index += 1
+        if src[index] == "{":
+            depth += 1
+        elif src[index] == "}":
+            depth -= 1
+    body = src[match.end():index]
+    # The report union is the anonymous `union { ... };` at this level.
+    um = re.search(r"\bunion\s*\{", body)
+    if not um:
+        return set()
+    i, d = um.end(), 1
+    while d:
+        if body[i] == "{":
+            d += 1
+        elif body[i] == "}":
+            d -= 1
+        i += 1
+    names = set()
+    for statement in body[um.end():i - 1].split(";"):
+        statement = " ".join(statement.split())
+        if not statement or "(" in statement or "{" in statement:
+            continue
+        m2 = re.match(r"^.*?\b([A-Za-z_]\w*)\s*(\[[^\]]*\])?$", statement)
+        if m2 and len(statement.split()) >= 2:
+            names.add(m2.group(1))
+    return names
+
+
 def scan_member_types(src, tag):
     """{member: C type} from a struct body, independently of the generator."""
     src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
@@ -903,6 +944,50 @@ class GeneratedParserCode(unittest.TestCase):
             source = self.parser_source(pair)
             self.assertGreater(source.count("if constexpr (has_"), 20,
                                f"API {pair}: too few member guards to be real")
+
+    def test_every_union_arm_is_mask_gated(self):
+        """Reading an arm the mask does not name is a read of an inactive
+        union member -- undefined behaviour, not merely a stale value.
+
+        Scans gps.h for gps_data_t's union block independently of the
+        generator, then requires the fill to guard each arm on `in.set`. This
+        exists because the arms are plain scalars on the flat message: nothing
+        in the message shape hints that they need a guard, and `attitude` and
+        `gst` are union members on API 9-11 but ordinary members from API 12,
+        so the answer changes with the version.
+        """
+        for pair in ALL_PAIRS:
+            src = read_gps_h(gen.REFERENCE_REVS[pair])
+            arms = union_members(src, "gps_data_t")
+            self.assertGreater(len(arms), 3,
+                               f"API {pair}: found too few union arms to trust "
+                               f"the scanner")
+            source = self.parser_source(pair)
+            fields = message_fields(pair, "GPSDRaw")
+            checked = 0
+            for arm in sorted(arms):
+                if arm in gen.EXCLUDED_MEMBERS:
+                    continue
+                # An arm outside every publishing scope (navdata, ais) reaches
+                # no field, so nothing reads it and nothing needs a gate. Key
+                # on what was actually published rather than on a second list
+                # that could drift from the scopes.
+                snake = gen.snake_case(arm)
+                if not any(covers(snake, f) for f in fields):
+                    continue
+                checked += 1
+                bit = gen.REPORT_UNION_BITS.get(arm)
+                self.assertIsNotNone(
+                    bit, f"API {pair[0]}.{pair[1]}: gps_data_t's union has "
+                         f"{arm!r} with no entry in REPORT_UNION_BITS, so the "
+                         f"fill cannot gate it")
+                self.assertIn(
+                    f"in.set & {bit}", source,
+                    f"API {pair[0]}.{pair[1]}: union arm {arm!r} is copied "
+                    f"without checking {bit}")
+            self.assertGreater(
+                checked, 2,
+                f"API {pair}: checked too few published union arms to be real")
 
     def test_array_groups_are_filled_from_one_loop(self):
         """Parallel arrays in a group must be written together.

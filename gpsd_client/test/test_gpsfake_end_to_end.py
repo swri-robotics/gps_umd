@@ -164,14 +164,12 @@ def chk_reports(log_name):
     return by_class
 
 
-# 6 decimal places is ~10cm: far tighter than any error that matters here, and
-# loose enough to absorb the rounding in the .chk's printed form. It is chosen
-# to catch the failures that are actually plausible -- swapped lat/lon, degrees
-# vs. radians, a field copied from its neighbour -- not to audit GPSd's math.
-PLACES = 6
-
-
 def rounded(value):
+    # 6 decimal places is ~10cm: far tighter than any error that matters here, and
+    # loose enough to absorb the rounding in the .chk's printed form. It is chosen
+    # to catch the failures that are actually plausible -- swapped lat/lon, degrees
+    # vs. radians, a field copied from its neighbour -- not to audit GPSd's math.
+    PLACES = 6
     return round(value, PLACES)
 
 

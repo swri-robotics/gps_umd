@@ -5,3 +5,12 @@ gpsd_client:
     override_augmentation_source: false
     frame_id: gps
     publish_rate: 10
+    # Mirror of gpsd's gps_data_t on gpsd_raw, in a message named after the
+    # libgps API this package was built against (GPSDRaw<MAJOR>v<MINOR>).
+    # Off by default: the message is large and most users want fix/extended_fix.
+    publish_gpsd_raw: false
+    # Every report GPSd sends, as the raw JSON line, on gpsd_json. Carries
+    # more than gpsd_raw can: libgps decodes 17 report classes and drops the
+    # rest, but the JSON line reaches us regardless -- so SUBFRAME arrives
+    # here even though gps_data_t::subframe can never hold it.
+    publish_gpsd_json: false

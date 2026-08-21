@@ -9,7 +9,7 @@
 namespace gpsd_client
 {
 
-/// Shared parsing implementation for gpsd APIs 9 and newer.
+/// Shared parsing implementation for GPSd APIs 9 and newer.
 ///
 /// Everything here uses only gps_data_t fields whose layout is identical
 /// across the supported API range (timespec online/fix.time, skyview[],
@@ -17,7 +17,7 @@ namespace gpsd_client
 /// versions is where the fix status lives, which concrete parsers provide
 /// via getFixStatus().
 ///
-/// Separately, gpsd renamed the STATUS_DGPS_FIX macro in 3.25; because it is
+/// Separately, GPSd renamed the STATUS_DGPS_FIX macro in 3.25; because it is
 /// used as a case label, that spelling is resolved by the preprocessor in
 /// gpsd_parser_base.cpp rather than through this class hierarchy.
 class GpsdParserBase : public GpsdParser

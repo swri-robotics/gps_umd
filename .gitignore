@@ -6,3 +6,5 @@
 .o
 .pyc
 cmake-build-debug
+**/log
+**/__pycache__

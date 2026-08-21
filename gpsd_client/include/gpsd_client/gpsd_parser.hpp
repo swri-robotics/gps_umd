@@ -14,13 +14,13 @@
 #include <gps.h>
 
 #if GPSD_API_MAJOR_VERSION < 9
-#error "gpsd_client requires gpsd API version >= 9 (gpsd >= 3.20)"
+#error "gpsd_client requires GPSd API version >= 9 (GPSd >= 3.20)"
 #endif
 
 namespace gpsd_client
 {
 
-/// Options controlling how gpsd reports are converted into ROS messages.
+/// Options controlling how GPSd reports are converted into ROS messages.
 struct ParserContext
 {
   std::string frame_id;
@@ -32,9 +32,9 @@ struct ParserContext
   bool override_augmentation_source;
 };
 
-/// Converts gpsd's gps_data_t reports into ROS messages.
+/// Converts GPSd's gps_data_t reports into ROS messages.
 ///
-/// Implementations are specific to a range of gpsd API versions and are
+/// Implementations are specific to a range of GPSd API versions and are
 /// obtained through GpsdParserFactory. Each parser is named after the highest
 /// GPSD_API_MAJOR_VERSION it supports.
 class GpsdParser
@@ -42,7 +42,7 @@ class GpsdParser
 public:
   virtual ~GpsdParser() = default;
 
-  /// True if gpsd reports a device online for this report.
+  /// True if GPSd reports a device online for this report.
   [[nodiscard]] virtual bool isOnline(const gps_data_t& data) const = 0;
 
   /// Convert a report into a GPSFix message stamped with @p stamp.

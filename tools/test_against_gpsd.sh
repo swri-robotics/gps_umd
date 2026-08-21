@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #
-# test_against_gpsd.sh -- build gpsd_client against multiple gpsd releases
+# test_against_gpsd.sh -- build gpsd_client against multiple GPSd releases
 # and run its unit tests linked against each one.
 #
-# gpsd_client supports gpsd API versions 9 and newer (gpsd >= 3.20); older
+# gpsd_client supports GPSd API versions 9 and newer (GPSd >= 3.20); older
 # releases are rejected by a compile-time #error, so they are not tested.
 #
-# For each gpsd release tag this script:
+# For each GPSd release tag this script:
 #   1. builds libgps/libgpsmm from source at that tag (cached),
 #   2. builds gpsd_client against that exact library,
 #   3. runs test_gpsd_parser with that library on LD_LIBRARY_PATH.
 #
-# This is what exercises every parser variant: e.g. gpsd 3.20 (API 9)
+# This is what exercises every parser variant: e.g. GPSd 3.20 (API 9)
 # compiles and tests GpsdParserV9, which is preprocessed away when building
 # against newer headers.
 #
@@ -20,12 +20,58 @@
 #   tools/test_against_gpsd.sh 3.20 3.25    # only these releases
 #
 # Environment overrides:
-#   GPSD_REPO_URL    gpsd git remote (default: https://gitlab.com/gpsd/gpsd.git)
+#   GPSD_REPO_URL    GPSd git remote (default: https://gitlab.com/gpsd/gpsd.git)
 #   GPSD_TEST_CACHE  cache directory (default: <workspace>/.gpsd_versions)
+#   GPSD_FULL_BUILD  also build the GPSd daemon and Python module, and run the
+#                    gpsfake end-to-end tests, which skip themselves otherwise.
+#                    Costs several minutes per version, so it is meant for one:
+#                        GPSD_FULL_BUILD=1 tools/test_against_gpsd.sh 3.27.5
+#                    Full builds cache under install/<ver>-full, separately
+#                    from the libgps-only ones.
+#   GPSD_MSGS_INSTALL
+#                    A colcon install prefix already holding gps_msgs. It has
+#                    no libgps dependency, so it is built once and reused for
+#                    every version; point this at a restored CI cache to skip
+#                    building it at all.
+#                    Defaults to <cache>/msgs/install.
 #
-# Requirements: git, scons, colcon, a C/C++ toolchain, and network access
-# for the initial gpsd clone. gpsd builds, libgps installs, and per-version
-# colcon build dirs are cached, so reruns only rebuild gpsd_client.
+# Requirements. None of these are declared in any package.xml -- they build
+# GPSd and this harness, not the packages' tests, so `rosdep install` does not
+# supply them. See docs/adding-a-gpsd-api-version.md, section 6, for why.
+#
+#   git scons colcon      always; these three are checked below, so a missing
+#                         one fails here rather than mid-build
+#   a C/C++ toolchain     always
+#   python3-dev           whenever this script builds gps_msgs itself, i.e.
+#   python3-numpy         GPSD_MSGS_INSTALL is unset or its cache is cold.
+#                         rosidl_generator_py needs Python3's Development and
+#                         NumPy CMake components for the message bindings, and
+#                         not every ROS base image pulls them in.
+#   python3-serial        GPSD_FULL_BUILD=1 only. GPSd's scons build wants
+#   libdbus-1-dev         both for the daemon and the Python module, neither of
+#                         which the libgps-only builds compile.
+#
+# On a Debian-derived image that is:
+#
+#     apt-get install -y --no-install-recommends git scons \
+#       python3-dev python3-numpy python3-serial libdbus-1-dev
+#
+# which is what .github/workflows/gpsd_api_shared.yml and gpsd_end_to_end.yml
+# install; keep this list and theirs in step. They add pkg-config, but that one
+# is declared in gpsd_client/package.xml, so rosdep already supplies it.
+#
+# Network access is needed for the initial GPSd clone. GPSd builds, libgps
+# installs, and per-version colcon build dirs are cached, so reruns only
+# rebuild gpsd_client.
+#
+# The cache is specific to the container it was built in: the libgps installs
+# embed a glibc version and the message install embeds a ROS distribution.
+# After a container or base-image change, every build fails with undefined
+# glibc symbols or a missing rosidl target until these are cleared:
+#
+#     rm -rf .gpsd_versions/install .gpsd_versions/msgs .gpsd_versions/colcon
+#
+# Keep .gpsd_versions/gpsd -- it is a git clone and ports fine.
 
 set -uo pipefail
 
@@ -67,13 +113,13 @@ mkdir -p "${CACHE}" "${LOGS}"
 # Keep colcon from crawling the cache when run from the workspace root.
 touch "${CACHE}/COLCON_IGNORE"
 
-# Old gpsd releases (e.g. 3.20) import the 'imp' module, which was removed
+# Old GPSd releases (e.g. 3.20) import the 'imp' module, which was removed
 # in Python 3.12; give scons a minimal importlib-based stand-in.
 PYSHIM=${CACHE}/pyshim
 mkdir -p "${PYSHIM}"
 cat > "${PYSHIM}/imp.py" <<'EOF'
 """Minimal stand-in for the 'imp' module (removed in Python 3.12),
-covering the calls old gpsd SConstructs make."""
+covering the calls old GPSd SConstructs make."""
 import importlib.machinery
 import importlib.util
 import sys
@@ -96,9 +142,9 @@ def load_source(name, pathname, file=None):
 EOF
 
 if [ ! -d "${GPSD_SRC}/.git" ]; then
-  log "Cloning gpsd from ${GPSD_REPO_URL}"
+  log "Cloning GPSd from ${GPSD_REPO_URL}"
   git clone --quiet --filter=blob:none "${GPSD_REPO_URL}" "${GPSD_SRC}" \
-    || die "failed to clone gpsd"
+    || die "failed to clone GPSd"
 else
   # Pick up new release tags; tolerate being offline on reruns.
   git -C "${GPSD_SRC}" fetch --quiet --tags 2>/dev/null || true
@@ -113,23 +159,67 @@ else
     | sort -V \
     | while read -r v; do version_ge "${v}" "${MIN_VERSION}" && echo "${v}"; done)
 fi
-[ -n "${VERSIONS}" ] || die "no gpsd versions selected"
+[ -n "${VERSIONS}" ] || die "no GPSd versions selected"
 
 # Build libgps/libgpsmm only; the daemon, clients, python bindings, and man
 # pages are irrelevant to the parser tests and only add build fragility.
+# Resolve a selector to a git revision. A plain version number means the
+# release tag; anything else is passed through as a commit-ish, which is what
+# the API pairs that shipped in no release (9.1, 10.1, 13.0) need.
+resolve_rev() {
+  case "$1" in
+    [0-9]*.[0-9]*) echo "release-$1" ;;
+    *)             echo "$1" ;;
+  esac
+}
+
+# Where a version's GPSd install lives. Full builds get their own prefix: they
+# contain strictly more than a libgps-only build, so sharing one directory
+# would make the cache's contents depend on which mode happened to populate it
+# first.
+prefix_for() {
+  if [ -n "${GPSD_FULL_BUILD:-}" ]; then
+    echo "${CACHE}/install/$1-full"
+  else
+    echo "${CACHE}/install/$1"
+  fi
+}
+
 build_gpsd() {
   local ver=$1
-  local prefix=${CACHE}/install/${ver}
+  local prefix
+  prefix=$(prefix_for "${ver}")
   local build_log=${LOGS}/gpsd-${ver}.log
+  local rev
+  rev=$(resolve_rev "${ver}")
   if [ -f "${prefix}/include/gps.h" ]; then
     return 0
   fi
-  git -C "${GPSD_SRC}" checkout --quiet "release-${ver}" || return 1
+  # Normally libgps/libgpsmm only: the daemon, clients, Python bindings and man
+  # pages are irrelevant to the parser tests and only add build fragility.
+  #
+  # GPSD_FULL_BUILD additionally builds the daemon and the Python module, which
+  # is what the gpsfake end-to-end test needs -- gpsfake spawns the one and
+  # imports the other, and refuses to run if their versions disagree. It costs
+  # several minutes more, so it is opt-in and used for one version rather than
+  # all ten.
+  local scons_flags="gpsd=False gpsdclients=False python=False"
+  if [ -n "${GPSD_FULL_BUILD:-}" ]; then
+    # python_libdir puts the gps module inside prefix. scons otherwise installs
+    # it to the interpreter's site-packages, outside anything a caller caches,
+    # so a restored prefix carries gpsfake and the daemon but no importable
+    # 'gps' -- and the end-to-end suite then skips itself while the build
+    # reports success.
+    scons_flags="gpsd=True gpsdclients=True python=True"
+    scons_flags="${scons_flags} python_libdir=${prefix}/lib/python"
+  fi
+  git -C "${GPSD_SRC}" checkout --quiet "${rev}" || return 1
   git -C "${GPSD_SRC}" clean -xdfq
+  # shellcheck disable=SC2086  # scons_flags is a deliberate word list
   (cd "${GPSD_SRC}" &&
    PYTHONPATH="${PYSHIM}${PYTHONPATH:+:${PYTHONPATH}}" \
    scons -j"$(nproc)" prefix="${prefix}" shared=True \
-         gpsd=False gpsdclients=False python=False qt=False manbuild=False \
+         ${scons_flags} qt=False manbuild=False \
          install >"${build_log}" 2>&1) || return 1
 }
 
@@ -144,32 +234,116 @@ libgps_dir() {
   return 1
 }
 
+# The full API pair. The minor version matters now that the raw messages are
+# named GPSDRaw<MAJOR>v<MINOR> -- 9.0 and 9.1 select different message types.
 api_version() {
-  awk '$2 == "GPSD_API_MAJOR_VERSION" { print $3 }' "$1/include/gps.h"
+  awk '$2 == "GPSD_API_MAJOR_VERSION" { maj = $3 }
+       $2 == "GPSD_API_MINOR_VERSION" { min = $3 }
+       END { print maj "." min }' "$1/include/gps.h"
 }
 
 parser_for_api() {
-  if [ "$1" -le 9 ]; then
+  local major=${1%%.*}
+  if [ "${major}" -le 9 ]; then
     echo GpsdParserV9
   else
     echo GpsdParserV16
   fi
 }
 
-# Returns 0 on pass; 1 = gpsd build failed, 2 = client build failed,
-# 3 = tests failed, 4 = the test binary was never produced.
+# The raw message this API pair selects, per gpsd_raw_message.hpp.
+raw_message_for_api() {
+  echo "GPSDRaw${1%%.*}v${1##*.}"
+}
+
+# Returns 0 on pass; 1 = GPSd build failed, 2 = client build failed,
+# 3 = tests failed, 4 = the test binary was never produced,
+# 5 = the shared message build failed.
 build_and_test_client() {
   local ver=$1
-  local prefix=${CACHE}/install/${ver}
+  local prefix
+  prefix=$(prefix_for "${ver}")
   local base=${CACHE}/colcon/${ver}
   local libdir
   libdir=$(libgps_dir "${prefix}") || return 2
 
+  # The gpsfake end-to-end suite skips itself unless told where to find a daemon and
+  # the log corpus. Exported only for a full build, so the ordinary ten-version
+  # runs stay exactly as they were.
+  if [ -n "${GPSD_FULL_BUILD:-}" ]; then
+    export GPSD_E2E_PREFIX="${prefix}"
+    export GPSD_REPO="${GPSD_SRC}"
+    # The gps module now lives under prefix (see python_libdir above), so this
+    # is the same tree the cache restores. Put it ahead of anything else so a
+    # system-packaged gpsfake of a different version cannot win -- gpsfake
+    # aborts on a version mismatch with the daemon, and that is the likeliest
+    # way to cause one.
+    local py_mod="${prefix}/lib/python"
+    if [ -d "${py_mod}/gps" ]; then
+      export PYTHONPATH="${py_mod}${PYTHONPATH:+:${PYTHONPATH}}"
+    else
+      # A full build with no importable module is broken, not a reason to run
+      # the suite against whatever 'gps' sits on the system. Say so here rather
+      # than letting every test skip with a message about a missing module.
+      echo "!! ${py_mod}/gps does not exist after a full build." >&2
+      echo "!! The end-to-end suite will skip itself. If this prefix came" >&2
+      echo "!! from a cache, the cache predates python_libdir -- bump the" >&2
+      echo "!! cache key or delete ${prefix} and rebuild." >&2
+    fi
+  fi
+
+  # Build the message packages once and share them across every version.
+  #
+  # gps_msgs has no libgps dependency -- it is a pure interface package -- so
+  # its output is byte-identical for every API version, and only gpsd_client
+  # actually varies. Only gpsd_client is rebuilt per version below.
+  #
+  # It is also the entire flaky surface: gcc-11 segfaulted twice in four
+  # versions compiling the generated typesupport sources, on a different file
+  # each time, with 50+ GB free and no OOM. Building it once cuts that exposure
+  # by ten.
+  #
+  # `--packages-up-to gpsd_client --packages-skip gpsd_client` rather than
+  # naming the message packages: it builds everything gpsd_client depends on
+  # and nothing else, so a dependency added later is picked up without editing
+  # this. Naming the message package alone is what broke CI once, when a
+  # dependency of it went unbuilt and gpsd_client then failed to configure
+  # against an install prefix that did not contain it.
+  local msgs=${GPSD_MSGS_INSTALL:-${CACHE}/msgs/install}
+
+  # Rebuild when any .msg is newer than the install, not just when the install
+  # is missing. The messages are generated, so they change whenever the
+  # generator does, and a stale install fails far from its cause: gpsd_client
+  # compiles against message headers that lack a constant or field the
+  # generated fill code references, for every version at once.
+  local stale=""
+  if [ -f "${msgs}/setup.bash" ] && \
+     [ -n "$(find "${REPO_DIR}/gps_msgs/msg" -name '*.msg' \
+                  -newer "${msgs}/setup.bash" -print -quit 2>/dev/null)" ]; then
+    stale=1
+    log "message definitions are newer than ${msgs}; rebuilding them"
+    rm -rf "${msgs}" "$(dirname "${msgs}")/build"
+  fi
+  if [ ! -f "${msgs}/setup.bash" ] || [ -n "${stale}" ]; then
+    (cd "${WORKSPACE}" &&
+     colcon build --packages-up-to gpsd_client --packages-skip gpsd_client \
+       --build-base "$(dirname "${msgs}")/build" --install-base "${msgs}" \
+       >"${LOGS}/msgs.log" 2>&1) || return 5
+  fi
+  # colcon's generated setup.bash reads COLCON_TRACE and other variables it
+  # never sets, so it trips the script's `set -u`. Sourcing it is the supported
+  # way to put a colcon install on the environment, so relax the option around
+  # it rather than working around the script.
+  set +u
+  # shellcheck disable=SC1091  # generated by colcon at build time
+  . "${msgs}/setup.bash"
+  set -u
+
   # libgps_INCLUDE_DIRS/libgps_LIBRARIES are the cache variables that
   # gpsd_client's CMakeLists otherwise fills via find_path/find_library;
-  # presetting them pins the build to this exact gpsd install.
+  # presetting them pins the build to this exact GPSd install.
   (cd "${WORKSPACE}" &&
-   colcon build --packages-up-to gpsd_client \
+   colcon build --packages-select gpsd_client \
      --build-base "${base}/build" --install-base "${base}/install" \
      --cmake-args "-Dlibgps_INCLUDE_DIRS=${prefix}/include" \
                   "-Dlibgps_LIBRARIES=${libdir}/libgps.so" \
@@ -179,53 +353,56 @@ build_and_test_client() {
   # failed" (exit 127), so call it out separately.
   [ -x "${base}/build/gpsd_client/test_gpsd_parser" ] || return 4
 
-  # colcon builds gps_msgs into this run's isolated install base, and nothing
-  # else puts that on the library path. On a machine that already has gps_msgs
-  # installed the loader quietly finds it in the underlay instead, so this is
-  # only fatal where gps_msgs is *not* installed -- e.g. ros:*-ros-base on CI.
-  local ws_libs=""
-  for d in "${base}"/install/*/lib; do
-    [ -d "${d}" ] && ws_libs="${ws_libs}${d}:"
-  done
+  # Run through colcon rather than invoking the binaries directly, which
+  # exercises the same path a user takes. The gtest targets pass
+  # APPEND_LIBRARY_DIRS for this version's libgps, so colcon finds it without
+  # any LD_LIBRARY_PATH handling here.
+  (cd "${WORKSPACE}" &&
+   colcon test --packages-select gpsd_client \
+     --build-base "${base}/build" --install-base "${base}/install" \
+     >"${LOGS}/test-${ver}.log" 2>&1) || true
 
-  # Prepend the freshly built libgpsd_client and this version's libgps so
-  # neither can be shadowed by copies from an underlay on LD_LIBRARY_PATH.
-  LD_LIBRARY_PATH="${base}/build/gpsd_client:${libdir}:${ws_libs}${LD_LIBRARY_PATH:-}" \
-    "${base}/build/gpsd_client/test_gpsd_parser" \
-    >"${LOGS}/test-${ver}.log" 2>&1 || return 3
+  (cd "${WORKSPACE}" &&
+   colcon test-result --test-result-base "${base}/build" \
+     >>"${LOGS}/test-${ver}.log" 2>&1) || return 3
 }
 
 RESULTS=""
 FAILED=0
 
 for ver in ${VERSIONS}; do
-  log "gpsd ${ver}: building libgps"
+  log "GPSd ${ver}: building libgps"
   if ! build_gpsd "${ver}"; then
-    echo "gpsd ${ver}: libgps build FAILED"
+    echo "GPSd ${ver}: libgps build FAILED"
     dump_log "${LOGS}/gpsd-${ver}.log"
-    RESULTS="${RESULTS}${ver}|?|?|FAIL(gpsd build)\n"
+    RESULTS="${RESULTS}${ver}|?|?|FAIL(GPSd build)\n"
     FAILED=1
     continue
   fi
 
-  prefix=${CACHE}/install/${ver}
+  prefix=$(prefix_for "${ver}")
   api=$(api_version "${prefix}")
   parser=$(parser_for_api "${api}")
 
-  log "gpsd ${ver} (API ${api}, ${parser}): building gpsd_client and testing"
+  raw=$(raw_message_for_api "${api}")
+  log "GPSd ${ver} (API ${api}, ${parser}, ${raw}): building gpsd_client and testing"
   build_and_test_client "${ver}"
   case $? in
     0) result="PASS" ;;
     2) result="FAIL(client build)"; FAILED=1 ;;
     3) result="FAIL(tests)"; FAILED=1 ;;
     4) result="FAIL(no test binary)"; FAILED=1 ;;
+    5) result="FAIL(message build)"; FAILED=1 ;;
     *) result="FAIL"; FAILED=1 ;;
   esac
-  echo "gpsd ${ver}: ${result}"
+  echo "GPSd ${ver}: ${result}"
   case "${result}" in
     PASS) ;;
     "FAIL(tests)")
       dump_log "${LOGS}/test-${ver}.log"
+      ;;
+    "FAIL(message build)")
+      dump_log "${LOGS}/msgs.log"
       ;;
     *)
       # Both the client build log and the test log are relevant: the build may
@@ -233,13 +410,13 @@ for ver in ${VERSIONS}; do
       dump_log "${LOGS}/client-${ver}.log"
       ;;
   esac
-  RESULTS="${RESULTS}${ver}|${api}|${parser}|${result}\n"
+  RESULTS="${RESULTS}${ver}|${api}|${raw}|${result}\n"
 done
 
 log "Summary"
-printf '%-10s %-5s %-15s %s\n' "GPSD" "API" "PARSER" "RESULT"
+printf '%-12s %-6s %-16s %s\n' "GPSD" "API" "RAW MESSAGE" "RESULT"
 printf '%b' "${RESULTS}" | while IFS='|' read -r ver api parser result; do
-  [ -n "${ver}" ] && printf '%-10s %-5s %-15s %s\n' "${ver}" "${api}" "${parser}" "${result}"
+  [ -n "${ver}" ] && printf '%-12s %-6s %-16s %s\n' "${ver}" "${api}" "${parser}" "${result}"
 done
 
 exit "${FAILED}"

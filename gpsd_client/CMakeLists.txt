@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14.4)
 project(gpsd_client)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -33,6 +33,7 @@ endif()
 add_library(${PROJECT_NAME} SHARED
   src/client.cpp
   src/gpsd_parser_factory.cpp
+  src/gpsd_raw_parser.cpp
   src/parsers/gpsd_parser_base.cpp)
 
 # sensor_msgs 5.3.2 was the first version to define an unknown fix, so this flag is used to
@@ -69,8 +70,153 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(test_gpsd_parser test/test_gpsd_parser.cpp)
+  find_package(ament_cmake_pytest REQUIRED)
+
+  # Where libgps lives at runtime. When gpsd_client is pinned to a
+  # source-built libgps (as tools/test_against_gpsd.sh does for each API
+  # version), that directory is on no default search path, and `colcon test`
+  # runs the test binaries with its own environment rather than the shell's --
+  # so a test that passes when run by hand fails under colcon with
+  # "libgps.so.NN: cannot open shared object file".
+  #
+  # APPEND_LIBRARY_DIRS is the ament-supported way to say this; it beats
+  # relying on RUNPATH or on the caller exporting LD_LIBRARY_PATH.
+  if(IS_ABSOLUTE "${libgps_LIBRARIES}")
+    get_filename_component(libgps_LIBRARY_DIRS "${libgps_LIBRARIES}" DIRECTORY)
+  endif()
+
+  ament_add_gtest(test_gpsd_parser test/test_gpsd_parser.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
   target_link_libraries(test_gpsd_parser ${PROJECT_NAME})
+
+  # The JSON fixture harness mirrors gps_open()'s initialization, which calls
+  # gps_clear_gst()/gps_clear_log(). Not every supported libgps declares those,
+  # and availability does not track GPSD_API_MAJOR_VERSION: GPSd 3.24 and
+  # 3.26.1 are both API 14.0, yet only 3.26.1 declares gps_clear_gst(). Probe
+  # for them instead.
+  include(CheckCXXSymbolExists)
+  set(CMAKE_REQUIRED_INCLUDES ${libgps_INCLUDE_DIRS})
+  check_cxx_symbol_exists(gps_clear_gst "gps.h" HAVE_GPS_CLEAR_GST)
+  check_cxx_symbol_exists(gps_clear_log "gps.h" HAVE_GPS_CLEAR_LOG)
+
+  # Struct members, probed rather than inferred from the API version.
+  #
+  # One API pair spans a range of header states, so a version comparison does
+  # not answer "does this member exist". Within API 14.0 alone, GPSd 3.24 has
+  # neither gps_data_t::source nor rtcm3_4076, 3.25 has source only, and
+  # 3.26.1 has both. See docs/gpsd-quirks.md.
+  #
+  # The library code answers this in C++ with has_<member> traits. CMake
+  # probes only where the preprocessor needs the answer, to compile out a
+  # whole test.
+  include(CheckStructHasMember)
+  check_struct_has_member("struct gps_data_t" source gps.h
+    HAVE_GPS_DATA_SOURCE LANGUAGE CXX)
+  check_struct_has_member("struct gps_data_t" imu gps.h
+    HAVE_GPS_DATA_IMU LANGUAGE CXX)
+  # The API 9 -> 10 move of the fix status. Asking which struct actually has
+  # the member is exact; asking the version number assumes the move happened
+  # on the bump and nowhere else.
+  check_struct_has_member("struct gps_fix_t" status gps.h
+    HAVE_GPS_FIX_STATUS LANGUAGE CXX)
+  # Union arms. The dotted path works because these sit in an anonymous union,
+  # spliced into the enclosing struct (C11 6.7.2.1) -- the same splicing the
+  # generator relies on.
+  check_struct_has_member("struct rtcm3_t" rtcmtypes.rtcm3_msm gps.h
+    HAVE_RTCM3_MSM LANGUAGE CXX)
+  check_struct_has_member("struct rtcm2_t" rtcm2_18 gps.h
+    HAVE_RTCM2_18 LANGUAGE CXX)
+  unset(CMAKE_REQUIRED_INCLUDES)
+
+  # One list for every gtest target that needs these, so adding a probe later
+  # cannot wire it to one target and miss the others.
+  set(GPSD_FEATURE_DEFINES)
+  foreach(feature GPS_CLEAR_GST GPS_CLEAR_LOG GPS_DATA_SOURCE GPS_DATA_IMU
+                  GPS_FIX_STATUS RTCM3_MSM RTCM2_18)
+    if(HAVE_${feature})
+      list(APPEND GPSD_FEATURE_DEFINES HAVE_${feature})
+    endif()
+  endforeach()
+
+  ament_add_gtest(test_gpsd_json_fixture
+    test/test_gpsd_json_fixture.cpp
+    test/gpsd_json_fixture.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
+
+  # Covers the generated fill code and the raw parser. Its first include is
+  # <gps.h>, which also serves as the standing regression test that a
+  # generated message header survives being parsed after gps.h -- the
+  # collision the constant renaming exists to prevent.
+  ament_add_gtest(test_gpsd_raw_parser
+    test/test_gpsd_raw_parser.cpp
+    test/gpsd_json_fixture.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
+  target_link_libraries(test_gpsd_raw_parser ${PROJECT_NAME})
+
+  # Its own target because it must include <gps.h> before anything else, and
+  # so must not link anything that reaches the legacy GPSFix/GPSStatus headers.
+  ament_add_gtest(test_gpsd_raw_include_order
+    test/test_gpsd_raw_include_order.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
+  target_link_libraries(test_gpsd_raw_include_order ${PROJECT_NAME})
+  target_link_libraries(test_gpsd_json_fixture ${PROJECT_NAME})
+  # A loop rather than one call per target. These probes sit far above the
+  # targets that consume them, and missing a target does not break the build --
+  # it silently takes the #else branch.
+  foreach(target test_gpsd_parser test_gpsd_raw_parser test_gpsd_json_fixture)
+    target_compile_definitions(${target} PRIVATE ${GPSD_FEATURE_DEFINES})
+  endforeach()
+
+  # End-to-end: gpsfake -> real GPSd -> this node -> ROS topics.
+  #
+  # Skips itself unless pointed at a GPSd built with the daemon and Python
+  # module (GPSD_E2E_PREFIX) and a source checkout for the log corpus
+  # (GPSD_REPO), neither of which exists on the build farm. See the test's
+  # docstring for how to run it.
+  #
+  # Only this scope knows which gps.h the build compiled against, so it
+  # computes GPSD_EXPECTED_RAW_MSG here. The test asserts the node advertised
+  # the message for that exact API pair, not merely some message. Read the
+  # pair from the header: one pair spans a range of releases, so the release
+  # number does not determine it.
+  find_file(GPSD_HEADER gps.h PATHS ${libgps_INCLUDE_DIRS} NO_DEFAULT_PATH)
+  if(GPSD_HEADER)
+    # GPSd writes these with a trailing comment:
+    #
+    #     #define GPSD_API_MAJOR_VERSION  16      // bump on incompatible changes
+    #
+    # so capture the number after the macro name instead of anchoring to end of
+    # line. `[^0-9]+` for the separator avoids relying on CMake regex
+    # understanding `\t`, which it does not.
+    file(STRINGS "${GPSD_HEADER}" _api_major_line
+      REGEX "define[ \t]*GPSD_API_MAJOR_VERSION")
+    file(STRINGS "${GPSD_HEADER}" _api_minor_line
+      REGEX "define[ \t]*GPSD_API_MINOR_VERSION")
+    if(_api_major_line MATCHES "GPSD_API_MAJOR_VERSION[^0-9]+([0-9]+)")
+      set(_api_major "${CMAKE_MATCH_1}")
+    endif()
+    if(_api_minor_line MATCHES "GPSD_API_MINOR_VERSION[^0-9]+([0-9]+)")
+      set(_api_minor "${CMAKE_MATCH_1}")
+    endif()
+  endif()
+
+  if(NOT GPSD_HEADER)
+    # Without a header there is nothing to assert against, and the suite skips
+    # itself regardless. Not an error.
+    message(STATUS "No gps.h found; skipping the gpsfake end-to-end test")
+  elseif(_api_major AND _api_minor MATCHES "^[0-9]+$")
+    ament_add_pytest_test(test_gpsfake_end_to_end
+      "${CMAKE_CURRENT_SOURCE_DIR}/test/test_gpsfake_end_to_end.py"
+      TIMEOUT 900
+      ENV "GPSD_EXPECTED_RAW_MSG=GPSDRaw${_api_major}v${_api_minor}")
+  else()
+    # A readable header that will not parse is a bug in the regex above, not a
+    # property of the environment. Fail loudly rather than warn.
+    message(FATAL_ERROR
+      "Could not read GPSD_API_*_VERSION from '${GPSD_HEADER}'. "
+      "Parsed major='${_api_major}' minor='${_api_minor}' from:\n"
+      "  ${_api_major_line}\n  ${_api_minor_line}")
+  endif()
 endif()
 
 #############

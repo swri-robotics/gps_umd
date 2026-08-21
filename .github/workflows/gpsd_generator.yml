@@ -1,0 +1,65 @@
+name: gpsd generator
+
+# The fast half of the GPSd tooling checks: everything that needs only GPSd's
+# git history, and no GPSd build at all. Kept separate from the heavy jobs so it
+# can run on every push and pull request, carry its own badge, and be re-run on
+# its own without dragging ten source builds of GPSd along with it.
+#
+# The heavy half is one workflow per API version, gpsd_api_<M>v<m>.yml, all
+# calling the reusable gpsd_api_shared.yml. Unlike this workflow they do not run
+# on every push -- see PUSH_BRANCHES in tools/generate_raw_msgs.py.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  generator:
+    name: generator + generated output
+    runs-on: ubuntu-latest
+    container: ros:lyrical-ros-base
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/gps_umd
+
+      - name: Clone gpsd (history only, no build)
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git
+          # --filter=blob:none: the generator only ever reads gps.h at ten
+          # pinned revisions, so there is no reason to fetch every blob.
+          git clone --quiet --filter=blob:none \
+            https://gitlab.com/gpsd/gpsd.git .gpsd_versions/gpsd
+
+      - name: Checked-in generated files match the generator
+        id: drift
+        run: |
+          python3 src/gps_umd/tools/generate_raw_msgs.py \
+            --gpsd-repo .gpsd_versions/gpsd \
+            --output-root src/gps_umd --check
+
+      - name: Generator unit and output tests
+        id: tests
+        run: |
+          cd src/gps_umd
+          GPSD_REPO=${GITHUB_WORKSPACE}/.gpsd_versions/gpsd \
+            python3 -m unittest discover -s tools -p 'test_*.py' -v
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## GPSd generator"
+            echo
+            echo "| Check | Result |"
+            echo "|---|---|"
+            echo "| Generated files up to date | ${{ steps.drift.outcome }} |"
+            echo "| Generator + output tests | ${{ steps.tests.outcome }} |"
+            if [ "${{ steps.drift.outcome }}" = "failure" ]; then
+              echo
+              echo '> Checked-in generated files differ from a fresh run.'
+              echo '> Run `tools/generate_raw_msgs.py` and commit the result.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

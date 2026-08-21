@@ -2,9 +2,13 @@
 <package format="3">
   <name>gps_msgs</name>
   <version>3.1.1</version>
-  <description>GPS messages for use in GPS drivers</description>
+  <description>
+    GPS messages for use in GPS drivers, and messages mirroring everything
+    GPSd produces for every API version
+  </description>
 
   <author>P. J. Reed</author>
+  <author>David Anthony</author>
   <maintainer email="swri-robotics@swri.org">Southwest Research Institute</maintainer>
   <license>BSD</license>
   <url type="website">http://ros.org/wiki/gps_common</url>
@@ -14,13 +18,15 @@
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <depend>std_msgs</depend>
+  <depend>builtin_interfaces</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <test_depend>ament_cmake_pytest</test_depend>
 
   <member_of_group>rosidl_interface_packages</member_of_group>
 
   <export>
     <build_type>ament_cmake</build_type>
-    <ros1_bridge mapping_rules="ros1_ros2_mapping.yaml"/>
   </export>
 </package>

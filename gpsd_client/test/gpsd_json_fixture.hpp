@@ -28,6 +28,7 @@
 /// headers first) must come before anything that pulls in gps.h.
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include <string>
 #include <string_view>
@@ -121,13 +122,13 @@ struct Satellite
 /// Dilution-of-precision values for a SKY report. NAN means "omit the key".
 struct Dop
 {
-  double xdop = 0.0 / 0.0;
-  double ydop = 0.0 / 0.0;
-  double hdop = 0.0 / 0.0;
-  double vdop = 0.0 / 0.0;
-  double tdop = 0.0 / 0.0;
-  double pdop = 0.0 / 0.0;
-  double gdop = 0.0 / 0.0;
+  double xdop = NAN;
+  double ydop = NAN;
+  double hdop = NAN;
+  double vdop = NAN;
+  double tdop = NAN;
+  double pdop = NAN;
+  double gdop = NAN;
 };
 
 /// The fields of a TPV report this harness emits. NAN (the default for the
@@ -144,20 +145,20 @@ struct Tpv
   int status = -1;
   /// ISO 8601, e.g. "2023-11-14T22:13:20.500Z". Empty to omit.
   std::string time;
-  double latitude = 0.0 / 0.0;
-  double longitude = 0.0 / 0.0;
-  double altitude = 0.0 / 0.0;
-  double track = 0.0 / 0.0;
-  double speed = 0.0 / 0.0;
-  double climb = 0.0 / 0.0;
-  double eph = 0.0 / 0.0;
-  double epv = 0.0 / 0.0;
-  double ept = 0.0 / 0.0;
-  double epx = 0.0 / 0.0;
-  double epy = 0.0 / 0.0;
-  double epd = 0.0 / 0.0;
-  double eps = 0.0 / 0.0;
-  double epc = 0.0 / 0.0;
+  double latitude = NAN;
+  double longitude = NAN;
+  double altitude = NAN;
+  double track = NAN;
+  double speed = NAN;
+  double climb = NAN;
+  double eph = NAN;
+  double epv = NAN;
+  double ept = NAN;
+  double epx = NAN;
+  double epy = NAN;
+  double epd = NAN;
+  double eps = NAN;
+  double epc = NAN;
 };
 
 /// Render @p tpv as a GPSd TPV report.

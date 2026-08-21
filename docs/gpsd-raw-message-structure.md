@@ -53,9 +53,21 @@ fields on the message itself.
 
 ### Names carry their path
 
-A member's field name is its path through `gps_data_t`, joined with `_`:
-`gps_fix_t::time` is `fix_time`, `satellite_t::elevation` is
-`skyview_elevation`, `rawdata_t::meas[].svid` is `raw_meas_svid`.
+A field's name is the chain of **member names** from `gps_data_t` down to the
+leaf, joined with `_`. Struct type names never appear in it, array subscripts
+drop out, and each name is snake_cased:
+
+| Read from `gps_data_t in` | Field |
+|---|---|
+| `in.fix.time` | `fix_time` |
+| `in.skyview[i].elevation` | `skyview_elevation` |
+| `in.raw.meas[i].svid` | `raw_meas_svid` |
+| `in.attitude.timeTag` | `attitude_time_tag` |
+
+So `fix_` comes from the member `gps_data_t::fix`, not from its type
+`gps_fix_t`, and one struct type reached under two member names yields two
+prefixes: `attitude` and `imu[]` are both `attitude_t`, and their leaves become
+`attitude_*` and `imu_*`.
 
 The prefix is not decoration. Flattening to bare leaf names collides 63 times in
 one API version — `time`, `status`, `temp`, `alt_hae` and others each occur in

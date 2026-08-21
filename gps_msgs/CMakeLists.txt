@@ -1,14 +1,14 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14.4)
 project(gps_msgs)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
-set(MSG_DEPS std_msgs builtin_interfaces)
+set(MSG_DEPS builtin_interfaces std_msgs )
 
 find_package(ament_cmake REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(builtin_interfaces REQUIRED)
 
 # The hand-written messages, listed by name.
 set(MSG_FILES

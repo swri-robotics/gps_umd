@@ -27,7 +27,10 @@
 /// ROS message constants, so gpsd_parser.hpp (which includes the message
 /// headers first) must come before anything that pulls in gps.h.
 
+#include <algorithm>
+#include <cstddef>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <gpsd_client/gpsd_parser.hpp>
@@ -51,6 +54,29 @@ namespace test
 /// 3.26.1 declares gps_clear_gst(). They are therefore detected by CMake
 /// (check_cxx_symbol_exists) rather than guarded on GPSD_API_MAJOR_VERSION.
 gps_data_t makeEmptyData();
+
+/// Fill one of GPSd's fixed char[N] members with @p value.
+///
+/// A handful of fields no JSON report can reach -- the device list, imu[].msg,
+/// fixsource_t::spec, the VERSION and ERROR union arms -- have to be written
+/// into gps_data_t by hand. This is how a fixture writes them.
+///
+/// Preferred over snprintf for the same reason the parser uses strnlen rather
+/// than strlen: the bound comes from the member itself. N is deduced from the
+/// array reference, so it cannot drift from the field being written the way a
+/// hand-passed sizeof can, a pointer member is a compile error rather than a
+/// silent one-word write, and there is no format string for a stray % in a
+/// device path to reinterpret. Over-long values are truncated to fit; the
+/// whole tail is zeroed, so what the parser reads back never depends on what
+/// the array held before.
+template <std::size_t N>
+void setCharArray(char (&field)[N], std::string_view value)
+{
+  static_assert(N > 0, "a char array field always has room for a terminator");
+  const std::size_t length = std::min(value.size(), N - 1);
+  value.copy(field, length);
+  std::fill(field + length, field + N, '\0');
+}
 
 /// Feed one or more GPSd JSON reports into @p data.
 ///

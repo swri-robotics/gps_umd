@@ -9,7 +9,6 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
-#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -183,10 +182,8 @@ TEST(GpsdRawParser, DeviceListIsTrimmedToNdevices)
       sizeof(data.devices.list) / sizeof(data.devices.list[0]);
 
   data.devices.ndevices = 2;
-  snprintf(data.devices.list[0].path, sizeof(data.devices.list[0].path),
-           "/dev/ttyS0");
-  snprintf(data.devices.list[1].path, sizeof(data.devices.list[1].path),
-           "/dev/ttyS1");
+  gpsd_client::test::setCharArray(data.devices.list[0].path, "/dev/ttyS0");
+  gpsd_client::test::setCharArray(data.devices.list[1].path, "/dev/ttyS1");
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
   ASSERT_EQ(msg.devices_list_path.size(), 2u);
@@ -216,8 +213,8 @@ TEST(GpsdRawParser, ImuIsTerminatedByAnEmptyMsg)
   // Nothing stamped: nothing published, rather than ten empty entries.
   EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu_msg.size(), 0u);
 
-  snprintf(data.imu[0].msg, sizeof(data.imu[0].msg), "UBX-ESF-RAW");
-  snprintf(data.imu[1].msg, sizeof(data.imu[1].msg), "UBX-ESF-RAW");
+  gpsd_client::test::setCharArray(data.imu[0].msg, "UBX-ESF-RAW");
+  gpsd_client::test::setCharArray(data.imu[1].msg, "UBX-ESF-RAW");
   data.imu[1].gyro_x = 1.5;
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
   ASSERT_EQ(msg.imu_msg.size(), 2u);
@@ -225,13 +222,13 @@ TEST(GpsdRawParser, ImuIsTerminatedByAnEmptyMsg)
   EXPECT_DOUBLE_EQ(msg.imu_gyro_x[1], 1.5);
 
   // A gap terminates: entry 3 is stamped but unreachable past the empty 2.
-  snprintf(data.imu[3].msg, sizeof(data.imu[3].msg), "UBX-ESF-RAW");
+  gpsd_client::test::setCharArray(data.imu[3].msg, "UBX-ESF-RAW");
   EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu_msg.size(), 2u);
 
   // All ten stamped: bounded by the array, never past it.
   for (std::size_t i = 0; i < max_imu; ++i)
   {
-    snprintf(data.imu[i].msg, sizeof(data.imu[i].msg), "UBX-ESF-RAW");
+    gpsd_client::test::setCharArray(data.imu[i].msg, "UBX-ESF-RAW");
   }
   EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu_msg.size(), max_imu);
 }
@@ -250,7 +247,7 @@ TEST(GpsdRawParser, PointerMembersAreNotPublished)
   // c_str() that dangles once start() returns. spec carries the same
   // information as a real array and is what gets published.
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  snprintf(data.source.spec, sizeof(data.source.spec), "localhost:2947");
+  gpsd_client::test::setCharArray(data.source.spec, "localhost:2947");
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
   EXPECT_EQ(msg.source_spec, "localhost:2947");
@@ -279,8 +276,7 @@ TEST(GpsdRawParser, ATerminatedCharArrayStopsAtTheTerminator)
   // The other half of the pair: bounding by sizeof must not also mean
   // publishing the padding after a short, properly terminated string.
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  std::memset(data.dev.path, '\0', sizeof(data.dev.path));
-  snprintf(data.dev.path, sizeof(data.dev.path), "/dev/ttyS0");
+  gpsd_client::test::setCharArray(data.dev.path, "/dev/ttyS0");
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
 
@@ -405,7 +401,7 @@ TEST(GpsdRawParser, ReportUnionFillsOnlyTheArmTheMaskNames)
    * honours it rather than copying whatever the union happened to hold.
    */
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  snprintf(data.version.release, sizeof(data.version.release), "3.27.5");
+  gpsd_client::test::setCharArray(data.version.release, "3.27.5");
   data.set = DEVICE_SET | VERSION_SET;
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
@@ -422,7 +418,7 @@ TEST(GpsdRawParser, UnionArmsStayAtTheirDefaultsWithoutTheirBit)
   // The converse: the union holds a VERSION report, but the mask does not say
   // so, so nothing may be copied out of it.
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  snprintf(data.version.release, sizeof(data.version.release), "3.27.5");
+  gpsd_client::test::setCharArray(data.version.release, "3.27.5");
   data.set = LATLON_SET;
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
@@ -433,7 +429,7 @@ TEST(GpsdRawParser, UnionArmsStayAtTheirDefaultsWithoutTheirBit)
 TEST(GpsdRawParser, ErrorArmIsAStringFromTheMask)
 {
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  snprintf(data.error, sizeof(data.error), "no such device");
+  gpsd_client::test::setCharArray(data.error, "no such device");
   data.set = ERROR_SET;
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));

@@ -1,8 +1,10 @@
 #include "gpsd_json_fixture.hpp"
 
+#include <charconv>
 #include <cmath>
-#include <cstdio>
 #include <sstream>
+#include <string_view>
+#include <system_error>
 #include <vector>
 
 namespace gpsd_client
@@ -14,8 +16,13 @@ namespace
 
 /// Append "key":value, but only when the value is known (not NAN).
 ///
-/// %.17g round-trips an IEEE double exactly, so a fixture's constants survive
-/// the trip through JSON and can be compared with EXPECT_DOUBLE_EQ.
+/// std::to_chars emits the shortest decimal that reads back as the identical
+/// double, so a fixture's constants survive the trip through JSON and can be
+/// compared with EXPECT_DOUBLE_EQ. Preferred over a printf conversion: there
+/// is no format string to disagree with the argument type, no silent
+/// truncation, and -- unlike both printf and operator<<, which follow the
+/// stream's locale -- no chance of a comma decimal separator turning the
+/// fixture into invalid JSON.
 void appendReal(std::ostringstream& out, const char* key, double value)
 {
   if (!std::isfinite(value))
@@ -23,8 +30,14 @@ void appendReal(std::ostringstream& out, const char* key, double value)
     return;
   }
   char buf[32];
-  std::snprintf(buf, sizeof(buf), "%.17g", value);
-  out << ",\"" << key << "\":" << buf;
+  const std::to_chars_result result = std::to_chars(buf, buf + sizeof(buf), value);
+  if (result.ec != std::errc())
+  {
+    // Unreachable: a double's shortest round-trip form needs at most 24 bytes.
+    // Emitting nothing beats emitting whatever the buffer happens to hold.
+    return;
+  }
+  out << ",\"" << key << "\":" << std::string_view(buf, result.ptr - buf);
 }
 
 }  // namespace

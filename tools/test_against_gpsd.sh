@@ -35,9 +35,34 @@
 #                    building it at all.
 #                    Defaults to <cache>/msgs/install.
 #
-# Requirements: git, scons, colcon, a C/C++ toolchain, and network access
-# for the initial GPSd clone. GPSd builds, libgps installs, and per-version
-# colcon build dirs are cached, so reruns only rebuild gpsd_client.
+# Requirements. None of these are declared in any package.xml -- they build
+# GPSd and this harness, not the packages' tests, so `rosdep install` does not
+# supply them. See docs/adding-a-gpsd-api-version.md, section 6, for why.
+#
+#   git scons colcon      always; these three are checked below, so a missing
+#                         one fails here rather than mid-build
+#   a C/C++ toolchain     always
+#   python3-dev           whenever this script builds gps_msgs itself, i.e.
+#   python3-numpy         GPSD_MSGS_INSTALL is unset or its cache is cold.
+#                         rosidl_generator_py needs Python3's Development and
+#                         NumPy CMake components for the message bindings, and
+#                         not every ROS base image pulls them in.
+#   python3-serial        GPSD_FULL_BUILD=1 only. GPSd's scons build wants
+#   libdbus-1-dev         both for the daemon and the Python module, neither of
+#                         which the libgps-only builds compile.
+#
+# On a Debian-derived image that is:
+#
+#     apt-get install -y --no-install-recommends git scons \
+#       python3-dev python3-numpy python3-serial libdbus-1-dev
+#
+# which is what .github/workflows/gpsd_api_shared.yml and gpsd_end_to_end.yml
+# install; keep this list and theirs in step. They add pkg-config, but that one
+# is declared in gpsd_client/package.xml, so rosdep already supplies it.
+#
+# Network access is needed for the initial GPSd clone. GPSd builds, libgps
+# installs, and per-version colcon build dirs are cached, so reruns only
+# rebuild gpsd_client.
 #
 # The cache is specific to the container it was built in: the libgps installs
 # embed a glibc version and the message install embeds a ROS distribution.

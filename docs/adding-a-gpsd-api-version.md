@@ -162,6 +162,45 @@ been missed four separate times (`nSat`, `gps_clear_gst`, `gps_unpack`'s
 `const`ness, the `rtcm2` fields at API 10) and each time it looked like a
 generator bug at first.
 
+### Why the script's toolchain is not in any `package.xml`
+
+`rosdep install --from-paths src --ignore-src` does not give you enough to run
+the script above, and it is not meant to. These are needed, and no manifest
+declares them:
+
+| Tool | Needed for |
+|---|---|
+| `scons` | building libgps from source — the script's own first check, so a missing `scons` fails as `error: scons is required` rather than anything subtler |
+| `python3-serial`, `libdbus-1-dev` | `GPSD_FULL_BUILD=1`, which additionally builds the GPSd daemon and the `gps` Python module that `gpsfake` needs |
+| `python3-dev`, `python3-numpy` | `rosidl_generator_py` building `gps_msgs`' Python bindings, which some ROS base images do not pull in transitively |
+| `git` | `tools/test_generated_messages.py` reads `gps.h` at each pinned revision with `git show` |
+
+They are build dependencies of *GPSd* and of this harness, not of these
+packages' tests, and everything they enable sits behind a skip condition:
+without `GPSD_E2E_PREFIX` the gpsfake suite skips itself, and without
+`GPSD_REPO` the two generator suites skip themselves. What is left is
+`gpsd_client`'s four gtest suites, which build against whatever libgps the
+distro ships and need nothing beyond what `package.xml` declares. That is
+precisely what `humble.yml` and its siblings do: plain `industrial_ci` with no
+`apt-get` step at all, which is also how the ROS build farm builds this
+repository. Adding `<test_depend>scons</test_depend>` would push a third-party
+project's build tooling onto the farm and onto every downstream consumer, for
+tests that can never run there.
+
+**So the multi-version and end-to-end suites are CI jobs, not part of `colcon
+test`.** The list lives in two places rather than a manifest: the Requirements
+block at the top of `tools/test_against_gpsd.sh`, and the "Install build tools
+and workspace dependencies" step in `.github/workflows/gpsd_api_shared.yml` and
+`gpsd_end_to_end.yml`. Keep those in step with each other. Running the script
+locally means installing them yourself first.
+
+Both workflows also pass `rosdep install --skip-keys "libgps gpsd"`. `libgps`
+matters: the key is declared, and skipping it stops rosdep installing a distro
+`libgps-dev` that the script is about to override with a pinned source build.
+`gpsd` is inert — no manifest declares that key — and stays only as insurance
+against one ever doing so, since a system daemon of the wrong version cannot
+drive `gpsfake` (see the test's docstring).
+
 ## 7. Documentation and CI
 
 The workflow file `.github/workflows/gpsd_api_<M>v<m>.yml` is generated in step

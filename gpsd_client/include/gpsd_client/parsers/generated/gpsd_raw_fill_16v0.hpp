@@ -1224,7 +1224,6 @@ inline void fill_skyview(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
   (void)idx;
   const std::size_t count = idx.size();
   if constexpr (has_skyview<T>::value) {
-    using T_skyview = std::decay_t<decltype(in.skyview)>;
     out.skyview_ss.resize(count);
     out.skyview_prn.resize(count);
     out.skyview_elevation.resize(count);
@@ -1315,7 +1314,6 @@ inline void fill_devices_list(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
   if constexpr (has_devices<T>::value) {
     using T_devices = std::decay_t<decltype(in.devices)>;
   if constexpr (has_list<T_devices>::value) {
-    using T_devices_list = std::decay_t<decltype(in.devices.list)>;
     out.devices_list_path.resize(count);
     out.devices_list_flags.resize(count);
     out.devices_list_driver.resize(count);
@@ -1410,7 +1408,6 @@ inline void fill_raw_meas(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
   if constexpr (has_raw<T>::value) {
     using T_raw = std::decay_t<decltype(in.raw)>;
   if constexpr (has_meas<T_raw>::value) {
-    using T_raw_meas = std::decay_t<decltype(in.raw.meas)>;
     if (0 != (in.set & RAW_SET)) {
       out.raw_meas_gnssid.resize(count);
       out.raw_meas_svid.resize(count);
@@ -1512,7 +1509,6 @@ inline void fill_imu(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
   (void)idx;
   const std::size_t count = idx.size();
   if constexpr (has_imu<T>::value) {
-    using T_imu = std::decay_t<decltype(in.imu)>;
     out.imu_mtime.resize(count);
     out.imu_time_tag.resize(count);
     out.imu_msg.resize(count);

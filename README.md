@@ -3,16 +3,6 @@ gps_umd
 
 This package contains messages for representing data from GPS devices and algorithms for manipulating it. It uses GPSd as the underlying method of reading data from GPS receivers.
 
-Build Status
---------
-
-Item | **Humble** | **Jazzy** | **Kilted** | **Lyrical** | **Rolling**
-:--- | :---: | :---: | :---: | :---: | :---:
-Build status | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/humble.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/humble.yml) <br /> [![ROS2 Build Farm](https://build.ros2.org/buildStatus/icon?job=Hdev__gps_umd__ubuntu_jammy_amd64)](https://build.ros2.org/job/Hdev__gps_umd__ubuntu_jammy_amd64/) | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/jazzy.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/jazzy.yml) <br /> [![ROS2 Build Farm](https://build.ros2.org/buildStatus/icon?job=Jdev__gps_umd__ubuntu_noble_amd64)](https://build.ros2.org/job/Jdev__gps_umd__ubuntu_noble_amd64/) | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/kilted.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/kilted.yml) <br /> [![ROS2 Build Farm](https://build.ros2.org/buildStatus/icon?job=Kdev__gps_umd__ubuntu_noble_amd64)](https://build.ros2.org/job/Kdev__gps_umd__ubuntu_noble_amd64/) | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/lyrical.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/lyrical.yml) <br /> [![ROS2 Build Farm](https://build.ros2.org/buildStatus/icon?job=Ldev__gps_umd__ubuntu_resolute_amd64)](https://build.ros2.org/job/Ldev__gps_umd__ubuntu_resolute_amd64/) | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/rolling.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/rolling.yml) <br /> [![ROS2 Build Farm](https://build.ros2.org/buildStatus/icon?job=Rdev__gps_umd__ubuntu_resolute_amd64)](https://build.ros2.org/job/Rdev__gps_umd__ubuntu_resolute_amd64/)
-`gps_msgs` | [Released](https://index.ros.org/p/gps_msgs/#humble) | [Released](https://index.ros.org/p/gps_msgs/#jazzy) | [Released](https://index.ros.org/p/gps_msgs/#kilted) | [Released](https://index.ros.org/p/gps_msgs/#lyrical) | [Released](https://index.ros.org/p/gps_msgs/#rolling)
-`gps_tools` | [Released](https://index.ros.org/p/gps_tools/#humble) | [Released](https://index.ros.org/p/gps_tools/#jazzy) | [Released](https://index.ros.org/p/gps_tools/#kilted) | [Released](https://index.ros.org/p/gps_tools/#lyrical) | [Released](https://index.ros.org/p/gps_tools/#rolling)
-`gpsd_client` | [Released](https://index.ros.org/p/gpsd_client/#humble) | [Released](https://index.ros.org/p/gpsd_client/#jazzy) | [Released](https://index.ros.org/p/gpsd_client/#kilted) | [Released](https://index.ros.org/p/gpsd_client/#lyrical) | [Released](https://index.ros.org/p/gpsd_client/#rolling)
-
 GPSd Integration and Usage
 -------------------------
 
@@ -21,21 +11,6 @@ By default, this package is built against the version of GPSd shipped with the L
 Depending on the GPS receiver, GPSd is capable of providing a great deal of information. By default, the package publishes a condensed version of this data as a `gps_msgs/GPSFix` message. Alternatively, the information may be published as a standard ROS 2 `sensor_msgs/NavSatFix` message. These messages provide the localization and error estimates that most robots need to operate in most conditions.
 
 `gps_umd` can also publish the entire set of information provided by GPSd. These messages are in the `gps_msgs` package and published as `GPSDRaw<MAJOR>v<MINOR>` types, where `<MAJOR>` and `<MINOR>` correspond to the GPSd API version that provides the information. The table below lists the currently support set of GPSd and API versions the system is built and tested against.
-
-[![GPSd generator](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_generator.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_generator.yml)
-
-| API | GPSd revision | Message | Status |
-|---|---|---|---|
-| **9.0** | `3.20` | `GPSDRaw9v0` | [![GPSd API 9.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml) |
-| **9.1** | `e5279ef52` *(unreleased)* | `GPSDRaw9v1` | [![GPSd API 9.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml) |
-| **10.0** | `3.21` | `GPSDRaw10v0` | [![GPSd API 10.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml) |
-| **10.1** | `42f816d59` *(unreleased)* | `GPSDRaw10v1` | [![GPSd API 10.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml) |
-| **11.0** | `3.22` | `GPSDRaw11v0` | [![GPSd API 11.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml) |
-| **12.0** | `3.23.1` | `GPSDRaw12v0` | [![GPSd API 12.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml) |
-| **13.0** | `264e808c6` *(unreleased)* | `GPSDRaw13v0` | [![GPSd API 13.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml) |
-| **14.0** | `3.26.1` | `GPSDRaw14v0` | [![GPSd API 14.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml) |
-| **16.0** | `3.27.3` | `GPSDRaw16v0` | [![GPSd API 16.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml) |
-| **16.1** | `3.27.5` | `GPSDRaw16v1` | [![GPSd API 16.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml) |
 
 Three GPSd API versions are not matched to a GPSd version. These GPSd versions are given as their commit hash instead. To add more version of the GPSd API, see: [docs/adding-a-gpsd-api-version.md](docs/adding-a-gpsd-api-version.md).
 
@@ -102,5 +77,66 @@ The node `fix_translator` converts [sensor_msgs/NavSatFix](http://docs.ros.org/a
 
 Only adjust the topic names after "to=" in each remap line.
 
-### Disclaimer
+Disclaimer
+------------
 This project is not affiliated with the GPSd project. `gps_umd` utilizes the GPSd library as an interface to GPS receivers but is not a part of the GPSd project itself.
+
+Build Status
+------------
+
+### GPSd Parsers
+
+[![GPSd generator](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_generator.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_generator.yml)
+
+| API | GPSd revision | Message | Status |
+|---|---|---|---|
+| **9.0** | `3.20` | `GPSDRaw9v0` | [![GPSd API 9.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v0.yml) |
+| **9.1** | `e5279ef52` *(unreleased)* | `GPSDRaw9v1` | [![GPSd API 9.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_9v1.yml) |
+| **10.0** | `3.21` | `GPSDRaw10v0` | [![GPSd API 10.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v0.yml) |
+| **10.1** | `42f816d59` *(unreleased)* | `GPSDRaw10v1` | [![GPSd API 10.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_10v1.yml) |
+| **11.0** | `3.22` | `GPSDRaw11v0` | [![GPSd API 11.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_11v0.yml) |
+| **12.0** | `3.23.1` | `GPSDRaw12v0` | [![GPSd API 12.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_12v0.yml) |
+| **13.0** | `264e808c6` *(unreleased)* | `GPSDRaw13v0` | [![GPSd API 13.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_13v0.yml) |
+| **14.0** | `3.26.1` | `GPSDRaw14v0` | [![GPSd API 14.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_14v0.yml) |
+| **16.0** | `3.27.3` | `GPSDRaw16v0` | [![GPSd API 16.0](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v0.yml) |
+| **16.1** | `3.27.5` | `GPSDRaw16v1` | [![GPSd API 16.1](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/actions/workflows/gpsd_api_16v1.yml) |
+
+### Branches
+
+&nbsp; | **Humble** | **Jazzy** | **Kilted** | **Lyrical** | **Rolling**
+:--- | :---: | :---: | :---: | :---: | :---:
+Branch | [`humble`](https://github.com/swri-robotics/gps_umd/tree/ros2-devel) | [`jazzy`](https://github.com/swri-robotics/gps_umd/tree/ros2-devel) | [`kilted`](https://github.com/swri-robotics/gps_umd/tree/ros2-devel) | [`lyrical`](https://github.com/swri-robotics/gps_umd/tree/ros2-devel) | [`rolling`](https://github.com/swri-robotics/gps_umd/tree/ros2-devel)
+
+### Released Versions
+
+&nbsp; | **Humble** | **Jazzy** | **Kilted** | **Lyrical** | **Rolling**
+:--- | :---: | :---: | :---: | :---: | :---:
+Version | [![ROS2 Humble](https://img.shields.io/ros/v/humble/gps_umd.svg?style=flat-square)](https://index.ros.org/r/gps_umd/#humble) | [![ROS2 Jazzy](https://img.shields.io/ros/v/jazzy/gps_umd.svg?style=flat-square)](https://index.ros.org/r/gps_umd/#jazzy) | [![ROS2 Kilted](https://img.shields.io/ros/v/kilted/gps_umd.svg?style=flat-square)](https://index.ros.org/r/gps_umd/#kilted) | [![ROS2 Lyrical](https://img.shields.io/ros/v/lyrical/gps_umd.svg?style=flat-square)](https://index.ros.org/r/gps_umd/#lyrical) | [![ROS2 Rolling](https://img.shields.io/ros/v/rolling/gps_umd.svg?style=flat-square)](https://index.ros.org/r/gps_umd/#rolling)
+
+### CI
+
+&nbsp; | **Humble** | **Jazzy** | **Kilted** | **Lyrical** | **Rolling**
+:--- | :---: | :---: | :---: | :---: | :---:
+GitHub Actions | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/humble.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/humble.yml) | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/jazzy.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/jazzy.yml) | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/kilted.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/kilted.yml) | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/lyrical.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/lyrical.yml) | [![CI](https://github.com/swri-robotics/gps_umd/actions/workflows/rolling.yml/badge.svg?branch=ros2-devel)](https://github.com/swri-robotics/gps_umd/blob/ros2-devel/.github/workflows/rolling.yml)
+
+### amd64 dev
+
+&nbsp; | **Humble** | **Jazzy** | **Kilted** | **Lyrical** | **Rolling**
+:--- | :---: | :---: | :---: | :---: | :---:
+[`gps_umd`](https://github.com/swri-robotics/gps_umd) | [![dev](https://build.ros2.org/buildStatus/icon?job=Hdev__gps_umd__ubuntu_jammy_amd64)](https://build.ros2.org/job/Hdev__gps_umd__ubuntu_jammy_amd64/) | [![dev](https://build.ros2.org/buildStatus/icon?job=Jdev__gps_umd__ubuntu_noble_amd64)](https://build.ros2.org/job/Jdev__gps_umd__ubuntu_noble_amd64/) | [![dev](https://build.ros2.org/buildStatus/icon?job=Kdev__gps_umd__ubuntu_noble_amd64)](https://build.ros2.org/job/Kdev__gps_umd__ubuntu_noble_amd64/) | [![dev](https://build.ros2.org/buildStatus/icon?job=Ldev__gps_umd__ubuntu_resolute_amd64)](https://build.ros2.org/job/Ldev__gps_umd__ubuntu_resolute_amd64/) | [![dev](https://build.ros2.org/buildStatus/icon?job=Rdev__gps_umd__ubuntu_resolute_amd64)](https://build.ros2.org/job/Rdev__gps_umd__ubuntu_resolute_amd64/)
+
+### amd64 bin
+
+Package | **Humble** | **Jazzy** | **Kilted** | **Lyrical** | **Rolling**
+:--- | :---: | :---: | :---: | :---: | :---:
+[`gps_msgs`](https://index.ros.org/p/gps_msgs/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Hbin_uJ64__gps_msgs__ubuntu_jammy_amd64__binary)](https://build.ros2.org/job/Hbin_uJ64__gps_msgs__ubuntu_jammy_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Jbin_uN64__gps_msgs__ubuntu_noble_amd64__binary)](https://build.ros2.org/job/Jbin_uN64__gps_msgs__ubuntu_noble_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Kbin_uN64__gps_msgs__ubuntu_noble_amd64__binary)](https://build.ros2.org/job/Kbin_uN64__gps_msgs__ubuntu_noble_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Lbin_uR64__gps_msgs__ubuntu_resolute_amd64__binary)](https://build.ros2.org/job/Lbin_uR64__gps_msgs__ubuntu_resolute_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Rbin_uR64__gps_msgs__ubuntu_resolute_amd64__binary)](https://build.ros2.org/job/Rbin_uR64__gps_msgs__ubuntu_resolute_amd64__binary/)
+[`gps_tools`](https://index.ros.org/p/gps_tools/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Hbin_uJ64__gps_tools__ubuntu_jammy_amd64__binary)](https://build.ros2.org/job/Hbin_uJ64__gps_tools__ubuntu_jammy_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Jbin_uN64__gps_tools__ubuntu_noble_amd64__binary)](https://build.ros2.org/job/Jbin_uN64__gps_tools__ubuntu_noble_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Kbin_uN64__gps_tools__ubuntu_noble_amd64__binary)](https://build.ros2.org/job/Kbin_uN64__gps_tools__ubuntu_noble_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Lbin_uR64__gps_tools__ubuntu_resolute_amd64__binary)](https://build.ros2.org/job/Lbin_uR64__gps_tools__ubuntu_resolute_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Rbin_uR64__gps_tools__ubuntu_resolute_amd64__binary)](https://build.ros2.org/job/Rbin_uR64__gps_tools__ubuntu_resolute_amd64__binary/)
+[`gpsd_client`](https://index.ros.org/p/gpsd_client/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Hbin_uJ64__gpsd_client__ubuntu_jammy_amd64__binary)](https://build.ros2.org/job/Hbin_uJ64__gpsd_client__ubuntu_jammy_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Jbin_uN64__gpsd_client__ubuntu_noble_amd64__binary)](https://build.ros2.org/job/Jbin_uN64__gpsd_client__ubuntu_noble_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Kbin_uN64__gpsd_client__ubuntu_noble_amd64__binary)](https://build.ros2.org/job/Kbin_uN64__gpsd_client__ubuntu_noble_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Lbin_uR64__gpsd_client__ubuntu_resolute_amd64__binary)](https://build.ros2.org/job/Lbin_uR64__gpsd_client__ubuntu_resolute_amd64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Rbin_uR64__gpsd_client__ubuntu_resolute_amd64__binary)](https://build.ros2.org/job/Rbin_uR64__gpsd_client__ubuntu_resolute_amd64__binary/)
+
+### arm64 bin
+
+Package | **Humble** | **Jazzy** | **Kilted** | **Lyrical** | **Rolling**
+:--- | :---: | :---: | :---: | :---: | :---:
+[`gps_msgs`](https://index.ros.org/p/gps_msgs/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Hbin_ujv8_uJv8__gps_msgs__ubuntu_jammy_arm64__binary)](https://build.ros2.org/job/Hbin_ujv8_uJv8__gps_msgs__ubuntu_jammy_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Jbin_unv8_uNv8__gps_msgs__ubuntu_noble_arm64__binary)](https://build.ros2.org/job/Jbin_unv8_uNv8__gps_msgs__ubuntu_noble_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Kbin_unv8_uNv8__gps_msgs__ubuntu_noble_arm64__binary)](https://build.ros2.org/job/Kbin_unv8_uNv8__gps_msgs__ubuntu_noble_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Lbin_armv8_uRv8__gps_msgs__ubuntu_resolute_arm64__binary)](https://build.ros2.org/job/Lbin_armv8_uRv8__gps_msgs__ubuntu_resolute_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Rbin_unv8_uRv8__gps_msgs__ubuntu_resolute_arm64__binary)](https://build.ros2.org/job/Rbin_unv8_uRv8__gps_msgs__ubuntu_resolute_arm64__binary/)
+[`gps_tools`](https://index.ros.org/p/gps_tools/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Hbin_ujv8_uJv8__gps_tools__ubuntu_jammy_arm64__binary)](https://build.ros2.org/job/Hbin_ujv8_uJv8__gps_tools__ubuntu_jammy_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Jbin_unv8_uNv8__gps_tools__ubuntu_noble_arm64__binary)](https://build.ros2.org/job/Jbin_unv8_uNv8__gps_tools__ubuntu_noble_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Kbin_unv8_uNv8__gps_tools__ubuntu_noble_arm64__binary)](https://build.ros2.org/job/Kbin_unv8_uNv8__gps_tools__ubuntu_noble_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Lbin_armv8_uRv8__gps_tools__ubuntu_resolute_arm64__binary)](https://build.ros2.org/job/Lbin_armv8_uRv8__gps_tools__ubuntu_resolute_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Rbin_unv8_uRv8__gps_tools__ubuntu_resolute_arm64__binary)](https://build.ros2.org/job/Rbin_unv8_uRv8__gps_tools__ubuntu_resolute_arm64__binary/)
+[`gpsd_client`](https://index.ros.org/p/gpsd_client/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Hbin_ujv8_uJv8__gpsd_client__ubuntu_jammy_arm64__binary)](https://build.ros2.org/job/Hbin_ujv8_uJv8__gpsd_client__ubuntu_jammy_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Jbin_unv8_uNv8__gpsd_client__ubuntu_noble_arm64__binary)](https://build.ros2.org/job/Jbin_unv8_uNv8__gpsd_client__ubuntu_noble_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Kbin_unv8_uNv8__gpsd_client__ubuntu_noble_arm64__binary)](https://build.ros2.org/job/Kbin_unv8_uNv8__gpsd_client__ubuntu_noble_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Lbin_armv8_uRv8__gpsd_client__ubuntu_resolute_arm64__binary)](https://build.ros2.org/job/Lbin_armv8_uRv8__gpsd_client__ubuntu_resolute_arm64__binary/) | [![bin](https://build.ros2.org/buildStatus/icon?job=Rbin_unv8_uRv8__gpsd_client__ubuntu_resolute_arm64__binary)](https://build.ros2.org/job/Rbin_unv8_uRv8__gpsd_client__ubuntu_resolute_arm64__binary/)

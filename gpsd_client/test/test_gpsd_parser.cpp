@@ -237,6 +237,27 @@ TEST(GpsdParser, InvalidVarianceRejectsNavSatFixOnly)
   EXPECT_EQ(fix.status.status, -1 /* GPSStatus::STATUS_NO_FIX */);
 }
 
+TEST(GpsdParser, NanVarianceMarksCovarianceUnknown)
+{
+  // With the variance check off, a fix with a NaN variance is still published,
+  // so it must not claim to carry a known covariance.
+  auto parser = makeParser();
+
+  gps_data_t data = makeThreeDFix();
+  data.fix.epv = std::nan("");
+
+  auto fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
+
+  ASSERT_TRUE(fix.has_value());
+  EXPECT_EQ(fix->position_covariance_type,
+            sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN);
+  // An unknown covariance is zero-filled; no NaN reaches subscribers.
+  for (const double element : fix->position_covariance)
+  {
+    EXPECT_DOUBLE_EQ(element, 0.0);
+  }
+}
+
 TEST(GpsdParser, ServiceBitmaskAndSbasStatus)
 {
   auto parser = makeParser();

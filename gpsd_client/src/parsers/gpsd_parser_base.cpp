@@ -43,10 +43,10 @@ bool GpsdParserBase::hasValidVariance(const gps_data_t& data)
  * below.
  *
  * GPSd renamed STATUS_DGPS_FIX to STATUS_DGPS in 3.25. The rename was clean
- * -- no release defines both -- so the spelling has to be selected by the
- * preprocessor here, since it is used as a case label. The other STATUS_
- * macros are defined by every GPSd we support (API >= 9, enforced in
- * gpsd_parser.hpp) and need no feature detection.
+ * so the spelling has to be selected by the preprocessor here, since it is
+ * used as a case label. The other STATUS_ macros are defined by every GPSd
+ * we support (API >= 9, enforced in gpsd_parser.hpp) and need no feature
+ * detection.
  */
 #ifdef STATUS_DGPS_FIX
 #define GPSD_STATUS_DGPS STATUS_DGPS_FIX
@@ -253,13 +253,29 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
     return std::nullopt;
   }
 
-  // Covariance is a 3x3 matrix, and this sets the diagonal elements based on the reported variances.
-  fix.position_covariance[0] = data.fix.epx;
-  fix.position_covariance[4] = data.fix.epy;
-  fix.position_covariance[8] = data.fix.epv;
+  /* Covariance is a 3x3 matrix, and this sets the diagonal elements based on
+   * the reported variances. GPSd reports a variance it does not have as NaN,
+   * so the matrix is only advertised as known when all three are finite;
+   * otherwise it stays zero-filled and UNKNOWN, since NavSatFix has no way to
+   * mark individual elements as missing and downstream consumers are entitled
+   * to treat a KNOWN covariance as usable numbers. This matters when
+   * check_fix_by_variance is off because when it is on, a fix with a NaN
+   * variance has already been dropped above.
+   */
+  if (hasValidVariance(data))
+  {
+    fix.position_covariance[0] = data.fix.epx;
+    fix.position_covariance[4] = data.fix.epy;
+    fix.position_covariance[8] = data.fix.epv;
 
-  fix.position_covariance_type =
-      sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+    fix.position_covariance_type =
+        sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+  }
+  else
+  {
+    fix.position_covariance_type =
+        sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN;
+  }
 
   return fix;
 }

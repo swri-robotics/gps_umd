@@ -17,7 +17,7 @@ Three GPSd API versions are not matched to a GPSd version. These GPSd versions a
 gpsd_client Parameters
 ----------------------
 
-The `gpsd_client::GPSDClientComponent` node accepts the following parameters. Some are used to configure GPSd, and others are used to work around quirks of GPSd with certain hardware. In general, `gps_umd` attempts to retain the behavior of GPSd as much as possible, and deviate only to match ROS 2 conventions and robot needs.
+Both gpsd_client components (see [Managed (lifecycle) Node](#managed-lifecycle-node)) accept the following parameters. Some are used to configure GPSd, and others are used to work around quirks of GPSd with certain hardware. In general, `gps_umd` attempts to retain the behavior of GPSd as much as possible, and deviate only to match ROS 2 conventions and robot needs.
 
 Parameter | Type | Default | Description
 :-------- | :--- | :------ | :----------
@@ -32,6 +32,48 @@ Parameter | Type | Default | Description
 `publish_gpsd_json` | bool | `false` | Publish every report GPSd sends on `gpsd_json`, as the raw JSON line. This contains much more than the information published on `gpsd_raw`, such as RTCM and SUBFRAME data. Only AIS information from GPSd is intentionally omitted.
 
 These node defaults can be overriden by setting a parameter. The file `gpsd_client/config/gpsd_client.yaml` contains these parameters as well. The launch file `gpsd_client-launch.py` can load these YAML files for convenience.
+
+Managed (lifecycle) Node
+------------------------
+
+`gpsd_client` ships two components. They are the same client, take the same
+parameters and publish the same topics; they differ only in when the node
+connects to GPSd and starts publishing.
+
+Component | Node type | Behavior
+:-------- | :-------- | :----------
+`gpsd_client::GPSDClientComponent` | `rclcpp::Node` | Connects and publishes as soon as it is constructed, until it is destroyed. This is the default behavior.
+`gpsd_client::GPSDClientLifecycleComponent` | `rclcpp_lifecycle::LifecycleNode` | Starts unconfigured and does nothing until something drives it through the [managed node](https://design.ros2.org/articles/node_lifecycle.html) transitions.
+
+The launch file picks one:
+
+```bash
+ros2 launch gpsd_client gpsd_client-launch.py                      # unmanaged
+ros2 launch gpsd_client gpsd_client-launch.py use_lifecycle:=true  # managed lifecycle
+```
+
+A managed node publishes nothing until it is told to. Nothing transitions it
+on its own, so either a lifecycle manager or a person has to:
+
+```bash
+ros2 lifecycle set /gpsd_client configure
+ros2 lifecycle set /gpsd_client activate
+```
+
+The transitions follow the two phases libgps already has -- one call to
+connect, another to start the flow of reports.
+
+Transition | What it does
+:--------- | :-----------
+`configure` | Reads the parameters, creates the parsers and publishers, and connects to GPSd (`gps_open`). An unreachable daemon fails this transition and leaves the node unconfigured, rather than leaving a node that exists but never publishes.
+`activate` | Asks GPSd to stream (`gps_stream(WATCH_ENABLE)`) and starts polling it. The publishers, which drop messages while inactive, begin publishing.
+`deactivate` | Stops polling and stops the stream, but holds the connection open so reactivating it does not force a reconnect.
+`cleanup` | Destroys the publishers and parsers and closes the connection (`gps_close`), returning the node to unconfigured.
+`shutdown` | Deactivates and cleans up, from whatever state the node is in.
+
+Parameters are declared when the node is constructed but read during
+`configure`, so a parameter changed on a running node takes effect on the next
+`cleanup` / `configure` cycle.
 
 Raw GPSd Details
 -----------------

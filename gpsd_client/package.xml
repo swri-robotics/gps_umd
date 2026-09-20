@@ -2,8 +2,8 @@
 <package format="3">
   <name>gpsd_client</name>
   <version>3.1.1</version>
-  <description>connects to a GPSd server and broadcasts GPS fixes 
-   using the NavSatFix message</description>
+  <description>Connects to a GPSd server and broadcasts GPS fixes 
+   using the NavSatFix or GPSFix messages</description>
 
   <author>P. J. Reed</author>
   <author email="ken@tossell.net">Ken Tossell</author>
@@ -21,6 +21,7 @@
   <depend>pkg-config</depend>
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
+  <depend>rclcpp_lifecycle</depend>
   <depend>sensor_msgs</depend>
 
   <test_depend>ament_cmake_gtest</test_depend>

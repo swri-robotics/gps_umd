@@ -3,11 +3,15 @@ project(gpsd_client)
 
 set(CMAKE_CXX_STANDARD 17)
 
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
 find_package(ament_cmake REQUIRED)
 
 find_package(gps_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclcpp_components REQUIRED rclcpp_components)
+find_package(rclcpp_components REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
@@ -47,10 +51,7 @@ endif()
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     include
-    ${rclcpp_components_INCLUDE_DIRS}
-    ${libgps_INCLUDE_DIRS}
-    ${gps_msgs_INCLUDE_DIRS}
-    ${sensor_msgs_INCLUDE_DIRS})
+    ${libgps_INCLUDE_DIRS})
 
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE "COMPOSITION_BUILDING_DLL")
@@ -65,10 +66,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   ${gps_msgs_TARGETS}
   ${sensor_msgs_TARGETS}
   rclcpp::rclcpp
-  rclcpp_lifecycle::rclcpp_lifecycle
   rclcpp_components::component
-  rclcpp_components::component_manager
-  sensor_msgs::sensor_msgs_library
+  rclcpp_lifecycle::rclcpp_lifecycle
 )
 
 #############
@@ -216,7 +215,7 @@ if(BUILD_TESTING)
 
   if(NOT GPSD_HEADER)
     # Without a header there is nothing to assert against, and the suite skips
-    # itself regardless. Not an error.
+    # itself regardless.
     message(STATUS "No gps.h found; skipping the gpsfake end-to-end test")
   elseif(_api_major AND _api_minor MATCHES "^[0-9]+$")
     ament_add_pytest_test(test_gpsfake_end_to_end
@@ -249,9 +248,10 @@ install(DIRECTORY launch
 install(DIRECTORY config
     DESTINATION share/${PROJECT_NAME}/)
 
-ament_export_dependencies(ament_cmake)
-ament_export_dependencies(rclcpp)
-ament_export_dependencies(rclcpp_lifecycle)
-ament_export_libraries(${PROJECT_NAME})
+# Nothing is exported on purpose. This package installs no headers, so there is
+# no interface to compile against, and its library is a component plugin that
+# the container finds through the ament index rather than by linking. Exporting
+# it would only oblige downstream packages to resolve dependencies they cannot
+# use.
 
 ament_package()

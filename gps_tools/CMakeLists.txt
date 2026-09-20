@@ -3,6 +3,10 @@ project(gps_tools)
 
 set(CMAKE_CXX_STANDARD 17)
 
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 
@@ -20,21 +24,16 @@ target_include_directories(utm_odometry_component
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
-    ${rclcpp_components_INCLUDE_DIRS}
-    ${sensor_msgs_INCLUDE_DIRS}
-    ${nav_msgs_INCLUDE_DIRS}
 )
 target_compile_definitions(utm_odometry_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
 
 rclcpp_components_register_nodes(utm_odometry_component "gps_tools::UtmOdometryComponent")
-target_link_libraries(utm_odometry_component PUBLIC
+target_link_libraries(utm_odometry_component PRIVATE
   ${nav_msgs_TARGETS}
   ${sensor_msgs_TARGETS}
   rclcpp::rclcpp
   rclcpp_components::component
-  rclcpp_components::component_manager
-  sensor_msgs::sensor_msgs_library
 )
 
 add_library(utm_odometry_to_navsatfix_component SHARED
@@ -44,19 +43,15 @@ target_include_directories(utm_odometry_to_navsatfix_component
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
-    ${nav_msgs_INCLUDE_DIRS}
-    ${sensor_msgs_INCLUDE_DIRS}
 )
 target_compile_definitions(utm_odometry_to_navsatfix_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
 rclcpp_components_register_nodes(utm_odometry_to_navsatfix_component "gps_tools::UtmOdometryToNavSatFixComponent")
-target_link_libraries(utm_odometry_to_navsatfix_component PUBLIC
+target_link_libraries(utm_odometry_to_navsatfix_component PRIVATE
   ${nav_msgs_TARGETS}
   ${sensor_msgs_TARGETS}
   rclcpp::rclcpp
   rclcpp_components::component
-  rclcpp_components::component_manager
-  sensor_msgs::sensor_msgs_library
 )
 
 install(TARGETS
@@ -75,13 +70,8 @@ install(PROGRAMS
   DESTINATION bin
 )
 
-# Export package dependencies
-ament_export_dependencies(ament_cmake
-  ament_cmake_python
-  rclcpp
-  rclpy
-)
 ament_export_include_directories(include)
 ament_export_libraries(utm_odometry_component utm_odometry_to_navsatfix_component)
+ament_export_dependencies(ament_cmake)
 
 ament_package()

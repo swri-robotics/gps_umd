@@ -25,7 +25,7 @@ public:
     {
         zone_ = declare_parameter<int>("zone");
     }
-    catch (rclcpp::exceptions::UninitializedStaticallyTypedParameterException)
+    catch (const rclcpp::exceptions::UninitializedStaticallyTypedParameterException &)
     {
         // If zone is not set, just leave it with its default value (std::nullopt).
     }

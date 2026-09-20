@@ -1465,7 +1465,13 @@ def emit_group_fill(model: Model, message_name: str, group: str) -> List[str]:
         guards.append(f"  if constexpr (has_{seg}<{tname}>::value) {{")
         expr = f"{expr}.{seg}"
         tname = "T_" + "_".join(lead[:i + 1])
-        guards.append(f"    using {tname} = std::decay_t<decltype({expr})>;")
+        # The alias exists only to name the type the next level's
+        # has_<member> guard asks about, so the innermost level needs none:
+        # below it the loop types each element with its own T_elem_<field>.
+        # Emitting one there compiles, but trips -Wunused-local-typedefs.
+        if i + 1 < len(lead):
+            guards.append(
+                f"    using {tname} = std::decay_t<decltype({expr})>;")
     out += guards
     gate = fields[0].gate
     body = "    "

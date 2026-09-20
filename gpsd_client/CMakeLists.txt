@@ -8,6 +8,7 @@ find_package(ament_cmake REQUIRED)
 find_package(gps_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED rclcpp_components)
+find_package(rclcpp_lifecycle REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
 # Try to find libgps, first with CMake's usual library search method, then by
@@ -32,6 +33,7 @@ endif()
 
 add_library(${PROJECT_NAME} SHARED
   src/client.cpp
+  src/lifecycle_client.cpp
   src/gpsd_parser_factory.cpp
   src/gpsd_raw_parser.cpp
   src/parsers/gpsd_parser_base.cpp)
@@ -53,12 +55,17 @@ target_include_directories(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE "COMPOSITION_BUILDING_DLL")
 
-rclcpp_components_register_nodes(${PROJECT_NAME} "gpsd_client::GPSDClientComponent")
+# Both nodes ship in the one library; which one runs is a question of the
+# plugin a container is asked to load. See the use_lifecycle launch argument.
+rclcpp_components_register_nodes(${PROJECT_NAME}
+  "gpsd_client::GPSDClientComponent"
+  "gpsd_client::GPSDClientLifecycleComponent")
 target_link_libraries(${PROJECT_NAME} PUBLIC
   ${libgps_LIBRARIES}
   ${gps_msgs_TARGETS}
   ${sensor_msgs_TARGETS}
   rclcpp::rclcpp
+  rclcpp_lifecycle::rclcpp_lifecycle
   rclcpp_components::component
   rclcpp_components::component_manager
   sensor_msgs::sensor_msgs_library
@@ -153,6 +160,13 @@ if(BUILD_TESTING)
     APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
   target_link_libraries(test_gpsd_raw_parser ${PROJECT_NAME})
 
+  # The managed node's state machine. Needs no GPSd: every case points the
+  # node at a port nothing listens on, so the outcome does not depend on
+  # whether the machine running the tests has a daemon on 2947.
+  ament_add_gtest(test_gpsd_lifecycle test/test_gpsd_lifecycle.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
+  target_link_libraries(test_gpsd_lifecycle ${PROJECT_NAME})
+
   # Its own target because it must include <gps.h> before anything else, and
   # so must not link anything that reaches the legacy GPSFix/GPSStatus headers.
   ament_add_gtest(test_gpsd_raw_include_order
@@ -237,6 +251,7 @@ install(DIRECTORY config
 
 ament_export_dependencies(ament_cmake)
 ament_export_dependencies(rclcpp)
+ament_export_dependencies(rclcpp_lifecycle)
 ament_export_libraries(${PROJECT_NAME})
 
 ament_package()

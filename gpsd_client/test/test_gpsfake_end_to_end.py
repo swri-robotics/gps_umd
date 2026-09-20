@@ -13,6 +13,11 @@ replays a recorded receiver log into a real ``GPSd``; the node connects over
 TCP through ``gpsmm`` exactly as it does in production; and the assertions are
 made against messages that actually arrived on actual topics.
 
+Both components are covered. The unmanaged one is driven the way a user
+would run it; the managed one is walked through its lifecycle transitions,
+which is the only way to check that it publishes when -- and only when -- it
+is active.
+
 The ground truth is GPSd's, not ours. Every log in ``test/daemon`` ships with a
 ``.log.chk`` holding the JSON GPSd is expected to emit for it, so a published
 position can be checked against what GPSd says that log means. A disagreement
@@ -217,6 +222,10 @@ class Session:
     CYCLE = 0.15      # ~6.7 reports/sec
     PUBLISH_RATE = 10  # Hz
 
+    # Which component to run. LifecycleSession swaps this for the managed one;
+    # everything else about the replay is identical, which is the point.
+    PLUGIN = "gpsd_client::GPSDClientComponent"
+
     def __init__(self, log_name, json_topic=False, seconds=12.0, cycle=None):
         self.log_name = log_name
         self.json_topic = json_topic
@@ -277,7 +286,7 @@ class Session:
         ]
         self.node = subprocess.Popen(
             ["ros2", "component", "standalone",
-             "gpsd_client", "gpsd_client::GPSDClientComponent"] + params,
+             "gpsd_client", self.PLUGIN] + params,
             env=self._env(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True, start_new_session=True)
 
@@ -302,7 +311,7 @@ class Session:
 
     # -- collection --------------------------------------------------------
 
-    def collect(self):
+    def collect(self, seconds=None):
         """Subscribe to the node's topics and gather messages for a while."""
         import importlib
         import rclpy
@@ -319,7 +328,7 @@ class Session:
             listener = Node("gpsfake_listener", context=context)
             executor = SingleThreadedExecutor(context=context)
             executor.add_node(listener)
-            deadline = time.time() + self.seconds
+            deadline = time.time() + (self.seconds if seconds is None else seconds)
 
             wanted = ["/fix", "/extended_fix", "/gpsd_raw"]
             if self.json_topic:
@@ -362,6 +371,107 @@ class Session:
         return "\n".join(out)
 
 
+class LifecycleSession(Session):
+    """The managed node, walked through its transitions against a real GPSd.
+
+    The unmanaged session asks one question -- does the data come out. This one
+    asks when: the node must be silent until it is activated, carry the same
+    data as the unmanaged node once it is, and fall silent again on deactivate.
+    Only a running daemon can answer that; the gtest suite can assert the state
+    machine but not what reaches a topic.
+    """
+
+    PLUGIN = "gpsd_client::GPSDClientLifecycleComponent"
+
+    # How long to listen in each phase that is expected to be quiet. Long
+    # enough that a node publishing at PUBLISH_RATE would be caught many times
+    # over, so "nothing arrived" means silence rather than bad luck.
+    QUIET = 4.0
+
+    def __init__(self, log_name, **kwargs):
+        super().__init__(log_name, **kwargs)
+        self.node_name = ""
+        self.states = {}
+        self.transitions = {}
+        self.topics_when_unconfigured = []
+        self.saw_fix_topic_when_inactive = False
+        self.counts_while_inactive = {}
+        self.counts_while_active = {}
+        self.counts_after_deactivate = {}
+        self.active_messages = {}
+
+    # -- driving the state machine ----------------------------------------
+
+    def _ros2(self, *args, timeout=60):
+        return subprocess.run(
+            ["ros2"] + list(args), env=self._env(), stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, text=True, timeout=timeout).stdout.strip()
+
+    def _managed_node_name(self, deadline):
+        """Wait for the node to show up as a managed node, and name it.
+
+        Asks the graph rather than assuming "/gpsd_client": the name is the
+        node's to choose, and a remap would make an assumed one wrong.
+        """
+        while time.time() < deadline:
+            for name in self._ros2("lifecycle", "nodes").split():
+                if name.endswith("gpsd_client"):
+                    return name
+            time.sleep(0.5)
+        return ""
+
+    def transition(self, label):
+        """Request a transition; record what it and the resulting state said."""
+        self.transitions[label] = self._ros2(
+            "lifecycle", "set", self.node_name, label)
+        self.states[label] = self._ros2("lifecycle", "get", self.node_name)
+        return self.states[label]
+
+    def _wait_for_topic(self, topic, seconds):
+        deadline = time.time() + seconds
+        while time.time() < deadline:
+            if topic in self._ros2("topic", "list").split():
+                return True
+            time.sleep(0.5)
+        return False
+
+    def _counts(self, seconds):
+        """Messages arriving in one window, by topic, starting from empty."""
+        self.messages = {}
+        return {topic: len(msgs)
+                for topic, msgs in self.collect(seconds=seconds).items()}
+
+    def run(self):
+        """Start the node and walk it through the lifecycle, sampling as it goes."""
+        self.start()
+
+        self.node_name = self._managed_node_name(time.time() + 60)
+        if not self.node_name:
+            raise AssertionError(
+                "the managed node never appeared in `ros2 lifecycle nodes`\n"
+                + self.diagnostics())
+
+        # Unconfigured: the publishers do not exist yet, so neither do the
+        # topics. Safe to read once -- nothing can make them appear here.
+        self.states["initial"] = self._ros2("lifecycle", "get", self.node_name)
+        self.topics_when_unconfigured = self._ros2("topic", "list").split()
+
+        # Inactive: advertised, but every message dropped at the publisher.
+        # The topic is waited for rather than read once: it has to travel
+        # through discovery before this process can see it.
+        self.transition("configure")
+        self.saw_fix_topic_when_inactive = self._wait_for_topic("/fix", 15)
+        self.counts_while_inactive = self._counts(self.QUIET)
+
+        self.transition("activate")
+        self.counts_while_active = self._counts(self.seconds)
+        self.active_messages = {topic: list(msgs)
+                                for topic, msgs in self.messages.items()}
+
+        self.transition("deactivate")
+        self.counts_after_deactivate = self._counts(self.QUIET)
+
+
 # Sessions are expensive; each log is replayed once and every test that cares
 # about that log reads the same capture.
 CAPTURES = {}
@@ -379,6 +489,20 @@ def capture(log_name, json_topic=False, seconds=12.0, cycle=None):
             session.stop()
         CAPTURES[key] = session
     return CAPTURES[key]
+
+
+LIFECYCLE_CAPTURES = {}
+
+
+def lifecycle_capture(log_name, seconds=12.0):
+    if log_name not in LIFECYCLE_CAPTURES:
+        session = LifecycleSession(log_name, seconds=seconds)
+        try:
+            session.run()
+        finally:
+            session.stop()
+        LIFECYCLE_CAPTURES[log_name] = session
+    return LIFECYCLE_CAPTURES[log_name]
 
 
 @unittest.skipIf(SKIP, SKIP or "")
@@ -470,6 +594,79 @@ class EndToEnd(unittest.TestCase):
         if not unknowns:
             self.skipTest("this replay never produced an unknown error estimate")
         self.assertTrue(unknowns)
+
+
+@unittest.skipIf(SKIP, SKIP or "")
+class LifecycleEndToEnd(unittest.TestCase):
+    """The managed node over the same replay, one phase at a time.
+
+    Every assertion here is about timing rather than content -- content is the
+    unmanaged suite's job, and the two nodes share the code that produces it.
+    The exception is the position check, which is what proves the managed path
+    carries the same data rather than merely some data.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.session = lifecycle_capture("ac12.log")
+        cls.chk = chk_reports("ac12.log")
+
+    def test_transitions_all_succeeded(self):
+        for label in ("configure", "activate", "deactivate"):
+            with self.subTest(transition=label):
+                self.assertIn("successful", self.session.transitions.get(label, ""),
+                              f"`lifecycle set {label}` said: "
+                              f"{self.session.transitions.get(label)!r}\n"
+                              f"{self.session.diagnostics()}")
+
+    def test_configure_connects_to_a_running_gpsd(self):
+        # The transition opens the socket, so this is also the one place that
+        # proves a real daemon can be reached at configure time rather than at
+        # construction. A failed connect would leave it unconfigured.
+        self.assertIn("inactive", self.session.states.get("configure", ""))
+
+    def test_unconfigured_node_advertises_nothing(self):
+        # The publishers are created by the configure transition, so before it
+        # the topics must not exist at all -- not merely be quiet.
+        for topic in ("/fix", "/extended_fix", "/gpsd_raw"):
+            self.assertNotIn(topic, self.session.topics_when_unconfigured)
+
+    def test_inactive_node_advertises_but_stays_silent(self):
+        self.assertTrue(self.session.saw_fix_topic_when_inactive,
+                        "/fix never appeared after configure")
+        self.assertEqual(
+            {}, {t: n for t, n in self.session.counts_while_inactive.items() if n},
+            "a deactivated publisher let messages through\n"
+            + self.session.diagnostics())
+
+    def test_active_node_publishes_on_every_topic(self):
+        for topic in ("/fix", "/extended_fix", "/gpsd_raw"):
+            self.assertTrue(
+                self.session.counts_while_active.get(topic),
+                f"nothing published on {topic} while active\n"
+                f"{self.session.diagnostics()}")
+
+    def test_deactivated_node_falls_silent_again(self):
+        self.assertEqual(
+            {}, {t: n for t, n in self.session.counts_after_deactivate.items() if n},
+            "still publishing after deactivate\n" + self.session.diagnostics())
+
+    def test_published_positions_are_ones_gpsd_says_this_log_contains(self):
+        # The same ground-truth check the unmanaged suite makes. Passing it
+        # here is what says the managed path publishes the same data, not just
+        # data at the right times.
+        truth = {(rounded(r["lat"]), rounded(r["lon"]))
+                 for r in self.chk.get("TPV", []) if "lat" in r and "lon" in r}
+        self.assertTrue(truth, "ac12.log.chk carries no TPV positions")
+
+        seen = set()
+        for msg in self.session.active_messages.get("/fix", []):
+            if msg.latitude != msg.latitude:  # NaN: no fix yet
+                continue
+            seen.add((rounded(msg.latitude), rounded(msg.longitude)))
+        self.assertTrue(seen, "no /fix message ever carried a position")
+        self.assertEqual(set(), seen - truth,
+                         "positions published that are not in the .chk ground truth")
 
 
 @unittest.skipIf(SKIP, SKIP or "")

@@ -58,6 +58,7 @@ if(BUILD_TESTING)
   # ament_lint_auto only sees this package's directory, and tools/ belongs to
   # no package, so lint the generator here along with its tests.
   set(TOOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../tools")
+  ament_copyright(TESTNAME copyright_tools "${TOOLS_DIR}")
   ament_flake8(TESTNAME flake8_tools "${TOOLS_DIR}")
   ament_pep257(TESTNAME pep257_tools "${TOOLS_DIR}")
 

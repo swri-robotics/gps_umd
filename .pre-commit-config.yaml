@@ -19,6 +19,14 @@ repos:
 
   - repo: local
     hooks:
+      # conversions.h keeps its original third-party attribution; see
+      # gps_tools/CMakeLists.txt.
+      - id: ament_copyright
+        name: ament_copyright
+        entry: ament_copyright
+        language: system
+        files: (\.(c|cc|cpp|cxx|h|hh|hpp|hxx|py|cmake)|CMakeLists\.txt)$
+        exclude: ^gps_tools/include/gps_tools/conversions\.h$
       - id: ament_flake8
         name: ament_flake8
         entry: ament_flake8

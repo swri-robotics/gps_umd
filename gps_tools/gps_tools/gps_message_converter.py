@@ -1,7 +1,7 @@
-from sensor_msgs.msg import NavSatFix
-from sensor_msgs.msg import NavSatStatus
 from gps_msgs.msg import GPSFix
 from gps_msgs.msg import GPSStatus
+from sensor_msgs.msg import NavSatFix
+from sensor_msgs.msg import NavSatStatus
 
 
 def navsatfix_to_gpsfix(navsat_msg):

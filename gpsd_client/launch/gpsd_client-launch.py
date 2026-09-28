@@ -1,14 +1,14 @@
 """Launch a talker and a listener in a component container."""
 
 import os
+
+import ament_index_python.packages
 import launch
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
-import ament_index_python.packages
-
 import yaml
 
 gpsd_client_share_dir = ament_index_python.packages.get_package_share_directory('gpsd_client')

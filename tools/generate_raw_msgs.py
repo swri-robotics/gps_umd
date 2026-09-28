@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Generate the GPSDRaw<MAJOR>v<MINOR> messages and their parsers from gps.h.
+"""
+Generate the GPSDRaw<MAJOR>v<MINOR> messages and their parsers from gps.h.
 
 Ground truth is GPSd's ``include/gps.h`` at a pinned commit per API pair (see
 REFERENCE_REVS). Nothing here reads the build host's installed libgps: the
@@ -87,6 +88,14 @@ The single reviewable list of what is deliberately not published. Everything
 else in gps_data_t must be mapped or the header-audit test fails the build.
 """
 
+import argparse
+from dataclasses import dataclass, field
+import os
+import re
+import subprocess
+import sys
+from typing import Dict, List, Optional, Sequence, Tuple
+
 # Members of gps_data_t that are deliberately never published.
 #
 # ais       -- out of scope. struct ais_t is a ~two-dozen-arm tagged union of marine
@@ -98,11 +107,11 @@ else in gps_data_t must be mapped or the header-audit test fails the build.
 # privdata  -- libgps internal state; gps.h says clients must not touch it.
 # set_pending -- deferred-send bookkeeping internal to libgps.
 EXCLUDED_MEMBERS = (
-    "ais",
-    "gps_fd",
-    "update_fd",
-    "privdata",
-    "set_pending",
+    'ais',
+    'gps_fd',
+    'update_fd',
+    'privdata',
+    'set_pending',
     # Published as raw GPSd JSON instead of as typed messages. These three
     # trees were 684 of ~905 generated messages -- 76% of the package -- for
     # data almost no subscriber decodes. gps_read() hands back the JSON line
@@ -113,9 +122,9 @@ EXCLUDED_MEMBERS = (
     # SET_RTCM2, SET_RTCM3 and SET_SUBFRAME stay in the mask constants and
     # `set` is still copied verbatim, so a raw subscriber can still tell GPSd
     # reported one and look at the JSON topic for it. Same contract as AIS.
-    "rtcm2",
-    "rtcm3",
-    "subframe",
+    'rtcm2',
+    'rtcm3',
+    'subframe',
 )
 
 # API (major, minor) -> the GPSd revision the message is generated from.
@@ -154,20 +163,20 @@ EXCLUDED_MEMBERS = (
 # has never been merged. Remove the extra branch once it does merge -- every
 # entry costs a full GPSd build per API version on every push.
 PUSH_BRANCHES = (
-    "ros2-devel",
+    'ros2-devel',
 )
 
 REFERENCE_REVS = {
-    (9, 0): "release-3.20",
-    (9, 1): "e5279ef52",       # 2020-03-19, last commit at API 9.1
-    (10, 0): "release-3.21",
-    (10, 1): "42f816d59",      # 2020-08-21, last commit at API 10.1
-    (11, 0): "release-3.22",
-    (12, 0): "release-3.23.1",
-    (13, 0): "264e808c6",      # 2022-04-06, last commit at API 13.0
-    (14, 0): "release-3.26.1",
-    (16, 0): "release-3.27.3",
-    (16, 1): "release-3.27.5",
+    (9, 0): 'release-3.20',
+    (9, 1): 'e5279ef52',       # 2020-03-19, last commit at API 9.1
+    (10, 0): 'release-3.21',
+    (10, 1): '42f816d59',      # 2020-08-21, last commit at API 10.1
+    (11, 0): 'release-3.22',
+    (12, 0): 'release-3.23.1',
+    (13, 0): '264e808c6',      # 2022-04-06, last commit at API 13.0
+    (14, 0): 'release-3.26.1',
+    (16, 0): 'release-3.27.3',
+    (16, 1): 'release-3.27.5',
 }
 
 # MAXCHANNELS at each reference rev, recorded only as a cross-check that the
@@ -188,34 +197,34 @@ EXPECTED_MAXCHANNELS = {
 # Members of gps_data_t grouped by publishing scope. Each scope is a starting
 # set; the generator pulls in every struct reachable from it transitively.
 FIX_MEMBERS = (
-    "set",
-    "online",
-    "fix",
-    "dop",
-    "skyview",
-    "skyview_time",
-    "satellites_used",
-    "satellites_visible",
-    "leap_seconds",
-    "status",           # gps_data_t only on API 9; moved into gps_fix_t at 10
+    'set',
+    'online',
+    'fix',
+    'dop',
+    'skyview',
+    'skyview_time',
+    'satellites_used',
+    'satellites_visible',
+    'leap_seconds',
+    'status',           # gps_data_t only on API 9; moved into gps_fix_t at 10
 )
 
 SENSOR_MEMBERS = (
-    "dev", "devices", "policy", "gst", "attitude", "imu", "log",
-    "toff", "pps", "qErr", "qErr_time", "source", "watch",
+    'dev', 'devices', 'policy', 'gst', 'attitude', 'imu', 'log',
+    'toff', 'pps', 'qErr', 'qErr_time', 'source', 'watch',
 )
 
 REPORT_MEMBERS = (
-    "raw", "osc", "version", "error",
+    'raw', 'osc', 'version', 'error',
 )
 
 # Ordered widest-last: each scope adds to the ones before it, so the order
 # here defines what --scope includes. Do not derive it by sorting the names.
-SCOPE_ORDER = ("fix", "sensors", "reports")
+SCOPE_ORDER = ('fix', 'sensors', 'reports')
 SCOPES = {
-    "fix": FIX_MEMBERS,          # position, satellites, DOP
-    "sensors": SENSOR_MEMBERS,   # device config, timing, attitude, IMU
-    "reports": REPORT_MEMBERS,   # the report union arms
+    'fix': FIX_MEMBERS,          # position, satellites, DOP
+    'sensors': SENSOR_MEMBERS,   # device config, timing, attitude, IMU
+    'reports': REPORT_MEMBERS,   # the report union arms
 }
 
 # gps_data_t's report union: which set-mask bit selects each arm.
@@ -227,20 +236,20 @@ SCOPES = {
 # stays in the mask and in the message constants, so a consumer can still see
 # that GPSd reported an AIS message this message does not carry.
 REPORT_UNION_BITS = {
-    "rtcm2": "RTCM2_SET",
-    "rtcm3": "RTCM3_SET",
-    "subframe": "SUBFRAME_SET",
-    "raw": "RAW_SET",
-    "osc": "OSCILLATOR_SET",
-    "version": "VERSION_SET",
-    "error": "ERROR_SET",
+    'rtcm2': 'RTCM2_SET',
+    'rtcm3': 'RTCM3_SET',
+    'subframe': 'SUBFRAME_SET',
+    'raw': 'RAW_SET',
+    'osc': 'OSCILLATOR_SET',
+    'version': 'VERSION_SET',
+    'error': 'ERROR_SET',
     # attitude and gst sit *inside* the union on API 9-11 and move out of it
     # at API 12. Listed here so they are mask-gated on the versions where they
     # are union arms; flatten_model() only applies a gate when the struct
     # layout says the member really is one, so on API 12+ these are ignored
     # and the fields are copied unconditionally, which is then correct.
-    "attitude": "ATTITUDE_SET",
-    "gst": "GST_SET",
+    'attitude': 'ATTITUDE_SET',
+    'gst': 'GST_SET',
 }
 
 # `sub4` is declared in gps.h and never written by GPSd -- no driver or daemon
@@ -258,7 +267,7 @@ STANDALONE_MEMBER_NAMES = ()
 # The scope the checked-in files are generated at, and the default for
 # --scope. The CLI, the drift check and the tests all read this one value, so
 # widening the tree takes a one-line change here plus a regenerate.
-CHECKED_IN_SCOPE = "reports"
+CHECKED_IN_SCOPE = 'reports'
 
 # The generated messages live in gps_msgs, alongside the hand-written
 # GPSFix/GPSStatus.
@@ -273,18 +282,8 @@ CHECKED_IN_SCOPE = "reports"
 # that has to tell them apart -- the CMake glob, the orphan scan below -- keys
 # on MESSAGE_PREFIX, which is what makes the prefix load-bearing rather than
 # merely descriptive.
-PACKAGE = "gps_msgs"
-MESSAGE_PREFIX = "GPSD"
-
-
-import argparse
-import os
-import re
-import subprocess
-import sys
-import tempfile
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence, Tuple
+PACKAGE = 'gps_msgs'
+MESSAGE_PREFIX = 'GPSD'
 
 
 # --------------------------------------------------------------------------
@@ -294,23 +293,24 @@ from typing import Dict, List, Optional, Sequence, Tuple
 def read_gps_h(repo: str, rev: str) -> str:
     """Return include/gps.h at `rev`, falling back to the pre-3.22 root path."""
     last = None
-    for path in ("include/gps.h", "gps.h"):
+    for path in ('include/gps.h', 'gps.h'):
         proc = subprocess.run(
-            ["git", "-C", repo, "show", f"{rev}:{path}"],
+            ['git', '-C', repo, 'show', f'{rev}:{path}'],
             capture_output=True, text=True)
         if proc.returncode == 0:
             return proc.stdout
         last = proc.stderr.strip()
-    raise SystemExit(f"cannot read gps.h at {rev} in {repo}: {last}")
+    raise SystemExit(f'cannot read gps.h at {rev} in {repo}: {last}')
 
 
 def strip_comments(src: str) -> str:
-    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
-    return re.sub(r"//[^\n]*", "", src)
+    src = re.sub(r'/\*.*?\*/', '', src, flags=re.S)
+    return re.sub(r'//[^\n]*', '', src)
 
 
 def resolve_conditionals(body: str) -> str:
-    """Resolve the preprocessor conditionals that appear inside struct bodies.
+    """
+    Resolve the preprocessor conditionals that appear inside struct bodies.
 
     Only one exists anywhere in the supported range: `#ifndef USE_QT` around
     gps_data_t::gps_fd, which is excluded anyway. USE_QT is treated as
@@ -322,33 +322,37 @@ def resolve_conditionals(body: str) -> str:
     # Join backslash continuations first: gps_data_t's UNION_SET is a
     # multi-line #define, and dropping only its first line would leave the
     # remaining arms looking like struct members.
-    body = re.sub(r"\\\s*\n", " ", body)
+    body = re.sub(r'\\\s*\n', ' ', body)
 
     out, stack = [], []
-    for line in body.split("\n"):
+    for line in body.split('\n'):
         stripped = line.strip()
-        if stripped.startswith("#define"):
+        if stripped.startswith('#define'):
             continue
-        if stripped.startswith("#"):
-            if re.match(r"#ifndef\s+USE_QT\b", stripped):
-                stack.append(True); continue
-            if re.match(r"#ifdef\s+USE_QT\b", stripped):
-                stack.append(False); continue
-            if stripped.startswith("#else"):
+        if stripped.startswith('#'):
+            if re.match(r'#ifndef\s+USE_QT\b', stripped):
+                stack.append(True)
+                continue
+            if re.match(r'#ifdef\s+USE_QT\b', stripped):
+                stack.append(False)
+                continue
+            if stripped.startswith('#else'):
                 if not stack:
-                    raise SystemExit("unbalanced #else in struct body")
-                stack[-1] = not stack[-1]; continue
-            if stripped.startswith("#endif"):
+                    raise SystemExit('unbalanced #else in struct body')
+                stack[-1] = not stack[-1]
+                continue
+            if stripped.startswith('#endif'):
                 if not stack:
-                    raise SystemExit("unbalanced #endif in struct body")
-                stack.pop(); continue
+                    raise SystemExit('unbalanced #endif in struct body')
+                stack.pop()
+                continue
             raise SystemExit(
-                f"unhandled preprocessor conditional in struct body: {stripped!r}. "
-                "Teach resolve_conditionals() about it rather than letting the "
-                "field model silently include both arms.")
+                f'unhandled preprocessor conditional in struct body: {stripped!r}. '
+                'Teach resolve_conditionals() about it rather than letting the '
+                'field model silently include both arms.')
         if all(stack):
             out.append(line)
-    return "\n".join(out)
+    return '\n'.join(out)
 
 
 def find_struct_body(src: str, name: str) -> Optional[str]:
@@ -357,14 +361,14 @@ def find_struct_body(src: str, name: str) -> Optional[str]:
     # other structs (struct gps_rangesat_t inside rtcm2_t, for one), where they
     # are indented. Requiring `{` after the tag keeps this from matching a mere
     # reference such as `struct gps_fix_t fix;`.
-    match = re.search(rf"\bstruct\s+{re.escape(name)}\s*\{{", src)
+    match = re.search(rf'\bstruct\s+{re.escape(name)}\s*\{{', src)
     if match is None:
         return None
     index, depth = match.end(), 1
     while depth:
-        if src[index] == "{":
+        if src[index] == '{':
             depth += 1
-        elif src[index] == "}":
+        elif src[index] == '}':
             depth -= 1
         index += 1
     return src[match.end():index - 1]
@@ -396,16 +400,17 @@ def brace_body(text: str, start: int) -> Tuple[str, int]:
     """Return (body, index-after-close) for a block whose '{' is already past."""
     index, depth = start, 1
     while depth:
-        if text[index] == "{":
+        if text[index] == '{':
             depth += 1
-        elif text[index] == "}":
+        elif text[index] == '}':
             depth -= 1
         index += 1
     return text[start:index - 1], index
 
 
 def split_members(body: str) -> List[Member]:
-    """Parse a struct body into members.
+    """
+    Parse a struct body into members.
 
     Handles the four shapes gps.h actually uses: plain scalars, multi-declarator
     lines (`double x, y, z;`), arrays, named struct members, and inline
@@ -424,15 +429,15 @@ def split_members(body: str) -> List[Member]:
         # constants are per-message and these live several structs deep, where
         # names from different enums would collide. The numeric value is what
         # GPSd puts on the wire; gps.h remains the reference for what it means.
-        enum_def = re.compile(r"\s*enum(?:\s+\w+)?\s*\{").match(body, index)
+        enum_def = re.compile(r'\s*enum(?:\s+\w+)?\s*\{').match(body, index)
         if enum_def:
             _, cursor = brace_body(body, enum_def.end())
-            tail = body.index(";", cursor)
-            for decl in body[cursor:tail].split(","):
+            tail = body.index(';', cursor)
+            for decl in body[cursor:tail].split(','):
                 decl = decl.strip()
                 if decl:
                     name, array = parse_declarator(decl)
-                    members.append(Member(name=name, ctype="enum", array=array))
+                    members.append(Member(name=name, ctype='enum', array=array))
             index = tail + 1
             continue
 
@@ -441,21 +446,21 @@ def split_members(body: str) -> List[Member]:
         # for the rtcm2/rtcm3/subframe/ais/raw/osc/version/error arms, so
         # splicing them in is both correct and what makes the scope filters and
         # the AIS exclusion match by plain member name.
-        inline = re.compile(r"\s*(?:union|struct)(?:\s+(\w+))?\s*\{").match(
+        inline = re.compile(r'\s*(?:union|struct)(?:\s+(\w+))?\s*\{').match(
             body, index)
         if inline:
             inner_start = inline.end()
             depth, cursor = 1, inner_start
             while depth:
-                if body[cursor] == "{":
+                if body[cursor] == '{':
                     depth += 1
-                elif body[cursor] == "}":
+                elif body[cursor] == '}':
                     depth -= 1
                 cursor += 1
-            tail = body.index(";", cursor)
+            tail = body.index(';', cursor)
             if not body[cursor:tail].strip():
                 spliced = split_members(body[inner_start:cursor - 1])
-                if inline.group(0).lstrip().startswith("union"):
+                if inline.group(0).lstrip().startswith('union'):
                     # Only one of these is ever valid, exactly as for a named
                     # union, so they are marked the same way. gps_data_t's
                     # report union is declarator-less, so without this the
@@ -467,34 +472,34 @@ def split_members(body: str) -> List[Member]:
                 index = tail + 1
                 continue
 
-        anon = re.compile(r"\s*(struct|union)(?:\s+(\w+))?\s*\{").match(
+        anon = re.compile(r'\s*(struct|union)(?:\s+(\w+))?\s*\{').match(
             body, index)
         if anon:
             inner_start = anon.end()
             depth, cursor = 1, inner_start
             while depth:
-                if body[cursor] == "{":
+                if body[cursor] == '{':
                     depth += 1
-                elif body[cursor] == "}":
+                elif body[cursor] == '}':
                     depth -= 1
                 cursor += 1
             inner = body[inner_start:cursor - 1]
-            tail = body.index(";", cursor)
-            for decl in body[cursor:tail].split(","):
+            tail = body.index(';', cursor)
+            for decl in body[cursor:tail].split(','):
                 decl = decl.strip()
                 if not decl:
                     continue
                 name, array = parse_declarator(decl)
-                members.append(Member(name=name, ctype="struct", array=array,
+                members.append(Member(name=name, ctype='struct', array=array,
                                       anon_body=inner, struct_tag=anon.group(2),
-                                      is_union=(anon.group(1) == "union")))
+                                      is_union=(anon.group(1) == 'union')))
             index = tail + 1
             continue
 
-        semi = body.find(";", index)
+        semi = body.find(';', index)
         if semi == -1:
             break
-        statement = " ".join(body[index:semi].split())
+        statement = ' '.join(body[index:semi].split())
         index = semi + 1
         if not statement:
             continue
@@ -503,42 +508,42 @@ def split_members(body: str) -> List[Member]:
         # expressions, e.g. rtcm2_t's
         #   char message[(RTCM2_WORDS_MAX - 2) * sizeof(isgps30bits_t)]
         # which is an ordinary member and must fall through to be parsed.
-        func_ptr = re.search(r"\(\s*\*\s*(\w+)\s*\)\s*\(", statement)
+        func_ptr = re.search(r'\(\s*\*\s*(\w+)\s*\)\s*\(', statement)
         if func_ptr:
             members.append(Member(name=func_ptr.group(1),
-                                  ctype="function_pointer"))
+                                  ctype='function_pointer'))
             continue
 
         # The type is whatever precedes the first declarator, which is the
         # last identifier of the first comma-separated chunk. Splitting this
         # way copes with multi-word types ("unsigned char gnssid") and with
         # multi-declarator lines ("double x, y, z") without a keyword table.
-        chunks = statement.split(",")
-        head = re.match(r"^(.*?)([A-Za-z_]\w*)\s*(\[[^\]]*\])?$", chunks[0].strip())
+        chunks = statement.split(',')
+        head = re.match(r'^(.*?)([A-Za-z_]\w*)\s*(\[[^\]]*\])?$', chunks[0].strip())
         if not head:
-            raise SystemExit(f"cannot parse struct member: {statement!r}")
+            raise SystemExit(f'cannot parse struct member: {statement!r}')
         raw_type = head.group(1).strip()
-        ctype = raw_type.rstrip("*").strip()
+        ctype = raw_type.rstrip('*').strip()
         if not ctype:
-            raise SystemExit(f"cannot determine type of member: {statement!r}")
+            raise SystemExit(f'cannot determine type of member: {statement!r}')
         members.append(Member(name=head.group(2), ctype=ctype,
                               array=(head.group(3)[1:-1] if head.group(3) else None),
-                              is_pointer=raw_type.endswith("*")))
+                              is_pointer=raw_type.endswith('*')))
         for decl in chunks[1:]:
             decl = decl.strip()
             if not decl:
                 continue
             name, array = parse_declarator(decl)
             members.append(Member(name=name, ctype=ctype, array=array,
-                                  is_pointer=decl.lstrip().startswith("*")))
+                                  is_pointer=decl.lstrip().startswith('*')))
     return members
 
 
 def parse_declarator(decl: str) -> Tuple[str, Optional[str]]:
-    decl = decl.strip().lstrip("*").strip()
-    match = re.match(r"^(\w+)\s*(\[([^\]]*)\])?$", decl)
+    decl = decl.strip().lstrip('*').strip()
+    match = re.match(r'^(\w+)\s*(\[([^\]]*)\])?$', decl)
     if not match:
-        raise SystemExit(f"cannot parse declarator: {decl!r}")
+        raise SystemExit(f'cannot parse declarator: {decl!r}')
     return match.group(1), (match.group(3) if match.group(2) else None)
 
 
@@ -547,24 +552,26 @@ def parse_declarator(decl: str) -> Tuple[str, Optional[str]]:
 # --------------------------------------------------------------------------
 
 def snake_case(name: str) -> str:
-    """GPSd member name -> a legal ROS field name.
+    """
+    Map a GPSd member name to a legal ROS field name.
 
     ROS field names must be lowercase alphanumeric with underscores. GPSd mixes
     conventions freely (PRN, altHAE, relPosN, errEllipseOrient, dgps_age), so
     the split has to handle acronym runs as well as ordinary camelCase:
     altHAE -> alt_hae, PRN -> prn, relPosN -> rel_pos_n.
     """
-    out = re.sub(r"(.)([A-Z][a-z]+)", r"\1_\2", name)
-    out = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", out)
-    out = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", out)
-    out = re.sub(r"_+", "_", out).strip("_").lower()
-    if not re.match(r"^[a-z][a-z0-9_]*$", out):
-        raise SystemExit(f"member {name!r} does not map to a legal ROS name ({out!r})")
+    out = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', name)
+    out = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', out)
+    out = re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1_\2', out)
+    out = re.sub(r'_+', '_', out).strip('_').lower()
+    if not re.match(r'^[a-z][a-z0-9_]*$', out):
+        raise SystemExit(f'member {name!r} does not map to a legal ROS name ({out!r})')
     return out
 
 
 def camel(name: str) -> str:
-    """GPSd member/tag name -> CamelCase fragment for a message name.
+    """
+    Map a GPSd member/tag name to a CamelCase fragment for a message name.
 
     Underscores must not survive: rosidl rejects them in message type names.
     `rtcm3_1001` becomes Rtcm31001, matching what message_base_name() produces
@@ -578,20 +585,21 @@ def camel(name: str) -> str:
     and the generated C fails to compile with "unknown type name". Writing
     names already in rosidl's normalised form avoids the mismatch entirely.
     """
-    return "".join(part.capitalize() for part in name.split("_") if part)
+    return ''.join(part.capitalize() for part in name.split('_') if part)
 
 
 def message_base_name(cname: str) -> str:
     """C struct tag -> message name stem, e.g. gps_fix_t -> GPSDFix."""
-    if cname == "gps_data_t":
-        return MESSAGE_PREFIX + "Raw"
-    stem = re.sub(r"_t$", "", cname)
-    stem = re.sub(r"^gps_", "", stem)
+    if cname == 'gps_data_t':
+        return MESSAGE_PREFIX + 'Raw'
+    stem = re.sub(r'_t$', '', cname)
+    stem = re.sub(r'^gps_', '', stem)
     return MESSAGE_PREFIX + camel(stem)
 
 
 def versioned(base: str, pair: Tuple[int, int]) -> str:
-    """Append the API pair: `<Stem><MAJOR>v<MINOR>`, e.g. GPSDRaw16v1.
+    """
+    Append the API pair: `<Stem><MAJOR>v<MINOR>`, e.g. GPSDRaw16v1.
 
     A stem ending in a digit would run into the version and become ambiguous --
     `Foo1` at API 30.0 and `Foo13` at API 0.0 both concatenate to Foo130v0 --
@@ -601,10 +609,10 @@ def versioned(base: str, pair: Tuple[int, int]) -> str:
     """
     if base and base[-1].isdigit():
         raise SystemExit(
-            f"message stem {base!r} ends in a digit, so appending the API pair "
-            f"would be ambiguous. Rename the member it came from, or give "
-            f"message_base_name() an explicit mapping for it.")
-    return f"{base}{pair[0]}v{pair[1]}"
+            f'message stem {base!r} ends in a digit, so appending the API pair '
+            f'would be ambiguous. Rename the member it came from, or give '
+            f'message_base_name() an explicit mapping for it.')
+    return f'{base}{pair[0]}v{pair[1]}'
 
 
 # --------------------------------------------------------------------------
@@ -612,70 +620,70 @@ def versioned(base: str, pair: Tuple[int, int]) -> str:
 # --------------------------------------------------------------------------
 
 SCALAR_TYPES = {
-    "double": "float64",
-    "float": "float32",
-    "bool": "bool",
-    "char": "int8",
-    "signed char": "int8",
-    "signed int": "int32",
-    "signed short": "int16",
-    "signed short int": "int16",
-    "signed long": "int64",
-    "signed long int": "int64",
-    "signed long long": "int64",
-    "unsigned long int": "uint64",
-    "long double": "float64",   # widened; ROS has no 80/128-bit float
-    "unsigned char": "uint8",
-    "short": "int16",
-    "short int": "int16",
-    "unsigned short": "uint16",
-    "unsigned short int": "uint16",
-    "int": "int32",
-    "signed": "int32",
-    "unsigned": "uint32",
-    "unsigned int": "uint32",
-    "long": "int64",
-    "long int": "int64",
-    "unsigned long": "uint64",
-    "long long": "int64",
-    "unsigned long long": "uint64",
-    "int8_t": "int8",
-    "uint8_t": "uint8",
-    "int16_t": "int16",
-    "uint16_t": "uint16",
-    "int32_t": "int32",
-    "uint32_t": "uint32",
-    "int64_t": "int64",
-    "uint64_t": "uint64",
-    "size_t": "uint64",
-    "time_t": "int64",          # seconds, but may be a duration or TOW
-    "gps_mask_t": "uint64",     # verbatim, undecoded
-    "gnssid_t": "uint8",
-    "gps_fd_t": "int32",
-    "watch_t": "uint32",        # typedef uint32_t; a WATCH_* bitmask
-    "isgps30bits_t": "uint32",  # typedef uint32_t; a raw RTCM2 30-bit word
-    "enum": "int32",            # anonymous enum member; see split_members
-    "socket_t": "int32",
-    "timestamp_t": "float64",   # pre-API-9 leftover
+    'double': 'float64',
+    'float': 'float32',
+    'bool': 'bool',
+    'char': 'int8',
+    'signed char': 'int8',
+    'signed int': 'int32',
+    'signed short': 'int16',
+    'signed short int': 'int16',
+    'signed long': 'int64',
+    'signed long int': 'int64',
+    'signed long long': 'int64',
+    'unsigned long int': 'uint64',
+    'long double': 'float64',   # widened; ROS has no 80/128-bit float
+    'unsigned char': 'uint8',
+    'short': 'int16',
+    'short int': 'int16',
+    'unsigned short': 'uint16',
+    'unsigned short int': 'uint16',
+    'int': 'int32',
+    'signed': 'int32',
+    'unsigned': 'uint32',
+    'unsigned int': 'uint32',
+    'long': 'int64',
+    'long int': 'int64',
+    'unsigned long': 'uint64',
+    'long long': 'int64',
+    'unsigned long long': 'uint64',
+    'int8_t': 'int8',
+    'uint8_t': 'uint8',
+    'int16_t': 'int16',
+    'uint16_t': 'uint16',
+    'int32_t': 'int32',
+    'uint32_t': 'uint32',
+    'int64_t': 'int64',
+    'uint64_t': 'uint64',
+    'size_t': 'uint64',
+    'time_t': 'int64',          # seconds, but may be a duration or TOW
+    'gps_mask_t': 'uint64',     # verbatim, undecoded
+    'gnssid_t': 'uint8',
+    'gps_fd_t': 'int32',
+    'watch_t': 'uint32',        # typedef uint32_t; a WATCH_* bitmask
+    'isgps30bits_t': 'uint32',  # typedef uint32_t; a raw RTCM2 30-bit word
+    'enum': 'int32',            # anonymous enum member; see split_members
+    'socket_t': 'int32',
+    'timestamp_t': 'float64',   # pre-API-9 leftover
 }
 
-TIMESPEC_TYPES = {"timespec_t", "struct timespec"}
+TIMESPEC_TYPES = {'timespec_t', 'struct timespec'}
 
 
 @dataclass
 class Field:
     ros_type: str
     name: str
-    comment: str = ""
+    comment: str = ''
     # How the parser should fill it; see emit_parser().
-    kind: str = "scalar"          # scalar | string | bytes | time | struct
-    c_expr: str = ""              # C member path relative to its parent
+    kind: str = 'scalar'          # scalar | string | bytes | time | struct
+    c_expr: str = ''              # C member path relative to its parent
     array: bool = False
     union_arm: bool = False       # one arm of a union; only one is ever valid
     # Set by flatten_model(), for the flat root only.
     path: Tuple[str, ...] = ()    # C member names, outermost first
-    gate: str = ""                # set-mask bit guarding a union arm's data
-    group: str = ""               # parallel-array group this leaf belongs to
+    gate: str = ''                # set-mask bit guarding a union arm's data
+    group: str = ''               # parallel-array group this leaf belongs to
 
 
 class Model:
@@ -698,14 +706,14 @@ class Model:
 
 def build_model(pair: Tuple[int, int], src: str, scope_members: Sequence[str]) -> Model:
     model = Model(pair, src)
-    body = find_struct_body(src, "gps_data_t")
+    body = find_struct_body(src, 'gps_data_t')
     if body is None:
-        raise SystemExit(f"gps_data_t not found at {REFERENCE_REVS[pair]}")
+        raise SystemExit(f'gps_data_t not found at {REFERENCE_REVS[pair]}')
 
-    root = versioned(MESSAGE_PREFIX + "Raw", pair)
+    root = versioned(MESSAGE_PREFIX + 'Raw', pair)
     fields = model.message(root)
-    fields.append(Field(ros_type="std_msgs/Header", name="header",
-                        comment="", kind="header"))
+    fields.append(Field(ros_type='std_msgs/Header', name='header',
+                        comment='', kind='header'))
 
     members = split_members(resolve_conditionals(body))
     mapped, skipped = [], []
@@ -719,16 +727,16 @@ def build_model(pair: Tuple[int, int], src: str, scope_members: Sequence[str]) -
             # Generated as its own root below, not as a field here.
             continue
         before = len(fields)
-        add_field(model, fields, member, parent="gps_data_t")
+        add_field(model, fields, member, parent='gps_data_t')
         if member.union_arm:
             for f in fields[before:]:
-                if not f.ros_type.endswith("[]"):
-                    f.ros_type += "[]"
+                if not f.ros_type.endswith('[]'):
+                    f.ros_type += '[]'
                 f.array = True
                 f.union_arm = True
         mapped.append(member.name)
-    model.mapped["gps_data_t"] = mapped
-    model.skipped["gps_data_t"] = skipped
+    model.mapped['gps_data_t'] = mapped
+    model.skipped['gps_data_t'] = skipped
 
     # The standalone roots. Generated even though they are no longer fields of
     # GPSDRaw, and given their own Header since they are published in their
@@ -742,9 +750,9 @@ def build_model(pair: Tuple[int, int], src: str, scope_members: Sequence[str]) -
             emit_struct(model, name,
                         split_members(resolve_conditionals(body)), tag)
         root_fields = model.messages[name]
-        if not any(f.name == "header" for f in root_fields):
-            root_fields.insert(0, Field(ros_type="std_msgs/Header",
-                                        name="header", kind="header"))
+        if not any(f.name == 'header' for f in root_fields):
+            root_fields.insert(0, Field(ros_type='std_msgs/Header',
+                                        name='header', kind='header'))
     return model
 
 
@@ -768,7 +776,7 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
     name = snake_case(member.name)
     if any(existing.name == name for existing in fields):
         raise SystemExit(
-            f"{parent}.{member.name} collides with an existing ROS field {name!r}")
+            f'{parent}.{member.name} collides with an existing ROS field {name!r}')
 
     ctype = member.ctype
 
@@ -781,50 +789,50 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
         else:
             # `parent` may be a dotted path (rtcm3_t.rtcmtypes) rather than a
             # struct tag, so take only its last component and strip the _t.
-            stem = parent.split(".")[-1]
-            base = message_base_name(stem).replace(MESSAGE_PREFIX, "", 1)
-            sub = versioned(f"{MESSAGE_PREFIX}{base}{camel(member.name)}",
+            stem = parent.split('.')[-1]
+            base = message_base_name(stem).replace(MESSAGE_PREFIX, '', 1)
+            sub = versioned(f'{MESSAGE_PREFIX}{base}{camel(member.name)}',
                             model.pair)
         if sub in model.messages:
             # Already emitted from another use of the same tag.
-            fields.append(Field(ros_type=sub + ("[]" if member.array else ""),
-                                name=name, kind="struct", c_expr=member.name,
+            fields.append(Field(ros_type=sub + ('[]' if member.array else ''),
+                                name=name, kind='struct', c_expr=member.name,
                                 array=bool(member.array)))
             return
         emit_struct(model, sub,
                     split_members(resolve_conditionals(member.anon_body)),
-                    f"{parent}.{member.name}", as_union=member.is_union)
-        fields.append(Field(ros_type=sub + ("[]" if member.array else ""),
-                            name=name, kind="struct", c_expr=member.name,
+                    f'{parent}.{member.name}', as_union=member.is_union)
+        fields.append(Field(ros_type=sub + ('[]' if member.array else ''),
+                            name=name, kind='struct', c_expr=member.name,
                             array=bool(member.array)))
         return
 
-    if ctype.startswith("struct "):
+    if ctype.startswith('struct '):
         tag = ctype.split()[1]
         sub_body = find_struct_body(model.src, tag)
         if sub_body is None:
-            raise SystemExit(f"{parent}.{member.name}: struct {tag} not found")
+            raise SystemExit(f'{parent}.{member.name}: struct {tag} not found')
         sub = versioned(message_base_name(tag), model.pair)
         if sub not in model.messages:
             emit_struct(model, sub,
                         split_members(resolve_conditionals(sub_body)), tag)
-        fields.append(Field(ros_type=sub + ("[]" if member.array else ""),
-                            name=name, kind="struct", c_expr=member.name,
+        fields.append(Field(ros_type=sub + ('[]' if member.array else ''),
+                            name=name, kind='struct', c_expr=member.name,
                             array=bool(member.array)))
         return
 
     if ctype in TIMESPEC_TYPES:
-        fields.append(Field(ros_type="builtin_interfaces/Time", name=name,
-                            kind="time", c_expr=member.name))
+        fields.append(Field(ros_type='builtin_interfaces/Time', name=name,
+                            kind='time', c_expr=member.name))
         return
 
-    if ctype == "function_pointer":
+    if ctype == 'function_pointer':
         return
 
-    if ctype.startswith("enum "):
+    if ctype.startswith('enum '):
         # `enum RTCM3_QUALITY_INDICATOR_TRANSFORMATION quality_hori;` -- a
         # reference to a tagged enum, which is still just an integer.
-        ctype = "enum"
+        ctype = 'enum'
 
     if SCALAR_TYPES.get(ctype) is None:
         # A typedef naming a struct, e.g. `typedef struct orbit orbit_t;`
@@ -836,22 +844,22 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
             sub_body = find_struct_body(model.src, tag)
             if sub_body is None:
                 raise SystemExit(
-                    f"{parent}.{member.name}: {ctype} names struct {tag}, "
-                    f"which was not found")
+                    f'{parent}.{member.name}: {ctype} names struct {tag}, '
+                    f'which was not found')
             sub = versioned(message_base_name(ctype), model.pair)
             if sub not in model.messages:
                 emit_struct(model, sub,
                             split_members(resolve_conditionals(sub_body)), tag)
-            fields.append(Field(ros_type=sub + ("[]" if member.array else ""),
-                                name=name, kind="struct", c_expr=member.name,
+            fields.append(Field(ros_type=sub + ('[]' if member.array else ''),
+                                name=name, kind='struct', c_expr=member.name,
                                 array=bool(member.array)))
             return
 
     ros = SCALAR_TYPES.get(ctype)
     if ros is None:
         raise SystemExit(
-            f"{parent}.{member.name}: no ROS mapping for C type {ctype!r}. "
-            "Add it to SCALAR_TYPES with a documented rationale.")
+            f'{parent}.{member.name}: no ROS mapping for C type {ctype!r}. '
+            'Add it to SCALAR_TYPES with a documented rationale.')
 
     if member.array:
         # GPSd draws the text/bytes line itself: `char[N]` is always a
@@ -863,20 +871,21 @@ def add_field(model: Model, fields: List[Field], member: Member, parent: str) ->
         #
         # The fill side uses strnlen with sizeof, so an array that happens to
         # be full with no NUL is truncated rather than overrun.
-        if ctype == "char":
-            fields.append(Field(ros_type="string", name=name, kind="string",
+        if ctype == 'char':
+            fields.append(Field(ros_type='string', name=name, kind='string',
                                 c_expr=member.name))
         else:
-            fields.append(Field(ros_type=ros + "[]", name=name, kind="scalar",
+            fields.append(Field(ros_type=ros + '[]', name=name, kind='scalar',
                                 c_expr=member.name, array=True))
         return
 
-    fields.append(Field(ros_type=ros, name=name, kind="scalar",
+    fields.append(Field(ros_type=ros, name=name, kind='scalar',
                         c_expr=member.name))
 
 
 def flatten_model(model: Model) -> None:
-    """Collapse the nested messages into one flat root, in place.
+    """
+    Collapse the nested messages into one flat root, in place.
 
     Every project-defined sub-message is inlined: its fields join the root
     under a path-prefixed name (`fix` + `time` -> `fix_time`). Only standard
@@ -895,45 +904,46 @@ def flatten_model(model: Model) -> None:
       already carries for AIS. Making them 0-or-1 arrays instead would force
       `msg.osc_delta[0]` on every reader for no added information.
     """
-    root = versioned(MESSAGE_PREFIX + "Raw", model.pair)
+    root = versioned(MESSAGE_PREFIX + 'Raw', model.pair)
     flat: List[Field] = []
 
     def base(ros_type: str) -> str:
-        return ros_type[:-2] if ros_type.endswith("[]") else ros_type
+        return ros_type[:-2] if ros_type.endswith('[]') else ros_type
 
     def walk(message_name: str, prefix: str, path: Tuple[str, ...],
              group: str, gate: str) -> None:
         for f in model.messages[message_name]:
-            if f.kind == "header":
+            if f.kind == 'header':
                 if not prefix:
                     flat.append(f)
                 continue
-            name = f"{prefix}{f.name}"
+            name = f'{prefix}{f.name}'
             hop = path + (f.c_expr,) if f.c_expr else path
             child = base(f.ros_type)
             # A real array (not a union arm) opens a new parallel-array group.
             inner = name if (f.array and not f.union_arm) else group
             # A union arm's data is only readable when the mask names it;
             # reading any other arm is a read of an inactive union member.
-            gated = gate or (REPORT_UNION_BITS.get(f.c_expr, "")
-                             if f.union_arm else "")
+            gated = gate or (REPORT_UNION_BITS.get(f.c_expr, '')
+                             if f.union_arm else '')
             if child in model.messages:
-                walk(child, name + "_", hop, inner, gated)
+                walk(child, name + '_', hop, inner, gated)
             else:
                 flat.append(Field(
-                    ros_type=child + ("[]" if inner else ""),
+                    ros_type=child + ('[]' if inner else ''),
                     name=name, comment=f.comment, kind=f.kind,
-                    c_expr=".".join(hop), array=bool(inner),
+                    c_expr='.'.join(hop), array=bool(inner),
                     union_arm=False, path=hop, gate=gated, group=inner))
 
-    walk(root, "", (), "", "")
+    walk(root, '', (), '', '')
     model.messages = {root: flat}
     model.order = [root]
 
 
 def emit_struct(model: Model, message_name: str, members: List[Member],
                 parent: str, as_union: bool = False) -> None:
-    """Build the intermediate model for one struct, or for a union's arms.
+    """
+    Build the intermediate model for one struct, or for a union's arms.
 
     Marks a union's arms `union_arm`, which flatten_model() then turns into
     mask-gated scalars on the flat root. The mark is what carries "only one of
@@ -954,8 +964,8 @@ def emit_struct(model: Model, message_name: str, members: List[Member],
                 # An arm that is already an array (rtcm3's raw `data`) needs no
                 # wrapping: ROS forbids nested arrays, and its emptiness
                 # already signals an inactive arm.
-                if not f.ros_type.endswith("[]"):
-                    f.ros_type += "[]"
+                if not f.ros_type.endswith('[]'):
+                    f.ros_type += '[]'
                 f.array = True
                 f.union_arm = True
     model.mapped[parent] = mapped
@@ -996,7 +1006,8 @@ _STRUCT_TYPEDEFS: Dict[int, Dict[str, str]] = {}
 
 
 def struct_typedefs(src: str) -> Dict[str, str]:
-    """{typedef name: struct tag} for `typedef struct <tag> <name>;` forms.
+    """
+    {typedef name: struct tag} for `typedef struct <tag> <name>;` forms.
 
     Cached per source text; the lookup is only consulted for types that are
     not already scalars, so it never shadows watch_t or isgps30bits_t.
@@ -1005,7 +1016,7 @@ def struct_typedefs(src: str) -> Dict[str, str]:
     if key not in _STRUCT_TYPEDEFS:
         _STRUCT_TYPEDEFS[key] = {
             name: tag for tag, name in
-            re.findall(r"typedef\s+struct\s+(\w+)\s+(\w+)\s*;", src)
+            re.findall(r'typedef\s+struct\s+(\w+)\s+(\w+)\s*;', src)
         }
     return _STRUCT_TYPEDEFS[key]
 
@@ -1022,18 +1033,19 @@ def struct_typedefs(src: str) -> Dict[str, str]:
 #
 # (prefix in gps.h, prefix on the message, the field it describes, is a bitfield)
 VALUE_CONSTANT_FAMILIES = (
-    ("SEEN_", "DEV_FLAG_", "dev_flags / devices_list_flags", True),
-    ("MODE_", "FIX_MODE_", "fix_mode", False),
-    ("STATUS_", "FIX_STATUS_", "fix_status", False),
+    ('SEEN_', 'DEV_FLAG_', 'dev_flags / devices_list_flags', True),
+    ('MODE_', 'FIX_MODE_', 'fix_mode', False),
+    ('STATUS_', 'FIX_STATUS_', 'fix_status', False),
     # ANT_PWR_* is a second enum sharing the ANT_ prefix; the longer prefix is
     # listed first so ANT_PWR_ON does not match the shorter one.
-    ("ANT_PWR_", "FIX_ANT_PWR_", "fix_ant_stat power state", False),
-    ("ANT_", "FIX_ANT_", "fix_ant_stat", False),
+    ('ANT_PWR_', 'FIX_ANT_PWR_', 'fix_ant_stat power state', False),
+    ('ANT_', 'FIX_ANT_', 'fix_ant_stat', False),
 )
 
 
 def value_constants(src: str) -> List[Tuple[str, int, str, bool]]:
-    """(message name, value, gps.h name, is_bitfield) for each value macro.
+    """
+    (message name, value, gps.h name, is_bitfield) for each value macro.
 
     Only plain integer defines are taken; `MODE_SET` and `STATUS_SET` are mask
     bits that happen to share the prefix and are matched by mask_constants()
@@ -1041,7 +1053,7 @@ def value_constants(src: str) -> List[Tuple[str, int, str, bool]]:
     """
     out = []
     for macro, value in re.findall(
-            r"^#define\s+([A-Z0-9_]+)\s+(0x[0-9A-Fa-f]+|\d+)\s*(?://|/\*|$)",
+            r'^#define\s+([A-Z0-9_]+)\s+(0x[0-9A-Fa-f]+|\d+)\s*(?://|/\*|$)',
             src, re.M):
         for gpsd_prefix, msg_prefix, _field, is_bits in VALUE_CONSTANT_FAMILIES:
             if macro.startswith(gpsd_prefix):
@@ -1054,11 +1066,12 @@ def value_constants(src: str) -> List[Tuple[str, int, str, bool]]:
 # Constants that are counts rather than bitmasks, so hex would misrepresent
 # them. SET_HIGHEST_BIT is the *number* of the highest bit GPSd has assigned,
 # not a mask with that bit set.
-NON_MASK_CONSTANTS = frozenset({"SET_HIGHEST_BIT"})
+NON_MASK_CONSTANTS = frozenset({'SET_HIGHEST_BIT'})
 
 
 def mask_constants(src: str) -> List[Tuple[str, str]]:
-    """`<NAME>_SET (1llu<<N)` -> ('SET_<NAME>', value), plus SET_UNION.
+    """
+    `<NAME>_SET (1llu<<N)` -> ('SET_<NAME>', value), plus SET_UNION.
 
     Renamed because rosidl emits constants as static constexpr members while
     gps.h defines the GPSd spellings as global macros; a member named
@@ -1067,22 +1080,22 @@ def mask_constants(src: str) -> List[Tuple[str, str]]:
     """
     out = []
     for match in re.finditer(
-            r"^#define\s+([A-Z0-9_]+)_SET\s+\(1u?ll?u?\s*<<\s*(\d+)\)", src, re.M):
-        out.append((f"SET_{match.group(1)}", str(1 << int(match.group(2)))))
+            r'^#define\s+([A-Z0-9_]+)_SET\s+\(1u?ll?u?\s*<<\s*(\d+)\)', src, re.M):
+        out.append((f'SET_{match.group(1)}', str(1 << int(match.group(2)))))
     # UNION_SET is a composite of the arm bits rather than a shift, so it has
     # to be resolved by OR-ing the constants it names. It deliberately keeps
     # AIS_SET even though AIS is not published: the constant must mean
     # what gps.h says it means.
     bits = {name: int(value) for name, value in out}
-    union = re.search(r"^#define\s+UNION_SET\s+\((.*?)\)", src, re.M | re.S)
+    union = re.search(r'^#define\s+UNION_SET\s+\((.*?)\)', src, re.M | re.S)
     if union:
         value = 0
-        for token in re.findall(r"([A-Z0-9_]+)_SET", union.group(1)):
-            key = f"SET_{token}"
+        for token in re.findall(r'([A-Z0-9_]+)_SET', union.group(1)):
+            key = f'SET_{token}'
             if key not in bits:
-                raise SystemExit(f"UNION_SET names unknown bit {token}_SET")
+                raise SystemExit(f'UNION_SET names unknown bit {token}_SET')
             value |= bits[key]
-        out.append(("SET_UNION", str(value)))
+        out.append(('SET_UNION', str(value)))
 
     # Emitted as SET_HIGHEST_BIT, not gps.h's own SET_HIGH_BIT spelling.
     # gps.h defines SET_HIGH_BIT as a plain macro, so a message constant of
@@ -1091,19 +1104,20 @@ def mask_constants(src: str) -> List[Tuple[str, str]]:
     # <NAME>_SET -> SET_<NAME> rule happens not to cover because this one is
     # already spelled SET_*. assert_no_macro_collisions() below is the general
     # guard; this is the one name it forced us to change.
-    high = re.search(r"^#define\s+SET_HIGH_BIT\s+(\d+)", src, re.M)
+    high = re.search(r'^#define\s+SET_HIGH_BIT\s+(\d+)', src, re.M)
     if high:
-        out.append(("SET_HIGHEST_BIT", high.group(1)))
+        out.append(('SET_HIGHEST_BIT', high.group(1)))
     return out
 
 
 def macro_names(src: str) -> set:
     """Every object-like macro gps.h defines."""
-    return set(re.findall(r"^#define\s+([A-Za-z_]\w*)", src, re.M))
+    return set(re.findall(r'^#define\s+([A-Za-z_]\w*)', src, re.M))
 
 
 def assert_no_macro_collisions(constants, src: str, rev: str) -> None:
-    """Fail if any emitted constant shares a name with a gps.h macro.
+    """
+    Fail if any emitted constant shares a name with a gps.h macro.
 
     rosidl emits message constants as `static constexpr` members. If gps.h has
     already defined that name as a macro, the member declaration is mangled by
@@ -1116,19 +1130,19 @@ def assert_no_macro_collisions(constants, src: str, rev: str) -> None:
     clashes = sorted(name for name, _ in constants if name in macros)
     if clashes:
         raise SystemExit(
-            f"{rev}: generated message constants collide with gps.h macros: "
+            f'{rev}: generated message constants collide with gps.h macros: '
             f"{', '.join(clashes)}. Rename them; a constant whose name is a "
-            f"gps.h macro cannot be used by any translation unit that "
-            f"includes gps.h.")
+            f'gps.h macro cannot be used by any translation unit that '
+            f'includes gps.h.')
 
 
 # --------------------------------------------------------------------------
 # Emission
 # --------------------------------------------------------------------------
 
-BANNER = ("# Generated by tools/generate_raw_msgs.py from GPSd {rev} "
-          "(libgps API {major}.{minor}).\n# Do not edit; edit the generator "
-          "and regenerate.\n")
+BANNER = ('# Generated by tools/generate_raw_msgs.py from GPSd {rev} '
+          '(libgps API {major}.{minor}).\n# Do not edit; edit the generator '
+          'and regenerate.\n')
 
 
 def emit_msg(model: Model, name: str, rev: str,
@@ -1136,10 +1150,10 @@ def emit_msg(model: Model, name: str, rev: str,
              values: Sequence[Tuple[str, int, str, bool]] = ()) -> str:
     major, minor = model.pair
     lines = [BANNER.format(rev=rev, major=major, minor=minor)]
-    if name.startswith(MESSAGE_PREFIX + "Raw"):
+    if name.startswith(MESSAGE_PREFIX + 'Raw'):
         lines.append(
-            f"# Raw GPSd report (gps_data_t) as delivered by libgps API "
-            f"{major}.{minor}.\n")
+            f'# Raw GPSd report (gps_data_t) as delivered by libgps API '
+            f'{major}.{minor}.\n')
     for const_name, value in constants:
         # Masks are written in hex with their bit position noted; everything
         # else stays decimal.
@@ -1151,36 +1165,37 @@ def emit_msg(model: Model, name: str, rev: str,
         # 2097152 does not.
         n = int(value, 0)
         if const_name in NON_MASK_CONSTANTS:
-            lines.append(f"uint64 {const_name} = {n}")
+            lines.append(f'uint64 {const_name} = {n}')
         elif n and not (n & (n - 1)):
-            lines.append(f"uint64 {const_name} = 0x{n:016X}    "
-                         f"# bit {n.bit_length() - 1}")
+            lines.append(f'uint64 {const_name} = 0x{n:016X}    '
+                         f'# bit {n.bit_length() - 1}')
         else:
-            lines.append(f"uint64 {const_name} = 0x{n:016X}")
+            lines.append(f'uint64 {const_name} = 0x{n:016X}')
     if constants:
-        lines.append("")
+        lines.append('')
     if values:
-        lines.append("# Legal values for the fields named below, from the same")
-        lines.append("# gps.h macros, re-prefixed after the field they describe.")
+        lines.append('# Legal values for the fields named below, from the same')
+        lines.append('# gps.h macros, re-prefixed after the field they describe.')
         last = None
         for const_name, value, _gpsd, is_bits in values:
             field = next(f for gp, mp, f, _b in VALUE_CONSTANT_FAMILIES
                          if const_name.startswith(mp))
             if field != last:
-                lines.append(f"# {field}")
+                lines.append(f'# {field}')
                 last = field
             # Bitfields in hex like the report mask; enumerations in decimal,
             # since 0x0000000000000003 says less than 3 for a mode.
-            rendered = f"0x{value:08X}" if is_bits else str(value)
-            lines.append(f"int32 {const_name} = {rendered}")
-        lines.append("")
+            rendered = f'0x{value:08X}' if is_bits else str(value)
+            lines.append(f'int32 {const_name} = {rendered}')
+        lines.append('')
     for f in model.messages[name]:
-        lines.append(f"{f.ros_type} {f.name}")
-    return "\n".join(lines).rstrip() + "\n"
+        lines.append(f'{f.ros_type} {f.name}')
+    return '\n'.join(lines).rstrip() + '\n'
 
 
 def emit_value_asserts(model: Model, values) -> List[str]:
-    """static_assert every value constant against the gps.h macro it came from.
+    """
+    static_assert every value constant against the gps.h macro it came from.
 
     Same reasoning as the mask bits: the re-prefixing is mechanical, so it is
     exactly the kind of thing that can go quietly wrong, and a wrong value
@@ -1191,22 +1206,23 @@ def emit_value_asserts(model: Model, values) -> List[str]:
     """
     if not values:
         return []
-    root = versioned(MESSAGE_PREFIX + "Raw", model.pair)
-    out = ["// Field value constants against the gps.h macros they came from."]
+    root = versioned(MESSAGE_PREFIX + 'Raw', model.pair)
+    out = ['// Field value constants against the gps.h macros they came from.']
     for name, _value, gpsd_name, _is_bits in values:
         out += [
-            f"#ifdef {gpsd_name}",
-            f"static_assert({PACKAGE}::msg::{root}::{name} == "
-            f"static_cast<int32_t>({gpsd_name}),",
+            f'#ifdef {gpsd_name}',
+            f'static_assert({PACKAGE}::msg::{root}::{name} == '
+            f'static_cast<int32_t>({gpsd_name}),',
             f'              "{name} disagrees with gps.h\'s {gpsd_name}");',
-            "#endif",
+            '#endif',
         ]
-    out.append("")
+    out.append('')
     return out
 
 
 def emit_mask_asserts(model: Model, constants) -> List[str]:
-    """static_assert every SET_<NAME> against the gps.h macro it came from.
+    """
+    static_assert every SET_<NAME> against the gps.h macro it came from.
 
     The generator flips GPSd's `<NAME>_SET` to `SET_<NAME>` so the constants survive the
     preprocessor. The flip is mechanical, which makes it exactly the kind of
@@ -1230,79 +1246,80 @@ def emit_mask_asserts(model: Model, constants) -> List[str]:
       and 3.26.1 are both API 14.0 with different counts -- so there is no
       fixed value to assert. test_gpsd_raw_include_order.cpp bounds it instead.
     """
-    root = versioned(MESSAGE_PREFIX + "Raw", model.pair)
+    root = versioned(MESSAGE_PREFIX + 'Raw', model.pair)
     out = [
         "// The message's mask constants are GPSd's own bit values under a",
-        "// name the preprocessor leaves alone. Checked here, where both",
-        "// spellings are legitimately in scope, so a rename that changes a",
-        "// value cannot reach a subscriber.",
+        '// name the preprocessor leaves alone. Checked here, where both',
+        '// spellings are legitimately in scope, so a rename that changes a',
+        '// value cannot reach a subscriber.',
     ]
     for name, value in constants:
-        if name == "SET_HIGHEST_BIT":
+        if name == 'SET_HIGHEST_BIT':
             continue    # a count, not a bit; moves within a pair. See above.
-        gpsd_name = "UNION_SET" if name == "SET_UNION" else name[len("SET_"):] + "_SET"
+        gpsd_name = 'UNION_SET' if name == 'SET_UNION' else name[len('SET_'):] + '_SET'
         out += [
-            f"#ifdef {gpsd_name}",
-            f"static_assert({PACKAGE}::msg::{root}::{name} == "
-            f"static_cast<uint64_t>({gpsd_name}),",
+            f'#ifdef {gpsd_name}',
+            f'static_assert({PACKAGE}::msg::{root}::{name} == '
+            f'static_cast<uint64_t>({gpsd_name}),',
             f"              \"{name} disagrees with gps.h's {gpsd_name}\");",
-            "#endif",
+            '#endif',
         ]
-    out.append("")
+    out.append('')
     return out
 
 
 def emit_parser(model: Model, rev: str, constants=()) -> str:
-    """Per-pair fill functions, guarded on the exact API pair.
+    """
+    Per-pair fill functions, guarded on the exact API pair.
 
     Every assignment is wrapped in the member-detection idiom: an API pair
     spans a range of header states, so a message generated from the pair's last
     rev can name members an older libgps reporting the same pair lacks.
     """
     major, minor = model.pair
-    root = versioned(MESSAGE_PREFIX + "Raw", model.pair)
+    root = versioned(MESSAGE_PREFIX + 'Raw', model.pair)
     out = [
-        f"// Generated by tools/generate_raw_msgs.py from GPSd {rev} "
-        f"(libgps API {major}.{minor}).",
-        "// Do not edit; edit the generator and regenerate.",
-        f"#ifndef GPSD_CLIENT__PARSERS__GENERATED__FILL_{major}V{minor}_HPP_",
-        f"#define GPSD_CLIENT__PARSERS__GENERATED__FILL_{major}V{minor}_HPP_",
-        "",
-        "#include <gpsd_client/parsers/generated/gpsd_has_member.hpp>",
-        "",
-        f"#include <{PACKAGE}/msg/{ros_header_name(root)}.hpp>",
+        f'// Generated by tools/generate_raw_msgs.py from GPSd {rev} '
+        f'(libgps API {major}.{minor}).',
+        '// Do not edit; edit the generator and regenerate.',
+        f'#ifndef GPSD_CLIENT__PARSERS__GENERATED__FILL_{major}V{minor}_HPP_',
+        f'#define GPSD_CLIENT__PARSERS__GENERATED__FILL_{major}V{minor}_HPP_',
+        '',
+        '#include <gpsd_client/parsers/generated/gpsd_has_member.hpp>',
+        '',
+        f'#include <{PACKAGE}/msg/{ros_header_name(root)}.hpp>',
     ]
     for name in model.order:
         if name != root:
-            out.append(f"#include <{PACKAGE}/msg/{ros_header_name(name)}.hpp>")
+            out.append(f'#include <{PACKAGE}/msg/{ros_header_name(name)}.hpp>')
     out += [
-        "",
-        "#include <gps.h>",
-        "",
-        "#include <cstddef>",
-        "#include <cstring>",
-        "#include <iterator>",
-        "#include <type_traits>",
-        "#include <vector>",
-        "",
-        "// Which pair this build actually uses. gpsd_raw_message.hpp sets these",
-        "// before including one fill header, so a libgps newer than anything",
-        "// tested can still be pointed at the newest parser. Defaulted here so",
-        "// the header stays usable on its own.",
-        "#ifndef GPSD_RAW_FILL_MAJOR",
-        "#define GPSD_RAW_FILL_MAJOR GPSD_API_MAJOR_VERSION",
-        "#endif",
-        "#ifndef GPSD_RAW_FILL_MINOR",
-        "#define GPSD_RAW_FILL_MINOR GPSD_API_MINOR_VERSION",
-        "#endif",
-        "",
-        f"#if GPSD_RAW_FILL_MAJOR == {major} && GPSD_RAW_FILL_MINOR == {minor}",
-        "",
-        "namespace gpsd_client",
-        "{",
-        "namespace generated",
-        "{",
-        "",
+        '',
+        '#include <gps.h>',
+        '',
+        '#include <cstddef>',
+        '#include <cstring>',
+        '#include <iterator>',
+        '#include <type_traits>',
+        '#include <vector>',
+        '',
+        '// Which pair this build actually uses. gpsd_raw_message.hpp sets these',
+        '// before including one fill header, so a libgps newer than anything',
+        '// tested can still be pointed at the newest parser. Defaulted here so',
+        '// the header stays usable on its own.',
+        '#ifndef GPSD_RAW_FILL_MAJOR',
+        '#define GPSD_RAW_FILL_MAJOR GPSD_API_MAJOR_VERSION',
+        '#endif',
+        '#ifndef GPSD_RAW_FILL_MINOR',
+        '#define GPSD_RAW_FILL_MINOR GPSD_API_MINOR_VERSION',
+        '#endif',
+        '',
+        f'#if GPSD_RAW_FILL_MAJOR == {major} && GPSD_RAW_FILL_MINOR == {minor}',
+        '',
+        'namespace gpsd_client',
+        '{',
+        'namespace generated',
+        '{',
+        '',
     ]
 
     if constants:
@@ -1315,35 +1332,36 @@ def emit_parser(model: Model, rev: str, constants=()) -> str:
     names = sorted({seg for fields in model.messages.values()
                     for f in fields for seg in f.path})
     for member_name in names:
-        out.append(f"GPSD_DEFINE_HAS_MEMBER({member_name})")
-    out.append("")
+        out.append(f'GPSD_DEFINE_HAS_MEMBER({member_name})')
+    out.append('')
 
     # Forward-declare every overload first. The root's fill() calls fill() on
     # its sub-structs, and unqualified lookup in a template happens at
     # definition time -- ADL cannot find these, since the arguments live in ::
     # and the message package while the overloads live in gpsd_client::generated.
-    out.append("// Forward declarations; see the note in the generator.")
+    out.append('// Forward declarations; see the note in the generator.')
     for name in model.order:
-        out.append(f"template <typename T>")
-        out.append(f"inline void fill(const T& in, {PACKAGE}::msg::{name}& out);")
-    out.append("")
+        out.append('template <typename T>')
+        out.append(f'inline void fill(const T& in, {PACKAGE}::msg::{name}& out);')
+    out.append('')
 
     for name in model.order:
         out += emit_fill_function(model, name)
     out += [
-        "}  // namespace generated",
-        "}  // namespace gpsd_client",
-        "",
-        f"#endif  // GPSD_RAW_FILL_MAJOR == {major} ...",
-        "",
-        f"#endif  // GPSD_CLIENT__PARSERS__GENERATED__FILL_{major}V{minor}_HPP_",
-        "",
+        '}  // namespace generated',
+        '}  // namespace gpsd_client',
+        '',
+        f'#endif  // GPSD_RAW_FILL_MAJOR == {major} ...',
+        '',
+        f'#endif  // GPSD_CLIENT__PARSERS__GENERATED__FILL_{major}V{minor}_HPP_',
+        '',
     ]
-    return "\n".join(out)
+    return '\n'.join(out)
 
 
 def emit_fill_function(model: Model, message_name: str) -> List[str]:
-    """The flat root's fill, plus one filler per parallel-array group.
+    """
+    Emit the flat root's fill, plus one filler per parallel-array group.
 
     Scalars are emitted as a tree over their C paths, so `fix.ecef.x` and
     `fix.ecef.y` share one `if constexpr (has_fix<T>)` and one
@@ -1355,16 +1373,16 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
     an arm the mask does not name is a read of an inactive union member.
     """
     out = [
-        "template <typename T>",
-        f"inline void fill(const T& in, {PACKAGE}::msg::{message_name}& out)",
-        "{",
-        "  (void)in;",
-        "  (void)out;",
+        'template <typename T>',
+        f'inline void fill(const T& in, {PACKAGE}::msg::{message_name}& out)',
+        '{',
+        '  (void)in;',
+        '  (void)out;',
     ]
     scalars = [f for f in model.messages[message_name]
-               if f.kind != "header" and not f.group]
-    out += emit_path_tree(scalars, 0, "in", "T", "  ")
-    out += ["}", ""]
+               if f.kind != 'header' and not f.group]
+    out += emit_path_tree(scalars, 0, 'in', 'T', '  ')
+    out += ['}', '']
 
     for group in group_names(model, message_name):
         out += emit_group_fill(model, message_name, group)
@@ -1380,15 +1398,15 @@ def group_names(model: Model, message_name: str) -> List[str]:
 
 
 def leaf_assign(f: Field, expr: str, target: str) -> List[str]:
-    """The assignment itself, once every guard is open."""
-    if f.kind == "time":
-        return [f"{target}.sec = static_cast<int32_t>({expr}.tv_sec);",
-                f"{target}.nanosec = static_cast<uint32_t>({expr}.tv_nsec);"]
-    if f.kind == "string":
-        return [f"{target}.assign({expr}, strnlen({expr}, sizeof({expr})));"]
-    if f.kind == "bytes" or (f.array and f.kind == "scalar" and not f.group):
-        return [f"{target}.assign(std::begin({expr}), std::end({expr}));"]
-    return [f"{target} = {expr};"]
+    """Return the assignment itself, once every guard is open."""
+    if f.kind == 'time':
+        return [f'{target}.sec = static_cast<int32_t>({expr}.tv_sec);',
+                f'{target}.nanosec = static_cast<uint32_t>({expr}.tv_nsec);']
+    if f.kind == 'string':
+        return [f'{target}.assign({expr}, strnlen({expr}, sizeof({expr})));']
+    if f.kind == 'bytes' or (f.array and f.kind == 'scalar' and not f.group):
+        return [f'{target}.assign(std::begin({expr}), std::end({expr}));']
+    return [f'{target} = {expr};']
 
 
 def emit_path_tree(fields: List[Field], depth: int, in_expr: str,
@@ -1402,34 +1420,35 @@ def emit_path_tree(fields: List[Field], depth: int, in_expr: str,
     for seg, group in buckets.items():
         leaves = [f for f in group if len(f.path) == depth + 1]
         deeper = [f for f in group if len(f.path) > depth + 1]
-        expr = f"{in_expr}.{seg}"
-        out.append(f"{indent}if constexpr (has_{seg}<{tname}>::value) {{")
-        body_indent = indent + "  "
+        expr = f'{in_expr}.{seg}'
+        out.append(f'{indent}if constexpr (has_{seg}<{tname}>::value) {{')
+        body_indent = indent + '  '
 
         # A union arm's storage is shared; only the arm the mask names may be
         # read. Emitted once for the whole arm rather than per leaf.
-        gate = group[0].gate if depth == 0 and group[0].gate else ""
+        gate = group[0].gate if depth == 0 and group[0].gate else ''
         if gate and all(f.gate == gate for f in group):
-            out.append(f"{body_indent}if (0 != (in.set & {gate})) {{")
-            body_indent += "  "
+            out.append(f'{body_indent}if (0 != (in.set & {gate})) {{')
+            body_indent += '  '
 
         for f in leaves:
-            for line in leaf_assign(f, expr, f"out.{f.name}"):
-                out.append(f"{body_indent}{line}")
+            for line in leaf_assign(f, expr, f'out.{f.name}'):
+                out.append(f'{body_indent}{line}')
         if deeper:
-            alias = "T_" + "_".join(deeper[0].path[:depth + 1])
-            out.append(f"{body_indent}using {alias} = "
-                       f"std::decay_t<decltype({expr})>;")
+            alias = 'T_' + '_'.join(deeper[0].path[:depth + 1])
+            out.append(f'{body_indent}using {alias} = '
+                       f'std::decay_t<decltype({expr})>;')
             out += emit_path_tree(deeper, depth + 1, expr, alias, body_indent)
 
         if gate and all(f.gate == gate for f in group):
-            out.append(f"{indent}  }}")
-        out.append(f"{indent}}}")
+            out.append(f'{indent}  }}')
+        out.append(f'{indent}}}')
     return out
 
 
 def emit_group_fill(model: Model, message_name: str, group: str) -> List[str]:
-    """One filler per parallel-array group, resizing and writing in one loop.
+    """
+    One filler per parallel-array group, resizing and writing in one loop.
 
     Every array in a group therefore has the same length by construction --
     unequal lengths are not representable rather than merely untested.
@@ -1442,67 +1461,68 @@ def emit_group_fill(model: Model, message_name: str, group: str) -> List[str]:
     """
     fields = [f for f in model.messages[message_name] if f.group == group]
     # The C path down to the array, and the member path below each element.
-    array_depth = len(group.split("_"))
+    array_depth = len(group.split('_'))
     lead = fields[0].path[:array_depth]
     out = [
         f"/// Fill the {group}_* arrays from in.{'.'.join(lead)}, taking the",
-        "/// elements named by idx. One loop, so every array in the group ends",
-        "/// the same length.",
-        "template <typename T>",
-        f"inline void fill_{group}(const T& in, "
-        f"{PACKAGE}::msg::{message_name}& out,",
-        "                          const std::vector<std::size_t>& idx)",
-        "{",
-        "  (void)in;",
-        "  (void)out;",
-        "  (void)idx;",
-        "  const std::size_t count = idx.size();",
+        '/// elements named by idx. One loop, so every array in the group ends',
+        '/// the same length.',
+        'template <typename T>',
+        f'inline void fill_{group}(const T& in, '
+        f'{PACKAGE}::msg::{message_name}& out,',
+        '                          const std::vector<std::size_t>& idx)',
+        '{',
+        '  (void)in;',
+        '  (void)out;',
+        '  (void)idx;',
+        '  const std::size_t count = idx.size();',
     ]
     guards = []
-    expr = "in"
-    tname = "T"
+    expr = 'in'
+    tname = 'T'
     for i, seg in enumerate(lead):
-        guards.append(f"  if constexpr (has_{seg}<{tname}>::value) {{")
-        expr = f"{expr}.{seg}"
-        tname = "T_" + "_".join(lead[:i + 1])
+        guards.append(f'  if constexpr (has_{seg}<{tname}>::value) {{')
+        expr = f'{expr}.{seg}'
+        tname = 'T_' + '_'.join(lead[:i + 1])
         # The alias exists only to name the type the next level's
         # has_<member> guard asks about, so the innermost level needs none:
         # below it the loop types each element with its own T_elem_<field>.
         # Emitting one there compiles, but trips -Wunused-local-typedefs.
         if i + 1 < len(lead):
             guards.append(
-                f"    using {tname} = std::decay_t<decltype({expr})>;")
+                f'    using {tname} = std::decay_t<decltype({expr})>;')
     out += guards
     gate = fields[0].gate
-    body = "    "
+    body = '    '
     if gate:
-        out.append(f"    if (0 != (in.set & {gate})) {{")
-        body = "      "
+        out.append(f'    if (0 != (in.set & {gate})) {{')
+        body = '      '
     for f in fields:
-        out.append(f"{body}out.{f.name}.resize(count);")
-    out.append(f"{body}for (std::size_t i = 0; i < count; ++i) {{")
-    out.append(f"{body}  const std::size_t src = idx[i];")
+        out.append(f'{body}out.{f.name}.resize(count);')
+    out.append(f'{body}for (std::size_t i = 0; i < count; ++i) {{')
+    out.append(f'{body}  const std::size_t src = idx[i];')
     for f in fields:
-        elem = f"{expr}[src]" + "".join(f".{p}" for p in f.path[array_depth:])
-        inner = "T_elem_" + f.name
-        out.append(f"{body}  using {inner} = "
-                   f"std::decay_t<decltype({expr}[src])>;")
-        out.append(f"{body}  if constexpr (has_{f.path[array_depth]}"
-                   f"<{inner}>::value) {{")
-        for line in leaf_assign(f, elem, f"out.{f.name}[i]"):
-            out.append(f"{body}    {line}")
-        out.append(f"{body}  }}")
-    out.append(f"{body}}}")
+        elem = f'{expr}[src]' + ''.join(f'.{p}' for p in f.path[array_depth:])
+        inner = 'T_elem_' + f.name
+        out.append(f'{body}  using {inner} = '
+                   f'std::decay_t<decltype({expr}[src])>;')
+        out.append(f'{body}  if constexpr (has_{f.path[array_depth]}'
+                   f'<{inner}>::value) {{')
+        for line in leaf_assign(f, elem, f'out.{f.name}[i]'):
+            out.append(f'{body}    {line}')
+        out.append(f'{body}  }}')
+    out.append(f'{body}}}')
     if gate:
-        out.append("    }")
+        out.append('    }')
     for _ in lead:
-        out.append("  }")
-    out += ["}", ""]
+        out.append('  }')
+    out += ['}', '']
     return out
 
 
 def ros_header_name(message_name: str) -> str:
-    """GPSDRaw16v1 -> gpsd_raw16v1, matching rosidl's generated header names.
+    """
+    GPSDRaw16v1 -> gpsd_raw16v1, matching rosidl's generated header names.
 
     rosidl uses the same camel-to-snake rule as ROS field names, including the
     acronym-run split that turns GPSDBaseline into gpsd_baseline rather than
@@ -1543,7 +1563,8 @@ HAS_MEMBER_HEADER = """\
 
 
 def emit_selection_ladder() -> str:
-    """gpsd_raw_message.hpp -- the single compile-time selection point for raw.
+    """
+    gpsd_raw_message.hpp -- the single compile-time selection point for raw.
 
     One `using GpsdRawMsg = ...` and one fill header, chosen from the libgps
     the workspace is built against. Everything downstream (the parser, the
@@ -1557,78 +1578,79 @@ def emit_selection_ladder() -> str:
     pairs = sorted(REFERENCE_REVS)
     newest = pairs[-1]
     out = [
-        "// Generated by tools/generate_raw_msgs.py. Do not edit.",
-        "#ifndef GPSD_CLIENT__GPSD_RAW_MESSAGE_HPP_",
-        "#define GPSD_CLIENT__GPSD_RAW_MESSAGE_HPP_",
-        "",
-        "// GPSD_RAW_MESSAGE_NAME names the selected message for log output, so",
-        "// an operator can see which version was compiled in without guessing.",
-        "//",
-        "// gps.h defines STATUS_* macros that collide with the ROS message",
-        "// constants, so a message header must never be parsed after it. Every",
-        "// branch below includes its messages before gps.h is reached.",
-        "#include <gps.h>",
-        "",
-        "#if GPSD_API_MAJOR_VERSION < 9",
+        '// Generated by tools/generate_raw_msgs.py. Do not edit.',
+        '#ifndef GPSD_CLIENT__GPSD_RAW_MESSAGE_HPP_',
+        '#define GPSD_CLIENT__GPSD_RAW_MESSAGE_HPP_',
+        '',
+        '// GPSD_RAW_MESSAGE_NAME names the selected message for log output, so',
+        '// an operator can see which version was compiled in without guessing.',
+        '//',
+        '// gps.h defines STATUS_* macros that collide with the ROS message',
+        '// constants, so a message header must never be parsed after it. Every',
+        '// branch below includes its messages before gps.h is reached.',
+        '#include <gps.h>',
+        '',
+        '#if GPSD_API_MAJOR_VERSION < 9',
         '#error "gpsd_client requires GPSd API version >= 9 (GPSd >= 3.20)"',
-        "#endif",
-        "",
+        '#endif',
+        '',
     ]
     for index, pair in enumerate(pairs):
         major, minor = pair
-        test = (f"GPSD_API_MAJOR_VERSION == {major} && "
-                f"GPSD_API_MINOR_VERSION == {minor}")
+        test = (f'GPSD_API_MAJOR_VERSION == {major} && '
+                f'GPSD_API_MINOR_VERSION == {minor}')
         out.append(f"#{'if' if index == 0 else 'elif'} {test}")
-        out.append(f"#define GPSD_RAW_FILL_MAJOR {major}")
-        out.append(f"#define GPSD_RAW_FILL_MINOR {minor}")
+        out.append(f'#define GPSD_RAW_FILL_MAJOR {major}')
+        out.append(f'#define GPSD_RAW_FILL_MINOR {minor}')
     out += [
-        "#else",
-        "// Newer than anything this generator knows about. Use the newest",
+        '#else',
+        '// Newer than anything this generator knows about. Use the newest',
         "// available message; its fields are a subset of what the build's",
-        "// gps.h declares, and every generated assignment is member-guarded,",
-        "// so this compiles -- it just cannot carry members added later.",
+        '// gps.h declares, and every generated assignment is member-guarded,',
+        '// so this compiles -- it just cannot carry members added later.',
         f'#warning "Untested GPSd API version; falling back to the API '
         f'{newest[0]}.{newest[1]} raw message"',
-        f"#define GPSD_RAW_FILL_MAJOR {newest[0]}",
-        f"#define GPSD_RAW_FILL_MINOR {newest[1]}",
-        "#endif",
-        "",
+        f'#define GPSD_RAW_FILL_MAJOR {newest[0]}',
+        f'#define GPSD_RAW_FILL_MINOR {newest[1]}',
+        '#endif',
+        '',
     ]
     for index, pair in enumerate(pairs):
         major, minor = pair
-        name = versioned(MESSAGE_PREFIX + "Raw", pair)
-        guard = (f"GPSD_RAW_FILL_MAJOR == {major} && "
-                 f"GPSD_RAW_FILL_MINOR == {minor}")
+        name = versioned(MESSAGE_PREFIX + 'Raw', pair)
+        guard = (f'GPSD_RAW_FILL_MAJOR == {major} && '
+                 f'GPSD_RAW_FILL_MINOR == {minor}')
         out.append(f"#{'if' if index == 0 else 'elif'} {guard}")
-        out.append(f"#include <gpsd_client/parsers/generated/"
-                   f"gpsd_raw_fill_{major}v{minor}.hpp>")
+        out.append(f'#include <gpsd_client/parsers/generated/'
+                   f'gpsd_raw_fill_{major}v{minor}.hpp>')
         for tag in STANDALONE_ROOTS:
-            out.append(f"#include <{PACKAGE}/msg/"
-                       f"{ros_header_name(versioned(message_base_name(tag), pair))}"
-                       f".hpp>")
+            out.append(f'#include <{PACKAGE}/msg/'
+                       f'{ros_header_name(versioned(message_base_name(tag), pair))}'
+                       f'.hpp>')
         out.append(f'#define GPSD_RAW_MESSAGE_NAME "{name}"')
-        out.append("namespace gpsd_client")
-        out.append("{")
-        out.append(f"using GpsdRawMsg = {PACKAGE}::msg::{name};")
+        out.append('namespace gpsd_client')
+        out.append('{')
+        out.append(f'using GpsdRawMsg = {PACKAGE}::msg::{name};')
         # One alias per standalone root, driven by STANDALONE_ROOTS rather
         # than a second hardcoded list -- so emptying that tuple removes the
         # aliases too, instead of leaving them pointing at deleted messages.
         for tag in STANDALONE_ROOTS:
             base = message_base_name(tag)
             out.append(f"using Gpsd{base[len('GPSD'):]}Msg = {PACKAGE}::msg::"
-                       f"{versioned(base, pair)};")
-        out.append("}  // namespace gpsd_client")
+                       f'{versioned(base, pair)};')
+        out.append('}  // namespace gpsd_client')
     out += [
-        "#endif",
-        "",
-        "#endif  // GPSD_CLIENT__GPSD_RAW_MESSAGE_HPP_",
-        "",
+        '#endif',
+        '',
+        '#endif  // GPSD_CLIENT__GPSD_RAW_MESSAGE_HPP_',
+        '',
     ]
-    return "\n".join(out)
+    return '\n'.join(out)
 
 
 def emit_version_workflow(pair: Tuple[int, int], rev: str) -> str:
-    """One GitHub Actions workflow per API pair.
+    """
+    One GitHub Actions workflow per API pair.
 
     Each pair gets its own workflow file rather than being a row in a matrix,
     so it appears in the Actions list under its own name with its own badge,
@@ -1640,12 +1662,12 @@ def emit_version_workflow(pair: Tuple[int, int], rev: str) -> str:
     workflow too; `--check` fails if the checked-in set has drifted.
     """
     major, minor = pair
-    message = versioned(MESSAGE_PREFIX + "Raw", pair)
-    unreleased = not rev.startswith("release-")
-    note = ("#\n"
-            "# This API pair shipped in no GPSd release, so the revision below\n"
-            "# is a bare commit: the last commit at which the pair was current.\n"
-            if unreleased else "")
+    message = versioned(MESSAGE_PREFIX + 'Raw', pair)
+    unreleased = not rev.startswith('release-')
+    note = ('#\n'
+            '# This API pair shipped in no GPSd release, so the revision below\n'
+            '# is a bare commit: the last commit at which the pair was current.\n'
+            if unreleased else '')
     return f"""# Generated by tools/generate_raw_msgs.py. Do not edit.
 #
 # Builds gpsd_client against libgps at the revision this project generates
@@ -1683,8 +1705,8 @@ jobs:
 def generate(repo: str, scope: str) -> Dict[str, str]:
     """Return {relative path: contents} for every generated file."""
     if scope not in SCOPES:
-        raise SystemExit(f"unknown scope {scope!r}; expected one of "
-                         f"{list(SCOPE_ORDER)}")
+        raise SystemExit(f'unknown scope {scope!r}; expected one of '
+                         f'{list(SCOPE_ORDER)}')
     scope_members: List[str] = []
     for key in SCOPE_ORDER:
         scope_members += list(SCOPES[key])
@@ -1692,30 +1714,30 @@ def generate(repo: str, scope: str) -> Dict[str, str]:
             break
 
     files: Dict[str, str] = {
-        "gpsd_client/include/gpsd_client/parsers/generated/gpsd_has_member.hpp":
+        'gpsd_client/include/gpsd_client/parsers/generated/gpsd_has_member.hpp':
             HAS_MEMBER_HEADER,
-        "gpsd_client/include/gpsd_client/gpsd_raw_message.hpp":
+        'gpsd_client/include/gpsd_client/gpsd_raw_message.hpp':
             emit_selection_ladder(),
-        os.path.join(PACKAGE, "msg", "GPSDJson.msg"): JSON_MESSAGE,
+        os.path.join(PACKAGE, 'msg', 'GPSDJson.msg'): JSON_MESSAGE,
     }
 
     for pair, rev in sorted(REFERENCE_REVS.items()):
-        files[f".github/workflows/gpsd_api_{pair[0]}v{pair[1]}.yml"] = \
+        files[f'.github/workflows/gpsd_api_{pair[0]}v{pair[1]}.yml'] = \
             emit_version_workflow(pair, rev)
 
     for pair in sorted(REFERENCE_REVS):
         rev = REFERENCE_REVS[pair]
         src = strip_comments(read_gps_h(repo, rev))
 
-        found = (int(re.search(r"define GPSD_API_MAJOR_VERSION\s+(\d+)", src).group(1)),
-                 int(re.search(r"define GPSD_API_MINOR_VERSION\s+(\d+)", src).group(1)))
+        found = (int(re.search(r'define GPSD_API_MAJOR_VERSION\s+(\d+)', src).group(1)),
+                 int(re.search(r'define GPSD_API_MINOR_VERSION\s+(\d+)', src).group(1)))
         if found != pair:
-            raise SystemExit(f"{rev} reports API {found[0]}.{found[1]}, "
-                             f"expected {pair[0]}.{pair[1]}")
-        maxchannels = int(re.search(r"^#define MAXCHANNELS\s+(\d+)", src, re.M).group(1))
+            raise SystemExit(f'{rev} reports API {found[0]}.{found[1]}, '
+                             f'expected {pair[0]}.{pair[1]}')
+        maxchannels = int(re.search(r'^#define MAXCHANNELS\s+(\d+)', src, re.M).group(1))
         if maxchannels != EXPECTED_MAXCHANNELS[pair]:
-            raise SystemExit(f"{rev}: MAXCHANNELS is {maxchannels}, manifest "
-                             f"says {EXPECTED_MAXCHANNELS[pair]}")
+            raise SystemExit(f'{rev}: MAXCHANNELS is {maxchannels}, manifest '
+                             f'says {EXPECTED_MAXCHANNELS[pair]}')
 
         model = build_model(pair, src, scope_members)
         flatten_model(model)
@@ -1724,20 +1746,21 @@ def generate(repo: str, scope: str) -> Dict[str, str]:
         assert_no_macro_collisions(constants, src, rev)
         assert_no_macro_collisions([(n, str(v)) for n, v, _, _ in values],
                                    src, rev)
-        root = versioned("GPSDRaw", pair)
+        root = versioned('GPSDRaw', pair)
         for name in model.order:
-            files[f"{PACKAGE}/msg/{name}.msg"] = emit_msg(
+            files[f'{PACKAGE}/msg/{name}.msg'] = emit_msg(
                 model, name, rev, constants if name == root else (),
                 values if name == root else ())
         major, minor = pair
-        files[f"gpsd_client/include/gpsd_client/parsers/generated/"
-              f"gpsd_raw_fill_{major}v{minor}.hpp"] = emit_parser(
+        files[f'gpsd_client/include/gpsd_client/parsers/generated/'
+              f'gpsd_raw_fill_{major}v{minor}.hpp'] = emit_parser(
                   model, rev, constants)
     return files
 
 
 def orphans(files: Dict[str, str], output_root: str) -> List[str]:
-    """Checked-in files that look generated but are no longer produced.
+    """
+    Checked-in files that look generated but are no longer produced.
 
     Scoped to the directories this generator owns and to its own naming, so it
     can never propose deleting a hand-written file. `msg/GPSD*.msg` is
@@ -1751,13 +1774,13 @@ def orphans(files: Dict[str, str], output_root: str) -> List[str]:
         # is what the CMake glob picks up, so the two agree by construction --
         # renaming the prefix means changing both together, and
         # test_every_generated_message_is_listed_for_rosidl fails if they part.
-        os.path.join(PACKAGE, "msg"): lambda n: (
-            n.startswith(MESSAGE_PREFIX) and n.endswith(".msg")),
-        os.path.join("gpsd_client", "include", "gpsd_client", "parsers",
-                     "generated"): lambda n: n.endswith(".hpp"),
-        os.path.join(".github", "workflows"): lambda n: (
-            n.startswith("gpsd_api_") and n[len("gpsd_api_"):-len(".yml")]
-            .replace("v", "").isdigit()),
+        os.path.join(PACKAGE, 'msg'): lambda n: (
+            n.startswith(MESSAGE_PREFIX) and n.endswith('.msg')),
+        os.path.join('gpsd_client', 'include', 'gpsd_client', 'parsers',
+                     'generated'): lambda n: n.endswith('.hpp'),
+        os.path.join('.github', 'workflows'): lambda n: (
+            n.startswith('gpsd_api_') and n[len('gpsd_api_'):-len('.yml')]
+            .replace('v', '').isdigit()),
     }
     expected = set(files)
     found: List[str] = []
@@ -1775,27 +1798,27 @@ def orphans(files: Dict[str, str], output_root: str) -> List[str]:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     default_repo = os.path.join(
-        os.path.dirname(os.path.dirname(here)), ".gpsd_versions", "gpsd")
+        os.path.dirname(os.path.dirname(here)), '.gpsd_versions', 'gpsd')
 
-    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--gpsd-repo", default=default_repo,
-                        help="GPSd git clone to read gps.h from "
-                             f"(default: {default_repo})")
-    parser.add_argument("--scope", default=CHECKED_IN_SCOPE,
+    parser = argparse.ArgumentParser(description=__doc__.split('\n')[0])
+    parser.add_argument('--gpsd-repo', default=default_repo,
+                        help='GPSd git clone to read gps.h from '
+                             f'(default: {default_repo})')
+    parser.add_argument('--scope', default=CHECKED_IN_SCOPE,
                         choices=list(SCOPE_ORDER),
-                        help="widest publishing scope to emit "
-                             f"(default: {CHECKED_IN_SCOPE}, what the tree holds)")
-    parser.add_argument("--output-root", default=here,
-                        help="repository root to write into")
-    parser.add_argument("--check", action="store_true",
-                        help="exit non-zero if the checked-in files differ "
-                             "from a fresh run; writes nothing")
-    parser.add_argument("--list", action="store_true",
-                        help="list the files that would be written")
+                        help='widest publishing scope to emit '
+                             f'(default: {CHECKED_IN_SCOPE}, what the tree holds)')
+    parser.add_argument('--output-root', default=here,
+                        help='repository root to write into')
+    parser.add_argument('--check', action='store_true',
+                        help='exit non-zero if the checked-in files differ '
+                             'from a fresh run; writes nothing')
+    parser.add_argument('--list', action='store_true',
+                        help='list the files that would be written')
     args = parser.parse_args(argv)
 
-    if not os.path.isdir(os.path.join(args.gpsd_repo, ".git")):
-        raise SystemExit(f"not a git clone: {args.gpsd_repo}")
+    if not os.path.isdir(os.path.join(args.gpsd_repo, '.git')):
+        raise SystemExit(f'not a git clone: {args.gpsd_repo}')
 
     files = generate(args.gpsd_repo, args.scope)
 
@@ -1809,23 +1832,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         for path, contents in sorted(files.items()):
             full = os.path.join(args.output_root, path)
             if not os.path.exists(full):
-                drift.append(f"missing: {path}")
+                drift.append(f'missing: {path}')
             elif open(full).read() != contents:
-                drift.append(f"differs: {path}")
-        drift += [f"orphan:  {p}" for p in orphans(files, args.output_root)]
+                drift.append(f'differs: {path}')
+        drift += [f'orphan:  {p}' for p in orphans(files, args.output_root)]
         if drift:
-            print("generated files are out of date; rerun "
-                  "tools/generate_raw_msgs.py", file=sys.stderr)
+            print('generated files are out of date; rerun '
+                  'tools/generate_raw_msgs.py', file=sys.stderr)
             for line in drift:
-                print(f"  {line}", file=sys.stderr)
+                print(f'  {line}', file=sys.stderr)
             return 1
-        print(f"{len(files)} generated files up to date")
+        print(f'{len(files)} generated files up to date')
         return 0
 
     for path, contents in sorted(files.items()):
         full = os.path.join(args.output_root, path)
         os.makedirs(os.path.dirname(full), exist_ok=True)
-        with open(full, "w") as handle:
+        with open(full, 'w') as handle:
             handle.write(contents)
 
     # Remove files this generator previously produced but no longer does.
@@ -1836,10 +1859,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     for path in stale:
         os.remove(os.path.join(args.output_root, path))
 
-    print(f"wrote {len(files)} files under {args.output_root}"
-          + (f", removed {len(stale)} stale" if stale else ""))
+    print(f'wrote {len(files)} files under {args.output_root}'
+          + (f', removed {len(stale)} stale' if stale else ''))
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     sys.exit(main())

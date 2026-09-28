@@ -35,7 +35,7 @@ import sys
 
 
 if __name__ == '__main__':
-    print('Currently nonfunctional until there\'s a working ROS2 bag API.  Sorry!')
+    print("Currently nonfunctional until there's a working ROS2 bag API.  Sorry!")
     sys.exit(1)
     # try:
     #     b = sys.argv[1]

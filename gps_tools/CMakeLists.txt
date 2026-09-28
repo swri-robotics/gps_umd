@@ -88,6 +88,22 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(test_conversions test/test_conversions.cpp)
   target_include_directories(test_conversions PRIVATE include)
+
+  # Loads both components from their libraries, as a container would.
+  find_package(class_loader REQUIRED)
+  ament_add_gtest(test_utm_components test/test_utm_components.cpp TIMEOUT 120)
+  target_include_directories(test_utm_components PRIVATE include)
+  target_link_libraries(test_utm_components
+    class_loader::class_loader
+    ${nav_msgs_TARGETS}
+    ${sensor_msgs_TARGETS}
+    rclcpp::rclcpp
+    rclcpp_components::component)
+  target_compile_definitions(test_utm_components PRIVATE
+    UTM_ODOMETRY_LIBRARY="$<TARGET_FILE:utm_odometry_component>"
+    UTM_ODOMETRY_TO_NAVSATFIX_LIBRARY="$<TARGET_FILE:utm_odometry_to_navsatfix_component>")
+  add_dependencies(test_utm_components
+    utm_odometry_component utm_odometry_to_navsatfix_component)
 endif()
 
 ament_export_include_directories(include)

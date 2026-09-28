@@ -32,7 +32,9 @@
  * Added by Dheera Venkatraman (dheera@dheera.net)
  */
 
+#include <cctype>
 #include <optional>
+#include <string>
 
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
@@ -49,10 +51,30 @@ public:
   : Node("utm_odometry_to_navsatfix_node", options)
   {
     frame_id_ = declare_parameter("frame_id", std::string(""));
-    try {
-      zone_ = declare_parameter<int>("zone");
-    } catch (const rclcpp::exceptions::UninitializedStaticallyTypedParameterException &) {
-      // If zone is not set, just leave it with its default value (std::nullopt).
+
+    /* A full zone designator such as "14R" says which hemisphere the
+     * northings are in; a zone number alone does not. An integer is still
+     * accepted, as it has been since the parameter was first declared, and
+     * means that zone in the northern hemisphere.
+     */
+    rcl_interfaces::msg::ParameterDescriptor zone_descriptor;
+    zone_descriptor.description =
+      "UTM zone of the odometry, such as \"14R\". A zone number alone means the "
+      "northern hemisphere. Unset, the zone comes from the frame_id.";
+    zone_descriptor.dynamic_typing = true;
+    const rclcpp::ParameterValue zone =
+      declare_parameter("zone", rclcpp::ParameterValue(), zone_descriptor);
+    if (zone.get_type() == rclcpp::ParameterType::PARAMETER_STRING) {
+      zone_ = zone.get<std::string>();
+    } else if (zone.get_type() == rclcpp::ParameterType::PARAMETER_INTEGER) {
+      zone_ = std::to_string(zone.get<int64_t>());
+    } else if (zone.get_type() != rclcpp::ParameterType::PARAMETER_NOT_SET) {
+      RCLCPP_ERROR(
+        get_logger(), "zone must be a string such as \"14R\" or an integer; ignoring it");
+    }
+    // UTMtoLL() reads a missing band letter as the southern hemisphere.
+    if (zone_ && !zone_->empty() && std::isdigit(static_cast<unsigned char>(zone_->back()))) {
+      zone_->push_back('N');
     }
 
     fix_pub_ = create_publisher<sensor_msgs::msg::NavSatFix>("fix", 10);
@@ -76,7 +98,7 @@ public:
 
         if (zone_) {
           // utm zone was supplied as a ROS parameter
-          zone = std::to_string(zone_.value());
+          zone = zone_.value();
           fix.header.frame_id = odom->header.frame_id;
         } else {
           // look for the utm zone in the frame_id
@@ -87,6 +109,10 @@ public:
           }
           zone = odom->header.frame_id.substr(pos + 5, 3);
           fix.header.frame_id = odom->header.frame_id.substr(0, pos);
+        }
+
+        if (!frame_id_.empty()) {
+          fix.header.frame_id = frame_id_;
         }
 
         RCLCPP_INFO(this->get_logger(), "zone: %s", zone.c_str());
@@ -121,7 +147,7 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr fix_pub_;
 
   std::string frame_id_;
-  std::optional<int> zone_;
+  std::optional<std::string> zone_;
 };
 }  // namespace gps_tools
 

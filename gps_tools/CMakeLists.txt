@@ -72,9 +72,9 @@ install(PROGRAMS
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  # TODO(#139): Enable the remaining linters once the code complies with them.
-  set(ament_cmake_cppcheck_FOUND TRUE)
-  # Uncrustify would read conversions.h as C, which cannot parse its namespace.
+  # Uncrustify and cppcheck would read conversions.h as C, which cannot parse
+  # its namespace.
+  set(ament_cmake_cppcheck_LANGUAGE c++)
   set(ament_cmake_uncrustify_ADDITIONAL_ARGS LANGUAGE CPP)
   # conversions.h is Chuck Gantz's UTM code by way of utexas-art-ros-pkg. It
   # keeps its original attribution, which names no license, so it cannot carry

@@ -84,6 +84,8 @@ protected:
   std::shared_ptr<gpsd_client::GPSDClientLifecycleComponent> node_;
 };
 
+}  // namespace
+
 TEST_F(LifecycleTest, StartsUnconfigured)
 {
   // The point of the managed node: constructing it connects to nothing and
@@ -148,8 +150,6 @@ TEST(UnmanagedNode, SurvivesUnreachableGpsd)
     node = std::make_shared<gpsd_client::GPSDClientComponent>(unreachableGpsd()));
   EXPECT_EQ(std::string(node->get_name()), "gpsd_client");
 }
-
-}  // namespace
 
 int main(int argc, char ** argv)
 {

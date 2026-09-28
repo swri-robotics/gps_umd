@@ -39,6 +39,8 @@
 #include <gps.h>
 
 #if GPSD_API_MAJOR_VERSION < 9
+// cppcheck does not read gps.h, so it takes the version as 0.
+// cppcheck-suppress preprocessorErrorDirective
 #error "gpsd_client requires GPSd API version >= 9 (GPSd >= 3.20)"
 #endif
 

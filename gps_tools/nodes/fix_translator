@@ -16,9 +16,9 @@ class FixTranslator(Node):
     def __init__(self):
         super().__init__('fix_translator')
         qos = QoSProfile(
-            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
-            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_RELIABLE,
-            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            history=QoSHistoryPolicy.KEEP_LAST,
             depth=10)
         self.navsat_pub = self.create_publisher(NavSatFix, 'navsat_fix_out', qos_profile=qos)
         self.gps_pub = self.create_publisher(GPSFix, 'gps_fix_out', qos_profile=qos)

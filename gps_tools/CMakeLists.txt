@@ -104,6 +104,11 @@ if(BUILD_TESTING)
     UTM_ODOMETRY_TO_NAVSATFIX_LIBRARY="$<TARGET_FILE:utm_odometry_to_navsatfix_component>")
   add_dependencies(test_utm_components
     utm_odometry_component utm_odometry_to_navsatfix_component)
+
+  find_package(ament_cmake_pytest REQUIRED)
+  ament_add_pytest_test(test_gps_message_converter test/test_gps_message_converter.py
+    APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
+    TIMEOUT 120)
 endif()
 
 ament_export_include_directories(include)

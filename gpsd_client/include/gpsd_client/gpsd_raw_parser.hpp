@@ -30,6 +30,7 @@
 #define GPSD_CLIENT__GPSD_RAW_PARSER_HPP_
 
 #include <optional>
+#include <utility>
 
 #include <gpsd_client/gpsd_parser.hpp>
 #include <gpsd_client/gpsd_raw_message.hpp>

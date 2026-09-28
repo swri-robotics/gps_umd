@@ -6,8 +6,8 @@
  * Includes LatLong<->UTM.
  */
 
-#ifndef _UTM_H
-#define _UTM_H
+#ifndef GPS_TOOLS__CONVERSIONS_H_
+#define GPS_TOOLS__CONVERSIONS_H_
 
 /**  @file
 
@@ -58,10 +58,10 @@ const double UTM_EP2 = (UTM_E2 / (1 - UTM_E2));     // e'^2
 static inline void UTM(double lat, double lon, double * x, double * y)
 {
   // constants
-  const static double m0 = (1 - UTM_E2 / 4 - 3 * UTM_E4 / 64 - 5 * UTM_E6 / 256);
-  const static double m1 = -(3 * UTM_E2 / 8 + 3 * UTM_E4 / 32 + 45 * UTM_E6 / 1024);
-  const static double m2 = (15 * UTM_E4 / 256 + 45 * UTM_E6 / 1024);
-  const static double m3 = -(35 * UTM_E6 / 3072);
+  static const double m0 = (1 - UTM_E2 / 4 - 3 * UTM_E4 / 64 - 5 * UTM_E6 / 256);
+  static const double m1 = -(3 * UTM_E2 / 8 + 3 * UTM_E4 / 32 + 45 * UTM_E6 / 1024);
+  static const double m2 = (15 * UTM_E4 / 256 + 45 * UTM_E6 / 1024);
+  static const double m3 = -(35 * UTM_E6 / 3072);
 
   // compute the central meridian
   int cm = ((lon >= 0.0) ?
@@ -148,9 +148,12 @@ static inline char UTMLetterDesignator(double Lat)
     LetterDesignator = 'E';
   } else if ((-64 > Lat) && (Lat >= -72)) {
     LetterDesignator = 'D';
-  } else if ((-72 > Lat) && (Lat >= -80)) {LetterDesignator = 'C';}
-  // 'Z' is an error flag, the Latitude is outside the UTM limits
-  else {LetterDesignator = 'Z';}
+  } else if ((-72 > Lat) && (Lat >= -80)) {
+    LetterDesignator = 'C';
+  } else {
+    // 'Z' is an error flag, the Latitude is outside the UTM limits
+    LetterDesignator = 'Z';
+  }
   return LetterDesignator;
 }
 
@@ -176,15 +179,15 @@ static inline void LLtoUTM(
   double eccPrimeSquared;
   double N, T, C, A, M;
 
-  //Make sure the longitude is between -180.00 .. 179.9
-  double LongTemp = (Long + 180) - int((Long + 180) / 360) * 360 - 180;
+  // Make sure the longitude is between -180.00 .. 179.9
+  double LongTemp = (Long + 180) - static_cast<int>((Long + 180) / 360) * 360 - 180;
 
   double LatRad = Lat * RADIANS_PER_DEGREE;
   double LongRad = LongTemp * RADIANS_PER_DEGREE;
   double LongOriginRad;
   int ZoneNumber;
 
-  ZoneNumber = int((LongTemp + 180) / 6) + 1;
+  ZoneNumber = static_cast<int>((LongTemp + 180) / 6) + 1;
 
   if (Lat >= 56.0 && Lat < 64.0 && LongTemp >= 3.0 && LongTemp < 12.0) {
     ZoneNumber = 32;
@@ -198,14 +201,17 @@ static inline void LLtoUTM(
       ZoneNumber = 33;
     } else if (LongTemp >= 21.0 && LongTemp < 33.0) {
       ZoneNumber = 35;
-    } else if (LongTemp >= 33.0 && LongTemp < 42.0) {ZoneNumber = 37;}
+    } else if (LongTemp >= 33.0 && LongTemp < 42.0) {
+      ZoneNumber = 37;
+    }
   }
   // +3 puts origin in middle of zone
   LongOrigin = (ZoneNumber - 1) * 6 - 180 + 3;
   LongOriginRad = LongOrigin * RADIANS_PER_DEGREE;
 
-  //compute the UTM Zone from the latitude and longitude
-  snprintf(UTMZone, 13, "%d%c", ZoneNumber, UTMLetterDesignator(Lat));
+  // compute the UTM Zone from the latitude and longitude. UTMZone is a
+  // pointer, so sizeof cannot give the size of the caller's buffer.
+  snprintf(UTMZone, 13, "%d%c", ZoneNumber, UTMLetterDesignator(Lat));  // NOLINT(runtime/printf)
 
   eccPrimeSquared = (eccSquared) / (1 - eccSquared);
 
@@ -232,7 +238,7 @@ static inline void LLtoUTM(
     (M + N * tan(LatRad) * (A * A / 2 + (5 - T + 9 * C + 4 * C * C) * A * A * A * A / 24 +
     (61 - 58 * T + T * T + 600 * C - 330 * eccPrimeSquared) * A * A * A * A * A * A / 720)));
   if (Lat < 0) {
-    UTMNorthing += 10000000.0;             //10000000 meter offset for southern hemisphere
+    UTMNorthing += 10000000.0;  // 10000000 meter offset for southern hemisphere
   }
 }
 
@@ -274,15 +280,15 @@ static inline void UTMtoLL(
   int ZoneNumber;
   char * ZoneLetter;
 
-  x = UTMEasting - 500000.0;       //remove 500,000 meter offset for longitude
+  x = UTMEasting - 500000.0;  // remove 500,000 meter offset for longitude
   y = UTMNorthing;
 
   ZoneNumber = strtoul(UTMZone, &ZoneLetter, 10);
   if ((*ZoneLetter - 'N') < 0) {
-    y -= 10000000.0;            //remove 10,000,000 meter offset used for southern hemisphere
+    y -= 10000000.0;  // remove 10,000,000 meter offset used for southern hemisphere
   }
 
-  LongOrigin = (ZoneNumber - 1) * 6 - 180 + 3;      //+3 puts origin in middle of zone
+  LongOrigin = (ZoneNumber - 1) * 6 - 180 + 3;  // +3 puts origin in middle of zone
 
   eccPrimeSquared = (eccSquared) / (1 - eccSquared);
 
@@ -313,7 +319,6 @@ static inline void UTMtoLL(
     (5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * eccPrimeSquared + 24 * T1 * T1) *
     D * D * D * D * D / 120) / cos(phi1Rad);
   Long = LongOrigin + Long * DEGREES_PER_RADIAN;
-
 }
 
 static inline void UTMtoLL(
@@ -323,6 +328,6 @@ static inline void UTMtoLL(
   UTMtoLL(UTMNorthing, UTMEasting, UTMZone.c_str(), Lat, Long);
 }
 
-} // end namespace UTM
+}  // namespace gps_tools
 
-#endif // _UTM_H
+#endif  // GPS_TOOLS__CONVERSIONS_H_

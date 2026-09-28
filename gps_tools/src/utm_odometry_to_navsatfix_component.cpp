@@ -32,12 +32,13 @@
  * Added by Dheera Venkatraman (dheera@dheera.net)
  */
 
+#include <optional>
+
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/nav_sat_status.hpp>
-#include <gps_tools/conversions.h>
+#include "gps_tools/conversions.h"
 #include <nav_msgs/msg/odometry.hpp>
-#include <optional>
 
 namespace gps_tools
 {
@@ -47,7 +48,6 @@ public:
   explicit UtmOdometryToNavSatFixComponent(const rclcpp::NodeOptions & options)
   : Node("utm_odometry_to_navsatfix_node", options)
   {
-
     frame_id_ = declare_parameter("frame_id", std::string(""));
     try {
       zone_ = declare_parameter<int>("zone");
@@ -123,7 +123,7 @@ private:
   std::string frame_id_;
   std::optional<int> zone_;
 };
-}
+}  // namespace gps_tools
 
 /*using namespace gps_tools;
 

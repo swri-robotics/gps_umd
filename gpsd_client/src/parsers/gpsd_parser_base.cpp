@@ -87,7 +87,7 @@ int16_t GpsdParserBase::mapGpsFixStatus(int gpsd_status, bool sbas_used)
       if (sbas_used) {
         return 1;  // gps_msgs::msg::GPSStatus::STATUS_SBAS_FIX
       } else {
-        return 18; // gps_msgs::msg::GPSStatus::STATUS_DGPS_FIX
+        return 18;  // gps_msgs::msg::GPSStatus::STATUS_DGPS_FIX
       }
     case STATUS_RTK_FIX:
       return 19;   // gps_msgs::msg::GPSStatus::STATUS_RTK_FIX
@@ -186,7 +186,7 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(
 
     /* TODO: attitude */
   } else {
-    status.status = -1; // gps_msgs::msg::GPSStatus::STATUS_NO_FIX
+    status.status = -1;  // gps_msgs::msg::GPSStatus::STATUS_NO_FIX
   }
 
   fix.status = status;
@@ -212,7 +212,7 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
   fix.header.frame_id = context_.frame_id;
 
 #ifdef NO_UNKNOWN_FIX
-  fix.status.service = 0; // Initialize to 0 before setting bits
+  fix.status.service = 0;  // Initialize to 0 before setting bits
 #else
   fix.status.service = sensor_msgs::msg::NavSatStatus::SERVICE_UNKNOWN;
 #endif
@@ -233,7 +233,7 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
   if (data.fix.mode == MODE_2D || data.fix.mode == MODE_3D) {
     fix.status.status = mapNavSatStatus(getFixStatus(data), sbasAugmented(data));
   } else {
-    fix.status.status = -1; // sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX
+    fix.status.status = -1;  // sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX
   }
 
   fix.latitude = data.fix.latitude;

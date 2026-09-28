@@ -26,17 +26,8 @@
 //
 // *****************************************************************************
 
-#ifndef GPSD_CLIENT_GPSD_CLIENT_BASE_HPP
-#define GPSD_CLIENT_GPSD_CLIENT_BASE_HPP
-
-#include <rclcpp/rclcpp.hpp>
-#include <gps_msgs/msg/gps_fix.hpp>
-#include <gps_msgs/msg/gpsd_json.hpp>
-#include <sensor_msgs/msg/nav_sat_fix.hpp>
-#include <gps.h>
-
-#include <gpsd_client/gpsd_parser_factory.hpp>
-#include <gpsd_client/gpsd_raw_message.hpp>
+#ifndef GPSD_CLIENT__GPSD_CLIENT_BASE_HPP_
+#define GPSD_CLIENT__GPSD_CLIENT_BASE_HPP_
 
 #include <chrono>
 #include <cstdlib>
@@ -44,6 +35,17 @@
 #include <optional>
 #include <string>
 #include <utility>
+
+#include <rclcpp/rclcpp.hpp>
+#include <gps_msgs/msg/gps_fix.hpp>
+#include <gps_msgs/msg/gpsd_json.hpp>
+#include <sensor_msgs/msg/nav_sat_fix.hpp>
+// gps.h defines STATUS_* macros that collide with the ROS message constants,
+// so it has to follow the message headers. See gpsd_parser.hpp.
+#include <gps.h>  // NOLINT(build/include_order)
+
+#include <gpsd_client/gpsd_parser_factory.hpp>
+#include <gpsd_client/gpsd_raw_message.hpp>
 
 namespace gpsd_client
 {
@@ -133,7 +135,7 @@ protected:
       publish_rate_ = 1;
     }
 
-    publish_period_ms_ = std::chrono::milliseconds{(int)(1000 / publish_rate_)};
+    publish_period_ms_ = std::chrono::milliseconds{static_cast<int>(1000 / publish_rate_)};
 
     gps_fix_pub_ = this->template create_publisher<gps_msgs::msg::GPSFix>("extended_fix", 1);
     navsatfix_pub_ = this->template create_publisher<sensor_msgs::msg::NavSatFix>("fix", 1);
@@ -378,4 +380,4 @@ private:
 };
 }  // namespace gpsd_client
 
-#endif  // GPSD_CLIENT_GPSD_CLIENT_BASE_HPP
+#endif  // GPSD_CLIENT__GPSD_CLIENT_BASE_HPP_

@@ -39,7 +39,7 @@
 #include <rclcpp/time.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 
-#include <gps.h>
+#include <gps.h>  // NOLINT(build/include_order)
 
 #if GPSD_API_MAJOR_VERSION < 9
 #error "gpsd_client requires GPSd API version >= 9 (GPSd >= 3.20)"

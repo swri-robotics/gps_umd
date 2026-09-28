@@ -52,10 +52,9 @@
 /// order-independent, even though its neighbours are not.
 
 #include <gps.h>
+#include <gtest/gtest.h>
 
 #include <gpsd_client/gpsd_raw_message.hpp>
-
-#include <gtest/gtest.h>
 
 TEST(GpsdRawIncludeOrder, GeneratedConstantsSurviveGpsHFirst)
 {

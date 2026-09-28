@@ -31,6 +31,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <utility>
 
 #include <gpsd_client/gpsd_parser.hpp>
 

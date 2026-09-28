@@ -43,11 +43,12 @@ public:
   virtual ~GpsdParser() = default;
 
   /// True if GPSd reports a device online for this report.
-  [[nodiscard]] virtual bool isOnline(const gps_data_t& data) const = 0;
+  [[nodiscard]] virtual bool isOnline(const gps_data_t & data) const = 0;
 
   /// Convert a report into a GPSFix message stamped with @p stamp.
-  [[nodiscard]] virtual gps_msgs::msg::GPSFix parseGpsFix(const gps_data_t& data,
-                                            const rclcpp::Time& stamp) const = 0;
+  [[nodiscard]] virtual gps_msgs::msg::GPSFix parseGpsFix(
+    const gps_data_t & data,
+    const rclcpp::Time & stamp) const = 0;
 
   /// Convert a report into a NavSatFix message.
   ///
@@ -55,7 +56,7 @@ public:
   /// use_gps_time, otherwise with @p fallback_stamp. Returns std::nullopt when
   /// the fix is rejected by the variance check and should not be published.
   [[nodiscard]] virtual std::optional<sensor_msgs::msg::NavSatFix> parseNavSatFix(
-      const gps_data_t& data, const rclcpp::Time& fallback_stamp) const = 0;
+    const gps_data_t & data, const rclcpp::Time & fallback_stamp) const = 0;
 };
 
 }  // namespace gpsd_client

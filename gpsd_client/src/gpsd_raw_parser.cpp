@@ -7,29 +7,29 @@
 namespace gpsd_client
 {
 
-std::size_t GpsdRawParser::skyviewCount(const gps_data_t& data)
+std::size_t GpsdRawParser::skyviewCount(const gps_data_t & data)
 {
-  if (0 >= data.satellites_visible)
-  {
+  if (0 >= data.satellites_visible) {
     return 0;
   }
-  return std::min(static_cast<std::size_t>(data.satellites_visible),
-                  static_cast<std::size_t>(MAXCHANNELS));
+  return std::min(
+    static_cast<std::size_t>(data.satellites_visible),
+    static_cast<std::size_t>(MAXCHANNELS));
 }
 
-std::size_t GpsdRawParser::deviceCount(const gps_data_t& data)
+std::size_t GpsdRawParser::deviceCount(const gps_data_t & data)
 {
-  if (0 >= data.devices.ndevices)
-  {
+  if (0 >= data.devices.ndevices) {
     return 0;
   }
   const std::size_t capacity =
-      sizeof(data.devices.list) / sizeof(data.devices.list[0]);
+    sizeof(data.devices.list) / sizeof(data.devices.list[0]);
   return std::min(static_cast<std::size_t>(data.devices.ndevices), capacity);
 }
 
-GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
-                                   const rclcpp::Time& stamp) const
+GpsdRawMsg GpsdRawParser::parseRaw(
+  const gps_data_t & data,
+  const rclcpp::Time & stamp) const
 {
   GpsdRawMsg msg;
 
@@ -44,14 +44,13 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
    * decides *which* source elements are valid, which the generator cannot know.
    */
   std::vector<std::size_t> idx;
-  auto prefix = [&idx](std::size_t n) -> const std::vector<std::size_t>& {
-    idx.resize(n);
-    for (std::size_t i = 0; i < n; ++i)
-    {
-      idx[i] = i;
-    }
-    return idx;
-  };
+  auto prefix = [&idx](std::size_t n) -> const std::vector<std::size_t> & {
+      idx.resize(n);
+      for (std::size_t i = 0; i < n; ++i) {
+        idx[i] = i;
+      }
+      return idx;
+    };
 
   generated::fill_skyview(data, msg, prefix(skyviewCount(data)));
 
@@ -72,8 +71,7 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
    */
   const std::size_t max_imu = sizeof(data.imu) / sizeof(data.imu[0]);
   std::size_t imu_count = 0;
-  while (imu_count < max_imu && '\0' != data.imu[imu_count].msg[0])
-  {
+  while (imu_count < max_imu && '\0' != data.imu[imu_count].msg[0]) {
     ++imu_count;
   }
   generated::fill_imu(data, msg, prefix(imu_count));
@@ -89,12 +87,9 @@ GpsdRawMsg GpsdRawParser::parseRaw(const gps_data_t& data,
    */
   const std::size_t max_meas = sizeof(data.raw.meas) / sizeof(data.raw.meas[0]);
   std::vector<std::size_t> meas;
-  if (0 != (data.set & RAW_SET))
-  {
-    for (std::size_t i = 0; i < max_meas; ++i)
-    {
-      if (0 != data.raw.meas[i].svid && 255 != data.raw.meas[i].svid)
-      {
+  if (0 != (data.set & RAW_SET)) {
+    for (std::size_t i = 0; i < max_meas; ++i) {
+      if (0 != data.raw.meas[i].svid && 255 != data.raw.meas[i].svid) {
         meas.push_back(i);
       }
     }

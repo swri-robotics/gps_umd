@@ -1193,6 +1193,54 @@ def emit_msg(model: Model, name: str, rev: str,
     return '\n'.join(lines).rstrip() + '\n'
 
 
+# ament_cpplint and ament_uncrustify both stop at 100 columns.
+LINE_WIDTH = 100
+
+
+def split_args(args: str) -> List[str]:
+    """Split a C++ argument list on its top-level commas."""
+    parts, depth, quoted, start = [], 0, False, 0
+    for i, c in enumerate(args):
+        if c == '"':
+            quoted = not quoted
+        elif quoted:
+            continue
+        elif c in '(<[':
+            depth += 1
+        elif c in ')>]':
+            depth -= 1
+        elif c == ',' and depth == 0:
+            parts.append(args[start:i].strip())
+            start = i + 1
+    parts.append(args[start:].strip())
+    return parts
+
+
+def fit(indent: str, statement: str) -> List[str]:
+    """
+    Wrap one generated statement to LINE_WIDTH as ament_uncrustify accepts.
+
+    Covers the statement shapes the generator emits. `lhs = rhs;` breaks
+    after the `=`. A call, or an `if (...) {`, breaks after its opening
+    parenthesis, with one argument per line if they still do not fit on one.
+    """
+    if len(indent + statement) <= LINE_WIDTH:
+        return [indent + statement]
+    inner = indent + '  '
+    if ' = ' in statement:
+        lhs, rhs = statement.split(' = ', 1)
+        return [f'{indent}{lhs} ='] + fit(inner, rhs)
+    open_at = statement.index('(')
+    close_at = statement.rindex(')')
+    head, args, tail = (statement[:open_at + 1], statement[open_at + 1:close_at],
+                        statement[close_at:])
+    if len(inner + args + tail) <= LINE_WIDTH:
+        return [indent + head, inner + args + tail]
+    parts = split_args(args)
+    return ([indent + head] + [f'{inner}{a},' for a in parts[:-1]] +
+            [inner + parts[-1] + tail])
+
+
 def emit_value_asserts(model: Model, values) -> List[str]:
     """
     static_assert every value constant against the gps.h macro it came from.
@@ -1209,13 +1257,11 @@ def emit_value_asserts(model: Model, values) -> List[str]:
     root = versioned(MESSAGE_PREFIX + 'Raw', model.pair)
     out = ['// Field value constants against the gps.h macros they came from.']
     for name, _value, gpsd_name, _is_bits in values:
-        out += [
-            f'#ifdef {gpsd_name}',
-            f'static_assert({PACKAGE}::msg::{root}::{name} == '
-            f'static_cast<int32_t>({gpsd_name}),',
-            f'              "{name} disagrees with gps.h\'s {gpsd_name}");',
-            '#endif',
-        ]
+        out.append(f'#ifdef {gpsd_name}')
+        out += fit('', f'static_assert({PACKAGE}::msg::{root}::{name} == '
+                       f'static_cast<int32_t>({gpsd_name}), '
+                       f'"{name} disagrees with gps.h\'s {gpsd_name}");')
+        out.append('#endif')
     out.append('')
     return out
 
@@ -1257,13 +1303,11 @@ def emit_mask_asserts(model: Model, constants) -> List[str]:
         if name == 'SET_HIGHEST_BIT':
             continue    # a count, not a bit; moves within a pair. See above.
         gpsd_name = 'UNION_SET' if name == 'SET_UNION' else name[len('SET_'):] + '_SET'
-        out += [
-            f'#ifdef {gpsd_name}',
-            f'static_assert({PACKAGE}::msg::{root}::{name} == '
-            f'static_cast<uint64_t>({gpsd_name}),',
-            f"              \"{name} disagrees with gps.h's {gpsd_name}\");",
-            '#endif',
-        ]
+        out.append(f'#ifdef {gpsd_name}')
+        out += fit('', f'static_assert({PACKAGE}::msg::{root}::{name} == '
+                       f'static_cast<uint64_t>({gpsd_name}), '
+                       f'"{name} disagrees with gps.h\'s {gpsd_name}");')
+        out.append('#endif')
     out.append('')
     return out
 
@@ -1341,8 +1385,8 @@ def emit_parser(model: Model, rev: str, constants=()) -> str:
     # and the message package while the overloads live in gpsd_client::generated.
     out.append('// Forward declarations; see the note in the generator.')
     for name in model.order:
-        out.append('template <typename T>')
-        out.append(f'inline void fill(const T& in, {PACKAGE}::msg::{name}& out);')
+        out.append('template<typename T>')
+        out.append(f'inline void fill(const T & in, {PACKAGE}::msg::{name} & out);')
     out.append('')
 
     for name in model.order:
@@ -1373,8 +1417,8 @@ def emit_fill_function(model: Model, message_name: str) -> List[str]:
     an arm the mask does not name is a read of an inactive union member.
     """
     out = [
-        'template <typename T>',
-        f'inline void fill(const T& in, {PACKAGE}::msg::{message_name}& out)',
+        'template<typename T>',
+        f'inline void fill(const T & in, {PACKAGE}::msg::{message_name} & out)',
         '{',
         '  (void)in;',
         '  (void)out;',
@@ -1433,11 +1477,10 @@ def emit_path_tree(fields: List[Field], depth: int, in_expr: str,
 
         for f in leaves:
             for line in leaf_assign(f, expr, f'out.{f.name}'):
-                out.append(f'{body_indent}{line}')
+                out += fit(body_indent, line)
         if deeper:
             alias = 'T_' + '_'.join(deeper[0].path[:depth + 1])
-            out.append(f'{body_indent}using {alias} = '
-                       f'std::decay_t<decltype({expr})>;')
+            out += fit(body_indent, f'using {alias} = std::decay_t<decltype({expr})>;')
             out += emit_path_tree(deeper, depth + 1, expr, alias, body_indent)
 
         if gate and all(f.gate == gate for f in group):
@@ -1467,21 +1510,22 @@ def emit_group_fill(model: Model, message_name: str, group: str) -> List[str]:
         f"/// Fill the {group}_* arrays from in.{'.'.join(lead)}, taking the",
         '/// elements named by idx. One loop, so every array in the group ends',
         '/// the same length.',
-        'template <typename T>',
-        f'inline void fill_{group}(const T& in, '
-        f'{PACKAGE}::msg::{message_name}& out,',
-        '                          const std::vector<std::size_t>& idx)',
+        'template<typename T>',
+        f'inline void fill_{group}(',
+        f'  const T & in, {PACKAGE}::msg::{message_name} & out,',
+        '  const std::vector<std::size_t> & idx)',
         '{',
         '  (void)in;',
         '  (void)out;',
         '  (void)idx;',
         '  const std::size_t count = idx.size();',
     ]
-    guards = []
     expr = 'in'
     tname = 'T'
+    body = '  '
     for i, seg in enumerate(lead):
-        guards.append(f'  if constexpr (has_{seg}<{tname}>::value) {{')
+        out.append(f'{body}if constexpr (has_{seg}<{tname}>::value) {{')
+        body += '  '
         expr = f'{expr}.{seg}'
         tname = 'T_' + '_'.join(lead[:i + 1])
         # The alias exists only to name the type the next level's
@@ -1489,14 +1533,11 @@ def emit_group_fill(model: Model, message_name: str, group: str) -> List[str]:
         # below it the loop types each element with its own T_elem_<field>.
         # Emitting one there compiles, but trips -Wunused-local-typedefs.
         if i + 1 < len(lead):
-            guards.append(
-                f'    using {tname} = std::decay_t<decltype({expr})>;')
-    out += guards
+            out += fit(body, f'using {tname} = std::decay_t<decltype({expr})>;')
     gate = fields[0].gate
-    body = '    '
     if gate:
-        out.append(f'    if (0 != (in.set & {gate})) {{')
-        body = '      '
+        out.append(f'{body}if (0 != (in.set & {gate})) {{')
+        body += '  '
     for f in fields:
         out.append(f'{body}out.{f.name}.resize(count);')
     out.append(f'{body}for (std::size_t i = 0; i < count; ++i) {{')
@@ -1504,18 +1545,16 @@ def emit_group_fill(model: Model, message_name: str, group: str) -> List[str]:
     for f in fields:
         elem = f'{expr}[src]' + ''.join(f'.{p}' for p in f.path[array_depth:])
         inner = 'T_elem_' + f.name
-        out.append(f'{body}  using {inner} = '
-                   f'std::decay_t<decltype({expr}[src])>;')
-        out.append(f'{body}  if constexpr (has_{f.path[array_depth]}'
-                   f'<{inner}>::value) {{')
+        out += fit(body + '  ', f'using {inner} = std::decay_t<decltype({expr}[src])>;')
+        out += fit(body + '  ', f'if constexpr (has_{f.path[array_depth]}<{inner}>::value) {{')
         for line in leaf_assign(f, elem, f'out.{f.name}[i]'):
-            out.append(f'{body}    {line}')
+            out += fit(body + '    ', line)
         out.append(f'{body}  }}')
     out.append(f'{body}}}')
-    if gate:
-        out.append('    }')
-    for _ in lead:
-        out.append('  }')
+    # Close the gate, then each guard, innermost first.
+    for _ in range(len(lead) + (1 if gate else 0)):
+        body = body[:-2]
+        out.append(f'{body}}}')
     out += ['}', '']
     return out
 
@@ -1551,12 +1590,12 @@ HAS_MEMBER_HEADER = """\
 /// CMake cannot help here -- check_cxx_symbol_exists() does not see struct
 /// members -- so detection happens in C++ and each assignment is guarded by
 /// `if constexpr`, leaving the message field at its default when absent.
-#define GPSD_DEFINE_HAS_MEMBER(name)                                       \\
-  template <typename T, typename = void>                                   \\
-  struct has_##name : std::false_type {};                                  \\
-  template <typename T>                                                    \\
-  struct has_##name<T, std::void_t<decltype(std::declval<T&>().name)>>     \\
-      : std::true_type {};
+#define GPSD_DEFINE_HAS_MEMBER(name) \\
+  template<typename T, typename = void> \\
+  struct has_ ## name : std::false_type {}; \\
+  template<typename T> \\
+  struct has_ ## name<T, std::void_t<decltype(std::declval<T &>().name)>> \\
+    : std::true_type {};
 
 #endif  // GPSD_CLIENT__PARSERS__GENERATED__GPSD_HAS_MEMBER_HPP_
 """

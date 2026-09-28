@@ -19,8 +19,7 @@ public:
   explicit GPSDClientComponent(const rclcpp::NodeOptions & options)
   : GPSDClientBase<rclcpp::Node>(options)
   {
-    if (!doConfigure() || !doActivate())
-    {
+    if (!doConfigure() || !doActivate()) {
       RCLCPP_ERROR(this->get_logger(), "Failed to start gpsd_client; timer not created.");
       return;
     }

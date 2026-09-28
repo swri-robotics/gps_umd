@@ -23,16 +23,14 @@ namespace
 /// truncation, and -- unlike both printf and operator<<, which follow the
 /// stream's locale -- no chance of a comma decimal separator turning the
 /// fixture into invalid JSON.
-void appendReal(std::ostringstream& out, const char* key, double value)
+void appendReal(std::ostringstream & out, const char * key, double value)
 {
-  if (!std::isfinite(value))
-  {
+  if (!std::isfinite(value)) {
     return;
   }
   char buf[32];
   const std::to_chars_result result = std::to_chars(buf, buf + sizeof(buf), value);
-  if (result.ec != std::errc())
-  {
+  if (result.ec != std::errc()) {
     // Unreachable: a double's shortest round-trip form needs at most 24 bytes.
     // Emitting nothing beats emitting whatever the buffer happens to hold.
     return;
@@ -62,7 +60,7 @@ gps_data_t makeEmptyData()
   return data;
 }
 
-int unpack(gps_data_t& data, const std::string& json)
+int unpack(gps_data_t & data, const std::string & json)
 {
   /* gps_unpack() took a mutable char* through GPSd 3.24 and a const char*
    * from 3.25 on. Both are API 14.0, so the difference cannot be keyed on
@@ -76,18 +74,16 @@ int unpack(gps_data_t& data, const std::string& json)
   return gps_unpack(buffer.data(), &data);
 }
 
-std::string tpvJson(const Tpv& tpv)
+std::string tpvJson(const Tpv & tpv)
 {
   std::ostringstream out;
   out << "{\"class\":\"TPV\",\"device\":\"/dev/ttyS0\"";
   out << ",\"mode\":" << tpv.mode;
 
-  if (tpv.status >= 0)
-  {
+  if (tpv.status >= 0) {
     out << ",\"status\":" << tpv.status;
   }
-  if (!tpv.time.empty())
-  {
+  if (!tpv.time.empty()) {
     out << ",\"time\":\"" << tpv.time << "\"";
   }
 
@@ -110,15 +106,15 @@ std::string tpvJson(const Tpv& tpv)
   return out.str();
 }
 
-std::string skyJson(const std::vector<Satellite>& satellites,
-                    const Dop& dop,
-                    const std::string& time)
+std::string skyJson(
+  const std::vector<Satellite> & satellites,
+  const Dop & dop,
+  const std::string & time)
 {
   std::ostringstream out;
   out << "{\"class\":\"SKY\",\"device\":\"/dev/ttyS0\"";
 
-  if (!time.empty())
-  {
+  if (!time.empty()) {
     out << ",\"time\":\"" << time << "\"";
   }
 
@@ -151,11 +147,9 @@ std::string skyJson(const std::vector<Satellite>& satellites,
 #endif
 
   out << ",\"satellites\":[";
-  for (size_t i = 0; i < satellites.size(); ++i)
-  {
-    const Satellite& sat = satellites[i];
-    if (i > 0)
-    {
+  for (size_t i = 0; i < satellites.size(); ++i) {
+    const Satellite & sat = satellites[i];
+    if (i > 0) {
       out << ",";
     }
     out << "{\"PRN\":" << sat.prn
@@ -200,8 +194,7 @@ gps_data_t makeThreeDFixFromJson()
   dop.gdop = 1.5;
 
   std::vector<Satellite> satellites;
-  for (int i = 0; i < 3; ++i)
-  {
+  for (int i = 0; i < 3; ++i) {
     Satellite sat;
     sat.prn = 10 + i;
     sat.elevation = 30 + i;

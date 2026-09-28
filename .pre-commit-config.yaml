@@ -27,6 +27,18 @@ repos:
         language: system
         files: (\.(c|cc|cpp|cxx|h|hh|hpp|hxx|py|cmake)|CMakeLists\.txt)$
         exclude: ^gps_tools/include/gps_tools/conversions\.h$
+      - id: ament_cpplint
+        name: ament_cpplint
+        entry: ament_cpplint
+        language: system
+        files: \.(c|cc|cpp|cxx|h|hh|hpp|hxx)$
+        exclude: ^gps_tools/include/gps_tools/conversions\.h$
+      # conversions.h has no copyright notice; see gps_tools/CMakeLists.txt.
+      - id: ament_cpplint_conversions
+        name: ament_cpplint (conversions.h)
+        entry: ament_cpplint --filters=-legal/copyright
+        language: system
+        files: ^gps_tools/include/gps_tools/conversions\.h$
       - id: ament_flake8
         name: ament_flake8
         entry: ament_flake8

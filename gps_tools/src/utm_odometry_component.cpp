@@ -34,7 +34,7 @@
 
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/nav_sat_status.hpp>
-#include <gps_tools/conversions.h>
+#include "gps_tools/conversions.h"
 #include <nav_msgs/msg/odometry.hpp>
 
 
@@ -137,7 +137,7 @@ private:
   double rot_cov_;
   bool append_zone_;
 };
-}
+}  // namespace gps_tools
 
 #include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(gps_tools::UtmOdometryComponent)

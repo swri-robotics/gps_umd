@@ -26,8 +26,8 @@
 //
 // *****************************************************************************
 
-#ifndef GPSD_CLIENT_GPSD_CLIENT_COMPONENT_HPP
-#define GPSD_CLIENT_GPSD_CLIENT_COMPONENT_HPP
+#ifndef GPSD_CLIENT__GPSD_CLIENT_COMPONENT_HPP_
+#define GPSD_CLIENT__GPSD_CLIENT_COMPONENT_HPP_
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -56,4 +56,4 @@ public:
 };
 }  // namespace gpsd_client
 
-#endif  // GPSD_CLIENT_GPSD_CLIENT_COMPONENT_HPP
+#endif  // GPSD_CLIENT__GPSD_CLIENT_COMPONENT_HPP_

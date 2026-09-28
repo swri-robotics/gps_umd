@@ -26,8 +26,8 @@
 //
 // *****************************************************************************
 
-#ifndef GPSD_CLIENT__TEST__GPSD_JSON_FIXTURE_HPP_
-#define GPSD_CLIENT__TEST__GPSD_JSON_FIXTURE_HPP_
+#ifndef GPSD_JSON_FIXTURE_HPP_
+#define GPSD_JSON_FIXTURE_HPP_
 
 /// Library-only test harness: build gps_data_t from GPSd's own JSON.
 ///
@@ -220,4 +220,4 @@ gps_data_t makeThreeDFixFromJson();
 }  // namespace test
 }  // namespace gpsd_client
 
-#endif  // GPSD_CLIENT__TEST__GPSD_JSON_FIXTURE_HPP_
+#endif  // GPSD_JSON_FIXTURE_HPP_

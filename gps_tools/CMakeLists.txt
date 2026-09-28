@@ -74,15 +74,16 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # TODO(#139): Enable the remaining linters once the code complies with them.
   set(ament_cmake_cppcheck_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
   # Uncrustify would read conversions.h as C, which cannot parse its namespace.
   set(ament_cmake_uncrustify_ADDITIONAL_ARGS LANGUAGE CPP)
   # conversions.h is Chuck Gantz's UTM code by way of utexas-art-ros-pkg. It
   # keeps its original attribution, which names no license, so it cannot carry
-  # this package's license header.
-  list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_copyright)
+  # this package's license header. ament_copyright skips it, and cpplint skips
+  # its copyright check, which ament_copyright covers for every other file.
+  list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_copyright ament_cmake_cpplint)
   ament_lint_auto_find_test_dependencies()
   ament_copyright(EXCLUDE include/gps_tools/conversions.h)
+  ament_cpplint(FILTERS -legal/copyright)
 endif()
 
 ament_export_include_directories(include)

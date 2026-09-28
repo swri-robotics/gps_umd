@@ -26,8 +26,8 @@
 //
 // *****************************************************************************
 
-#ifndef GPSD_CLIENT_GPSD_CLIENT_LIFECYCLE_COMPONENT_HPP
-#define GPSD_CLIENT_GPSD_CLIENT_LIFECYCLE_COMPONENT_HPP
+#ifndef GPSD_CLIENT__GPSD_CLIENT_LIFECYCLE_COMPONENT_HPP_
+#define GPSD_CLIENT__GPSD_CLIENT_LIFECYCLE_COMPONENT_HPP_
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
@@ -116,4 +116,4 @@ public:
 };
 }  // namespace gpsd_client
 
-#endif  // GPSD_CLIENT_GPSD_CLIENT_LIFECYCLE_COMPONENT_HPP
+#endif  // GPSD_CLIENT__GPSD_CLIENT_LIFECYCLE_COMPONENT_HPP_

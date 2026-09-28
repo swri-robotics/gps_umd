@@ -24,33 +24,34 @@ class GpsdParserBase : public GpsdParser
 {
 public:
   explicit GpsdParserBase(ParserContext context)
-    : context_(std::move(context))
+  : context_(std::move(context))
   {
   }
 
-  [[nodiscard]] bool isOnline(const gps_data_t& data) const override;
+  [[nodiscard]] bool isOnline(const gps_data_t & data) const override;
 
-  [[nodiscard]] gps_msgs::msg::GPSFix parseGpsFix(const gps_data_t& data,
-                                    const rclcpp::Time& stamp) const override;
+  [[nodiscard]] gps_msgs::msg::GPSFix parseGpsFix(
+    const gps_data_t & data,
+    const rclcpp::Time & stamp) const override;
 
   [[nodiscard]] std::optional<sensor_msgs::msg::NavSatFix> parseNavSatFix(
-      const gps_data_t& data, const rclcpp::Time& fallback_stamp) const override;
+    const gps_data_t & data, const rclcpp::Time & fallback_stamp) const override;
 
 protected:
   /// Fix status (STATUS_*): gps_data_t::status in API 9, moved to
   /// gps_data_t::fix.status in API 10.
-  [[nodiscard]] virtual int getFixStatus(const gps_data_t& data) const = 0;
+  [[nodiscard]] virtual int getFixStatus(const gps_data_t & data) const = 0;
 
 private:
   /// True if any satellite used in the solution is an SBAS satellite.
-  static bool usedSbas(const gps_data_t& data);
+  static bool usedSbas(const gps_data_t & data);
 
   /// True if a DGPS report should be attributed to SBAS: either an SBAS
   /// satellite was used, or the context forces it.
-  [[nodiscard]] bool sbasAugmented(const gps_data_t& data) const;
+  [[nodiscard]] bool sbasAugmented(const gps_data_t & data) const;
 
   /// True if epx/epy/epv are all finite.
-  static bool hasValidVariance(const gps_data_t& data);
+  static bool hasValidVariance(const gps_data_t & data);
 
   static int16_t mapGpsFixStatus(int gpsd_status, bool sbas_used);
 

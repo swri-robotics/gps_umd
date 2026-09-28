@@ -26,13 +26,14 @@ class GpsdRawParser
 {
 public:
   explicit GpsdRawParser(ParserContext context)
-    : context_(std::move(context))
+  : context_(std::move(context))
   {
   }
 
   /// Convert a report into the raw message, stamped with @p stamp.
-  [[nodiscard]] GpsdRawMsg parseRaw(const gps_data_t& data,
-                                    const rclcpp::Time& stamp) const;
+  [[nodiscard]] GpsdRawMsg parseRaw(
+    const gps_data_t & data,
+    const rclcpp::Time & stamp) const;
 
 private:
   /// Number of skyview entries that are actually populated.
@@ -42,13 +43,13 @@ private:
   /// clamped to [0, MAXCHANNELS] rather than trusted. Publishing the whole
   /// fixed array instead would emit MAXCHANNELS (140 or 184, depending on the
   /// GPSd) entries of uninitialised satellites.
-  static std::size_t skyviewCount(const gps_data_t& data);
+  static std::size_t skyviewCount(const gps_data_t & data);
 
   /// Number of populated entries in gps_data_t::devices.list.
   ///
   /// Same reasoning as skyviewCount(): ndevices is a plain int and the array
   /// is MAXUSERDEVS long regardless of how much of it means anything.
-  static std::size_t deviceCount(const gps_data_t& data);
+  static std::size_t deviceCount(const gps_data_t & data);
 
   ParserContext context_;
 };

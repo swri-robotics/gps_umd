@@ -70,8 +70,8 @@ gps_data_t makeEmptyData();
 /// device path to reinterpret. Over-long values are truncated to fit; the
 /// whole tail is zeroed, so what the parser reads back never depends on what
 /// the array held before.
-template <std::size_t N>
-void setCharArray(char (&field)[N], std::string_view value)
+template<std::size_t N>
+void setCharArray(char (& field)[N], std::string_view value)
 {
   static_assert(N > 0, "a char array field always has room for a terminator");
   const std::size_t length = std::min(value.size(), N - 1);
@@ -103,7 +103,7 @@ void setCharArray(char (&field)[N], std::string_view value)
 /// confusing assertion about a value, not as a parse error. That is why the
 /// builders below exist -- prefer them to hand-written JSON strings, and always
 /// assert on decoded values rather than on this return.
-int unpack(gps_data_t& data, const std::string& json);
+int unpack(gps_data_t & data, const std::string & json);
 
 /// One satellite in a SKY report.
 struct Satellite
@@ -162,7 +162,7 @@ struct Tpv
 };
 
 /// Render @p tpv as a GPSd TPV report.
-std::string tpvJson(const Tpv& tpv);
+std::string tpvJson(const Tpv & tpv);
 
 /// Render a GPSd SKY report.
 ///
@@ -178,9 +178,10 @@ std::string tpvJson(const Tpv& tpv);
 ///
 /// uSat is deliberately never emitted: libgps recalculates the used and visible
 /// counts from the satellite array and explicitly ignores nSat/uSat for them.
-std::string skyJson(const std::vector<Satellite>& satellites,
-                    const Dop& dop = Dop{},
-                    const std::string& time = "");
+std::string skyJson(
+  const std::vector<Satellite> & satellites,
+  const Dop & dop = Dop{},
+  const std::string & time = "");
 
 /// Convenience: an online 3D fix with three satellites, two of them used.
 ///

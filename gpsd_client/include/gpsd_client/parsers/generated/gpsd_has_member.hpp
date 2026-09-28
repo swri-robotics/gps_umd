@@ -16,11 +16,11 @@
 /// CMake cannot help here -- check_cxx_symbol_exists() does not see struct
 /// members -- so detection happens in C++ and each assignment is guarded by
 /// `if constexpr`, leaving the message field at its default when absent.
-#define GPSD_DEFINE_HAS_MEMBER(name)                                       \
-  template <typename T, typename = void>                                   \
-  struct has_##name : std::false_type {};                                  \
-  template <typename T>                                                    \
-  struct has_##name<T, std::void_t<decltype(std::declval<T&>().name)>>     \
-      : std::true_type {};
+#define GPSD_DEFINE_HAS_MEMBER(name) \
+  template<typename T, typename = void> \
+  struct has_ ## name : std::false_type {}; \
+  template<typename T> \
+  struct has_ ## name<T, std::void_t<decltype(std::declval<T &>().name)>> \
+    : std::true_type {};
 
 #endif  // GPSD_CLIENT__PARSERS__GENERATED__GPSD_HAS_MEMBER_HPP_

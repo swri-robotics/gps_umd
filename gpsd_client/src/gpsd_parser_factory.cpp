@@ -6,7 +6,7 @@
 namespace gpsd_client
 {
 
-std::unique_ptr<GpsdParser> GpsdParserFactory::create(const ParserContext& context)
+std::unique_ptr<GpsdParser> GpsdParserFactory::create(const ParserContext & context)
 {
   // The one and only version-selection ladder. See the class comment in
   // gpsd_parser_factory.hpp for why this is compile-time rather than runtime.
@@ -24,7 +24,7 @@ std::unique_ptr<GpsdParser> GpsdParserFactory::create(const ParserContext& conte
 }
 
 std::unique_ptr<GpsdRawParser> GpsdParserFactory::createRaw(
-    const ParserContext& context)
+  const ParserContext & context)
 {
   // No ladder here on purpose: gpsd_raw_message.hpp has already resolved
   // GpsdRawMsg and pulled in the matching generated fill() for this build,

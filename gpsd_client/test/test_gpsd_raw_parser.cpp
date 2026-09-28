@@ -52,13 +52,15 @@ TEST(GpsdRawParser, SelectedMessageMatchesTheBuildsApiVersion)
   EXPECT_EQ(GPSD_RAW_FILL_MAJOR, GPSD_API_MAJOR_VERSION);
   EXPECT_EQ(GPSD_RAW_FILL_MINOR, GPSD_API_MINOR_VERSION);
   EXPECT_EQ(gpsd_client::GpsdRawMsg::SET_LATLON, LATLON_SET);
-  EXPECT_EQ(gpsd_client::GpsdRawMsg::SET_UNION & static_cast<uint64_t>(UNION_SET),
-            static_cast<uint64_t>(UNION_SET));
+  EXPECT_EQ(
+    gpsd_client::GpsdRawMsg::SET_UNION & static_cast<uint64_t>(UNION_SET),
+    static_cast<uint64_t>(UNION_SET));
   // Not EXPECT_EQ: the message is generated from the last rev of its API
   // pair, which may know about more mask bits than this build's gps.h (see
   // test_gpsd_raw_include_order.cpp for the full explanation).
-  EXPECT_GE(gpsd_client::GpsdRawMsg::SET_HIGHEST_BIT,
-            static_cast<uint64_t>(SET_HIGH_BIT));
+  EXPECT_GE(
+    gpsd_client::GpsdRawMsg::SET_HIGHEST_BIT,
+    static_cast<uint64_t>(SET_HIGH_BIT));
 }
 
 TEST(GpsdRawParser, StampsAndFramesTheHeader)
@@ -123,8 +125,9 @@ TEST(GpsdRawParser, SkyviewCountIsClampedAgainstGarbage)
   EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).skyview_prn.size(), 0u);
 
   data.satellites_visible = MAXCHANNELS + 500;
-  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).skyview_prn.size(),
-            static_cast<std::size_t>(MAXCHANNELS));
+  EXPECT_EQ(
+    makeParser()->parseRaw(data, rclcpp::Time(0, 0)).skyview_prn.size(),
+    static_cast<std::size_t>(MAXCHANNELS));
 }
 
 TEST(GpsdRawParser, PreservesNanRatherThanZeroing)
@@ -179,7 +182,7 @@ TEST(GpsdRawParser, DeviceListIsTrimmedToNdevices)
 {
   gps_data_t data = gpsd_client::test::makeEmptyData();
   const std::size_t capacity =
-      sizeof(data.devices.list) / sizeof(data.devices.list[0]);
+    sizeof(data.devices.list) / sizeof(data.devices.list[0]);
 
   data.devices.ndevices = 2;
   gpsd_client::test::setCharArray(data.devices.list[0].path, "/dev/ttyS0");
@@ -196,8 +199,9 @@ TEST(GpsdRawParser, DeviceListIsTrimmedToNdevices)
   data.devices.ndevices = -1;
   EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).devices_list_path.size(), 0u);
   data.devices.ndevices = static_cast<int>(capacity) + 100;
-  EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).devices_list_path.size(),
-            capacity);
+  EXPECT_EQ(
+    makeParser()->parseRaw(data, rclcpp::Time(0, 0)).devices_list_path.size(),
+    capacity);
 }
 
 #ifdef HAVE_GPS_DATA_IMU
@@ -226,8 +230,7 @@ TEST(GpsdRawParser, ImuIsTerminatedByAnEmptyMsg)
   EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu_msg.size(), 2u);
 
   // All ten stamped: bounded by the array, never past it.
-  for (std::size_t i = 0; i < max_imu; ++i)
-  {
+  for (std::size_t i = 0; i < max_imu; ++i) {
     gpsd_client::test::setCharArray(data.imu[i].msg, "UBX-ESF-RAW");
   }
   EXPECT_EQ(makeParser()->parseRaw(data, rclcpp::Time(0, 0)).imu_msg.size(), max_imu);
@@ -337,11 +340,12 @@ TEST(GpsdRawParser, ToffReportReachesTheMessage)
 TEST(GpsdRawParser, PpsReportReachesTheMessageIncludingQErr)
 {
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  gpsd_client::test::unpack(data,
-      R"({"class":"PPS","device":"/dev/ttyS0",)"
-      R"("real_sec":1700000001,"real_nsec":0,)"
-      R"("clock_sec":1700000000,"clock_nsec":999999000,)"
-      R"("precision":-20,"qErr":-1234})");
+  gpsd_client::test::unpack(
+    data,
+    R"({"class":"PPS","device":"/dev/ttyS0",)"
+    R"("real_sec":1700000001,"real_nsec":0,)"
+    R"("clock_sec":1700000000,"clock_nsec":999999000,)"
+    R"("precision":-20,"qErr":-1234})");
 
   ASSERT_TRUE(data.set & PPS_SET) << "libgps did not report a PPS";
 
@@ -423,7 +427,7 @@ TEST(GpsdRawParser, UnionArmsStayAtTheirDefaultsWithoutTheirBit)
 
   auto msg = makeParser()->parseRaw(data, rclcpp::Time(0, 0));
   EXPECT_TRUE(msg.version_release.empty())
-      << "copied a union arm the mask did not name";
+    << "copied a union arm the mask did not name";
 }
 
 TEST(GpsdRawParser, ErrorArmIsAStringFromTheMask)
@@ -457,7 +461,7 @@ TEST(GpsdRawParser, ParallelArraysInAGroupAgreeInLength)
   EXPECT_EQ(msg.devices_list_driver.size(), d);
 }
 
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

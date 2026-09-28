@@ -1024,7 +1024,7 @@ class GeneratedParserCode(unittest.TestCase):
         for pair in ALL_PAIRS:
             source = self.parser_source(pair)
             self.assertIn('inline void fill_skyview(', source)
-            self.assertIn('const std::vector<std::size_t>& idx', source)
+            self.assertIn('const std::vector<std::size_t> & idx', source)
             body = source[source.index('inline void fill_skyview('):]
             body = body[:body.index('\ninline void ', 1)] if '\ninline void ' \
                 in body[1:] else body

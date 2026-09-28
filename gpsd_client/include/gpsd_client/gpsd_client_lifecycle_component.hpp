@@ -36,8 +36,7 @@ public:
 
   CallbackReturn on_configure(const State & /* previous_state */) override
   {
-    if (!doConfigure())
-    {
+    if (!doConfigure()) {
       // Drop whatever was built before the failure; the node stays unconfigured.
       doCleanup();
       return CallbackReturn::FAILURE;
@@ -50,8 +49,7 @@ public:
     // Enables the managed publishers; without it they drop what is published.
     rclcpp_lifecycle::LifecycleNode::on_activate(previous_state);
 
-    if (!doActivate())
-    {
+    if (!doActivate()) {
       rclcpp_lifecycle::LifecycleNode::on_deactivate(previous_state);
       return CallbackReturn::FAILURE;
     }

@@ -27,10 +27,11 @@ rclcpp::NodeOptions unreachableGpsd()
   rclcpp::NodeOptions options;
   // 127.0.0.1 rather than a bogus hostname: connection refused comes back
   // immediately, where a name that does not resolve costs a DNS timeout.
-  options.parameter_overrides({
-    rclcpp::Parameter("host", "127.0.0.1"),
-    rclcpp::Parameter("port", 1),
-  });
+  options.parameter_overrides(
+    {
+      rclcpp::Parameter("host", "127.0.0.1"),
+      rclcpp::Parameter("port", 1),
+    });
   return options;
 }
 
@@ -64,7 +65,8 @@ TEST_F(LifecycleTest, StartsUnconfigured)
 
 TEST_F(LifecycleTest, AdvertisesLifecycleServices)
 {
-  const std::string ns = std::string(node_->get_node_base_interface()->get_fully_qualified_name()) + "/";
+  const std::string ns = std::string(node_->get_node_base_interface()->get_fully_qualified_name()) +
+    "/";
   const std::vector<std::string> expected{
     ns + "change_state", ns + "get_state", ns + "get_available_states",
     ns + "get_available_transitions"};
@@ -76,19 +78,17 @@ TEST_F(LifecycleTest, AdvertisesLifecycleServices)
   const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
   std::map<std::string, std::vector<std::string>> services;
   bool all_present = false;
-  while (!all_present && std::chrono::steady_clock::now() < deadline)
-  {
+  while (!all_present && std::chrono::steady_clock::now() < deadline) {
     services = node_->get_service_names_and_types();
-    all_present = std::all_of(expected.begin(), expected.end(),
-      [&services](const std::string & name) { return services.count(name) > 0; });
-    if (!all_present)
-    {
+    all_present = std::all_of(
+      expected.begin(), expected.end(),
+      [&services](const std::string & name) {return services.count(name) > 0;});
+    if (!all_present) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
   }
 
-  for (const std::string & service : expected)
-  {
+  for (const std::string & service : expected) {
     EXPECT_GT(services.count(service), 0u) << "missing lifecycle service " << service;
   }
 }

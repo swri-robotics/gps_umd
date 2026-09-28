@@ -38,290 +38,361 @@ namespace generated
 // spellings are legitimately in scope, so a rename that changes a
 // value cannot reach a subscriber.
 #ifdef ONLINE_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_ONLINE == static_cast<uint64_t>(ONLINE_SET),
-              "SET_ONLINE disagrees with gps.h's ONLINE_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_ONLINE == static_cast<uint64_t>(ONLINE_SET),
+  "SET_ONLINE disagrees with gps.h's ONLINE_SET");
 #endif
 #ifdef TIME_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_TIME == static_cast<uint64_t>(TIME_SET),
-              "SET_TIME disagrees with gps.h's TIME_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_TIME == static_cast<uint64_t>(TIME_SET),
+  "SET_TIME disagrees with gps.h's TIME_SET");
 #endif
 #ifdef TIMERR_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_TIMERR == static_cast<uint64_t>(TIMERR_SET),
-              "SET_TIMERR disagrees with gps.h's TIMERR_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_TIMERR == static_cast<uint64_t>(TIMERR_SET),
+  "SET_TIMERR disagrees with gps.h's TIMERR_SET");
 #endif
 #ifdef LATLON_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_LATLON == static_cast<uint64_t>(LATLON_SET),
-              "SET_LATLON disagrees with gps.h's LATLON_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_LATLON == static_cast<uint64_t>(LATLON_SET),
+  "SET_LATLON disagrees with gps.h's LATLON_SET");
 #endif
 #ifdef ALTITUDE_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_ALTITUDE == static_cast<uint64_t>(ALTITUDE_SET),
-              "SET_ALTITUDE disagrees with gps.h's ALTITUDE_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_ALTITUDE == static_cast<uint64_t>(ALTITUDE_SET),
+  "SET_ALTITUDE disagrees with gps.h's ALTITUDE_SET");
 #endif
 #ifdef SPEED_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_SPEED == static_cast<uint64_t>(SPEED_SET),
-              "SET_SPEED disagrees with gps.h's SPEED_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_SPEED == static_cast<uint64_t>(SPEED_SET),
+  "SET_SPEED disagrees with gps.h's SPEED_SET");
 #endif
 #ifdef TRACK_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_TRACK == static_cast<uint64_t>(TRACK_SET),
-              "SET_TRACK disagrees with gps.h's TRACK_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_TRACK == static_cast<uint64_t>(TRACK_SET),
+  "SET_TRACK disagrees with gps.h's TRACK_SET");
 #endif
 #ifdef CLIMB_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_CLIMB == static_cast<uint64_t>(CLIMB_SET),
-              "SET_CLIMB disagrees with gps.h's CLIMB_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_CLIMB == static_cast<uint64_t>(CLIMB_SET),
+  "SET_CLIMB disagrees with gps.h's CLIMB_SET");
 #endif
 #ifdef STATUS_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_STATUS == static_cast<uint64_t>(STATUS_SET),
-              "SET_STATUS disagrees with gps.h's STATUS_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_STATUS == static_cast<uint64_t>(STATUS_SET),
+  "SET_STATUS disagrees with gps.h's STATUS_SET");
 #endif
 #ifdef MODE_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_MODE == static_cast<uint64_t>(MODE_SET),
-              "SET_MODE disagrees with gps.h's MODE_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_MODE == static_cast<uint64_t>(MODE_SET),
+  "SET_MODE disagrees with gps.h's MODE_SET");
 #endif
 #ifdef DOP_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_DOP == static_cast<uint64_t>(DOP_SET),
-              "SET_DOP disagrees with gps.h's DOP_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_DOP == static_cast<uint64_t>(DOP_SET),
+  "SET_DOP disagrees with gps.h's DOP_SET");
 #endif
 #ifdef HERR_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_HERR == static_cast<uint64_t>(HERR_SET),
-              "SET_HERR disagrees with gps.h's HERR_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_HERR == static_cast<uint64_t>(HERR_SET),
+  "SET_HERR disagrees with gps.h's HERR_SET");
 #endif
 #ifdef VERR_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_VERR == static_cast<uint64_t>(VERR_SET),
-              "SET_VERR disagrees with gps.h's VERR_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_VERR == static_cast<uint64_t>(VERR_SET),
+  "SET_VERR disagrees with gps.h's VERR_SET");
 #endif
 #ifdef ATTITUDE_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_ATTITUDE == static_cast<uint64_t>(ATTITUDE_SET),
-              "SET_ATTITUDE disagrees with gps.h's ATTITUDE_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_ATTITUDE == static_cast<uint64_t>(ATTITUDE_SET),
+  "SET_ATTITUDE disagrees with gps.h's ATTITUDE_SET");
 #endif
 #ifdef SATELLITE_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_SATELLITE == static_cast<uint64_t>(SATELLITE_SET),
-              "SET_SATELLITE disagrees with gps.h's SATELLITE_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_SATELLITE == static_cast<uint64_t>(SATELLITE_SET),
+  "SET_SATELLITE disagrees with gps.h's SATELLITE_SET");
 #endif
 #ifdef SPEEDERR_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_SPEEDERR == static_cast<uint64_t>(SPEEDERR_SET),
-              "SET_SPEEDERR disagrees with gps.h's SPEEDERR_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_SPEEDERR == static_cast<uint64_t>(SPEEDERR_SET),
+  "SET_SPEEDERR disagrees with gps.h's SPEEDERR_SET");
 #endif
 #ifdef TRACKERR_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_TRACKERR == static_cast<uint64_t>(TRACKERR_SET),
-              "SET_TRACKERR disagrees with gps.h's TRACKERR_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_TRACKERR == static_cast<uint64_t>(TRACKERR_SET),
+  "SET_TRACKERR disagrees with gps.h's TRACKERR_SET");
 #endif
 #ifdef CLIMBERR_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_CLIMBERR == static_cast<uint64_t>(CLIMBERR_SET),
-              "SET_CLIMBERR disagrees with gps.h's CLIMBERR_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_CLIMBERR == static_cast<uint64_t>(CLIMBERR_SET),
+  "SET_CLIMBERR disagrees with gps.h's CLIMBERR_SET");
 #endif
 #ifdef DEVICE_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_DEVICE == static_cast<uint64_t>(DEVICE_SET),
-              "SET_DEVICE disagrees with gps.h's DEVICE_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_DEVICE == static_cast<uint64_t>(DEVICE_SET),
+  "SET_DEVICE disagrees with gps.h's DEVICE_SET");
 #endif
 #ifdef DEVICELIST_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_DEVICELIST == static_cast<uint64_t>(DEVICELIST_SET),
-              "SET_DEVICELIST disagrees with gps.h's DEVICELIST_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_DEVICELIST == static_cast<uint64_t>(DEVICELIST_SET),
+  "SET_DEVICELIST disagrees with gps.h's DEVICELIST_SET");
 #endif
 #ifdef DEVICEID_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_DEVICEID == static_cast<uint64_t>(DEVICEID_SET),
-              "SET_DEVICEID disagrees with gps.h's DEVICEID_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_DEVICEID == static_cast<uint64_t>(DEVICEID_SET),
+  "SET_DEVICEID disagrees with gps.h's DEVICEID_SET");
 #endif
 #ifdef RTCM2_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_RTCM2 == static_cast<uint64_t>(RTCM2_SET),
-              "SET_RTCM2 disagrees with gps.h's RTCM2_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_RTCM2 == static_cast<uint64_t>(RTCM2_SET),
+  "SET_RTCM2 disagrees with gps.h's RTCM2_SET");
 #endif
 #ifdef RTCM3_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_RTCM3 == static_cast<uint64_t>(RTCM3_SET),
-              "SET_RTCM3 disagrees with gps.h's RTCM3_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_RTCM3 == static_cast<uint64_t>(RTCM3_SET),
+  "SET_RTCM3 disagrees with gps.h's RTCM3_SET");
 #endif
 #ifdef AIS_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_AIS == static_cast<uint64_t>(AIS_SET),
-              "SET_AIS disagrees with gps.h's AIS_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_AIS == static_cast<uint64_t>(AIS_SET),
+  "SET_AIS disagrees with gps.h's AIS_SET");
 #endif
 #ifdef PACKET_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_PACKET == static_cast<uint64_t>(PACKET_SET),
-              "SET_PACKET disagrees with gps.h's PACKET_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_PACKET == static_cast<uint64_t>(PACKET_SET),
+  "SET_PACKET disagrees with gps.h's PACKET_SET");
 #endif
 #ifdef SUBFRAME_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_SUBFRAME == static_cast<uint64_t>(SUBFRAME_SET),
-              "SET_SUBFRAME disagrees with gps.h's SUBFRAME_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_SUBFRAME == static_cast<uint64_t>(SUBFRAME_SET),
+  "SET_SUBFRAME disagrees with gps.h's SUBFRAME_SET");
 #endif
 #ifdef GST_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_GST == static_cast<uint64_t>(GST_SET),
-              "SET_GST disagrees with gps.h's GST_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_GST == static_cast<uint64_t>(GST_SET),
+  "SET_GST disagrees with gps.h's GST_SET");
 #endif
 #ifdef VERSION_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_VERSION == static_cast<uint64_t>(VERSION_SET),
-              "SET_VERSION disagrees with gps.h's VERSION_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_VERSION == static_cast<uint64_t>(VERSION_SET),
+  "SET_VERSION disagrees with gps.h's VERSION_SET");
 #endif
 #ifdef POLICY_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_POLICY == static_cast<uint64_t>(POLICY_SET),
-              "SET_POLICY disagrees with gps.h's POLICY_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_POLICY == static_cast<uint64_t>(POLICY_SET),
+  "SET_POLICY disagrees with gps.h's POLICY_SET");
 #endif
 #ifdef LOGMESSAGE_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_LOGMESSAGE == static_cast<uint64_t>(LOGMESSAGE_SET),
-              "SET_LOGMESSAGE disagrees with gps.h's LOGMESSAGE_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_LOGMESSAGE == static_cast<uint64_t>(LOGMESSAGE_SET),
+  "SET_LOGMESSAGE disagrees with gps.h's LOGMESSAGE_SET");
 #endif
 #ifdef ERROR_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_ERROR == static_cast<uint64_t>(ERROR_SET),
-              "SET_ERROR disagrees with gps.h's ERROR_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_ERROR == static_cast<uint64_t>(ERROR_SET),
+  "SET_ERROR disagrees with gps.h's ERROR_SET");
 #endif
 #ifdef TOFF_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_TOFF == static_cast<uint64_t>(TOFF_SET),
-              "SET_TOFF disagrees with gps.h's TOFF_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_TOFF == static_cast<uint64_t>(TOFF_SET),
+  "SET_TOFF disagrees with gps.h's TOFF_SET");
 #endif
 #ifdef PPS_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_PPS == static_cast<uint64_t>(PPS_SET),
-              "SET_PPS disagrees with gps.h's PPS_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_PPS == static_cast<uint64_t>(PPS_SET),
+  "SET_PPS disagrees with gps.h's PPS_SET");
 #endif
 #ifdef NAVDATA_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_NAVDATA == static_cast<uint64_t>(NAVDATA_SET),
-              "SET_NAVDATA disagrees with gps.h's NAVDATA_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_NAVDATA == static_cast<uint64_t>(NAVDATA_SET),
+  "SET_NAVDATA disagrees with gps.h's NAVDATA_SET");
 #endif
 #ifdef OSCILLATOR_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_OSCILLATOR == static_cast<uint64_t>(OSCILLATOR_SET),
-              "SET_OSCILLATOR disagrees with gps.h's OSCILLATOR_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_OSCILLATOR == static_cast<uint64_t>(OSCILLATOR_SET),
+  "SET_OSCILLATOR disagrees with gps.h's OSCILLATOR_SET");
 #endif
 #ifdef ECEF_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_ECEF == static_cast<uint64_t>(ECEF_SET),
-              "SET_ECEF disagrees with gps.h's ECEF_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_ECEF == static_cast<uint64_t>(ECEF_SET),
+  "SET_ECEF disagrees with gps.h's ECEF_SET");
 #endif
 #ifdef VECEF_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_VECEF == static_cast<uint64_t>(VECEF_SET),
-              "SET_VECEF disagrees with gps.h's VECEF_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_VECEF == static_cast<uint64_t>(VECEF_SET),
+  "SET_VECEF disagrees with gps.h's VECEF_SET");
 #endif
 #ifdef MAGNETIC_TRACK_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_MAGNETIC_TRACK == static_cast<uint64_t>(MAGNETIC_TRACK_SET),
-              "SET_MAGNETIC_TRACK disagrees with gps.h's MAGNETIC_TRACK_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_MAGNETIC_TRACK == static_cast<uint64_t>(MAGNETIC_TRACK_SET),
+  "SET_MAGNETIC_TRACK disagrees with gps.h's MAGNETIC_TRACK_SET");
 #endif
 #ifdef RAW_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_RAW == static_cast<uint64_t>(RAW_SET),
-              "SET_RAW disagrees with gps.h's RAW_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_RAW == static_cast<uint64_t>(RAW_SET),
+  "SET_RAW disagrees with gps.h's RAW_SET");
 #endif
 #ifdef NED_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_NED == static_cast<uint64_t>(NED_SET),
-              "SET_NED disagrees with gps.h's NED_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_NED == static_cast<uint64_t>(NED_SET),
+  "SET_NED disagrees with gps.h's NED_SET");
 #endif
 #ifdef VNED_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_VNED == static_cast<uint64_t>(VNED_SET),
-              "SET_VNED disagrees with gps.h's VNED_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_VNED == static_cast<uint64_t>(VNED_SET),
+  "SET_VNED disagrees with gps.h's VNED_SET");
 #endif
 #ifdef LOG_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_LOG == static_cast<uint64_t>(LOG_SET),
-              "SET_LOG disagrees with gps.h's LOG_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_LOG == static_cast<uint64_t>(LOG_SET),
+  "SET_LOG disagrees with gps.h's LOG_SET");
 #endif
 #ifdef IMU_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_IMU == static_cast<uint64_t>(IMU_SET),
-              "SET_IMU disagrees with gps.h's IMU_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_IMU == static_cast<uint64_t>(IMU_SET),
+  "SET_IMU disagrees with gps.h's IMU_SET");
 #endif
 #ifdef EOF_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_EOF == static_cast<uint64_t>(EOF_SET),
-              "SET_EOF disagrees with gps.h's EOF_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_EOF == static_cast<uint64_t>(EOF_SET),
+  "SET_EOF disagrees with gps.h's EOF_SET");
 #endif
 #ifdef SPARTN_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_SPARTN == static_cast<uint64_t>(SPARTN_SET),
-              "SET_SPARTN disagrees with gps.h's SPARTN_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_SPARTN == static_cast<uint64_t>(SPARTN_SET),
+  "SET_SPARTN disagrees with gps.h's SPARTN_SET");
 #endif
 #ifdef UNION_SET
-static_assert(gps_msgs::msg::GPSDRaw16v0::SET_UNION == static_cast<uint64_t>(UNION_SET),
-              "SET_UNION disagrees with gps.h's UNION_SET");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::SET_UNION == static_cast<uint64_t>(UNION_SET),
+  "SET_UNION disagrees with gps.h's UNION_SET");
 #endif
 
 // Field value constants against the gps.h macros they came from.
 #ifdef SEEN_AIS
-static_assert(gps_msgs::msg::GPSDRaw16v0::DEV_FLAG_AIS == static_cast<int32_t>(SEEN_AIS),
-              "DEV_FLAG_AIS disagrees with gps.h's SEEN_AIS");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::DEV_FLAG_AIS == static_cast<int32_t>(SEEN_AIS),
+  "DEV_FLAG_AIS disagrees with gps.h's SEEN_AIS");
 #endif
 #ifdef SEEN_GPS
-static_assert(gps_msgs::msg::GPSDRaw16v0::DEV_FLAG_GPS == static_cast<int32_t>(SEEN_GPS),
-              "DEV_FLAG_GPS disagrees with gps.h's SEEN_GPS");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::DEV_FLAG_GPS == static_cast<int32_t>(SEEN_GPS),
+  "DEV_FLAG_GPS disagrees with gps.h's SEEN_GPS");
 #endif
 #ifdef SEEN_RTCM2
-static_assert(gps_msgs::msg::GPSDRaw16v0::DEV_FLAG_RTCM2 == static_cast<int32_t>(SEEN_RTCM2),
-              "DEV_FLAG_RTCM2 disagrees with gps.h's SEEN_RTCM2");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::DEV_FLAG_RTCM2 == static_cast<int32_t>(SEEN_RTCM2),
+  "DEV_FLAG_RTCM2 disagrees with gps.h's SEEN_RTCM2");
 #endif
 #ifdef SEEN_RTCM3
-static_assert(gps_msgs::msg::GPSDRaw16v0::DEV_FLAG_RTCM3 == static_cast<int32_t>(SEEN_RTCM3),
-              "DEV_FLAG_RTCM3 disagrees with gps.h's SEEN_RTCM3");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::DEV_FLAG_RTCM3 == static_cast<int32_t>(SEEN_RTCM3),
+  "DEV_FLAG_RTCM3 disagrees with gps.h's SEEN_RTCM3");
 #endif
 #ifdef ANT_OK
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_ANT_OK == static_cast<int32_t>(ANT_OK),
-              "FIX_ANT_OK disagrees with gps.h's ANT_OK");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_ANT_OK == static_cast<int32_t>(ANT_OK),
+  "FIX_ANT_OK disagrees with gps.h's ANT_OK");
 #endif
 #ifdef ANT_OPEN
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_ANT_OPEN == static_cast<int32_t>(ANT_OPEN),
-              "FIX_ANT_OPEN disagrees with gps.h's ANT_OPEN");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_ANT_OPEN == static_cast<int32_t>(ANT_OPEN),
+  "FIX_ANT_OPEN disagrees with gps.h's ANT_OPEN");
 #endif
 #ifdef ANT_PWR_OFF
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_ANT_PWR_OFF == static_cast<int32_t>(ANT_PWR_OFF),
-              "FIX_ANT_PWR_OFF disagrees with gps.h's ANT_PWR_OFF");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_ANT_PWR_OFF == static_cast<int32_t>(ANT_PWR_OFF),
+  "FIX_ANT_PWR_OFF disagrees with gps.h's ANT_PWR_OFF");
 #endif
 #ifdef ANT_PWR_ON
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_ANT_PWR_ON == static_cast<int32_t>(ANT_PWR_ON),
-              "FIX_ANT_PWR_ON disagrees with gps.h's ANT_PWR_ON");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_ANT_PWR_ON == static_cast<int32_t>(ANT_PWR_ON),
+  "FIX_ANT_PWR_ON disagrees with gps.h's ANT_PWR_ON");
 #endif
 #ifdef ANT_PWR_UNK
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_ANT_PWR_UNK == static_cast<int32_t>(ANT_PWR_UNK),
-              "FIX_ANT_PWR_UNK disagrees with gps.h's ANT_PWR_UNK");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_ANT_PWR_UNK == static_cast<int32_t>(ANT_PWR_UNK),
+  "FIX_ANT_PWR_UNK disagrees with gps.h's ANT_PWR_UNK");
 #endif
 #ifdef ANT_SHORT
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_ANT_SHORT == static_cast<int32_t>(ANT_SHORT),
-              "FIX_ANT_SHORT disagrees with gps.h's ANT_SHORT");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_ANT_SHORT == static_cast<int32_t>(ANT_SHORT),
+  "FIX_ANT_SHORT disagrees with gps.h's ANT_SHORT");
 #endif
 #ifdef ANT_UNK
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_ANT_UNK == static_cast<int32_t>(ANT_UNK),
-              "FIX_ANT_UNK disagrees with gps.h's ANT_UNK");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_ANT_UNK == static_cast<int32_t>(ANT_UNK),
+  "FIX_ANT_UNK disagrees with gps.h's ANT_UNK");
 #endif
 #ifdef MODE_2D
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_MODE_2D == static_cast<int32_t>(MODE_2D),
-              "FIX_MODE_2D disagrees with gps.h's MODE_2D");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_MODE_2D == static_cast<int32_t>(MODE_2D),
+  "FIX_MODE_2D disagrees with gps.h's MODE_2D");
 #endif
 #ifdef MODE_3D
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_MODE_3D == static_cast<int32_t>(MODE_3D),
-              "FIX_MODE_3D disagrees with gps.h's MODE_3D");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_MODE_3D == static_cast<int32_t>(MODE_3D),
+  "FIX_MODE_3D disagrees with gps.h's MODE_3D");
 #endif
 #ifdef MODE_NOT_SEEN
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_MODE_NOT_SEEN == static_cast<int32_t>(MODE_NOT_SEEN),
-              "FIX_MODE_NOT_SEEN disagrees with gps.h's MODE_NOT_SEEN");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_MODE_NOT_SEEN == static_cast<int32_t>(MODE_NOT_SEEN),
+  "FIX_MODE_NOT_SEEN disagrees with gps.h's MODE_NOT_SEEN");
 #endif
 #ifdef MODE_NO_FIX
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_MODE_NO_FIX == static_cast<int32_t>(MODE_NO_FIX),
-              "FIX_MODE_NO_FIX disagrees with gps.h's MODE_NO_FIX");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_MODE_NO_FIX == static_cast<int32_t>(MODE_NO_FIX),
+  "FIX_MODE_NO_FIX disagrees with gps.h's MODE_NO_FIX");
 #endif
 #ifdef STATUS_DGPS
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_DGPS == static_cast<int32_t>(STATUS_DGPS),
-              "FIX_STATUS_DGPS disagrees with gps.h's STATUS_DGPS");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_DGPS == static_cast<int32_t>(STATUS_DGPS),
+  "FIX_STATUS_DGPS disagrees with gps.h's STATUS_DGPS");
 #endif
 #ifdef STATUS_DR
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_DR == static_cast<int32_t>(STATUS_DR),
-              "FIX_STATUS_DR disagrees with gps.h's STATUS_DR");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_DR == static_cast<int32_t>(STATUS_DR),
+  "FIX_STATUS_DR disagrees with gps.h's STATUS_DR");
 #endif
 #ifdef STATUS_GNSSDR
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_GNSSDR == static_cast<int32_t>(STATUS_GNSSDR),
-              "FIX_STATUS_GNSSDR disagrees with gps.h's STATUS_GNSSDR");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_GNSSDR == static_cast<int32_t>(STATUS_GNSSDR),
+  "FIX_STATUS_GNSSDR disagrees with gps.h's STATUS_GNSSDR");
 #endif
 #ifdef STATUS_GPS
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_GPS == static_cast<int32_t>(STATUS_GPS),
-              "FIX_STATUS_GPS disagrees with gps.h's STATUS_GPS");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_GPS == static_cast<int32_t>(STATUS_GPS),
+  "FIX_STATUS_GPS disagrees with gps.h's STATUS_GPS");
 #endif
 #ifdef STATUS_PPS_FIX
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_PPS_FIX == static_cast<int32_t>(STATUS_PPS_FIX),
-              "FIX_STATUS_PPS_FIX disagrees with gps.h's STATUS_PPS_FIX");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_PPS_FIX == static_cast<int32_t>(STATUS_PPS_FIX),
+  "FIX_STATUS_PPS_FIX disagrees with gps.h's STATUS_PPS_FIX");
 #endif
 #ifdef STATUS_RTK_FIX
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_RTK_FIX == static_cast<int32_t>(STATUS_RTK_FIX),
-              "FIX_STATUS_RTK_FIX disagrees with gps.h's STATUS_RTK_FIX");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_RTK_FIX == static_cast<int32_t>(STATUS_RTK_FIX),
+  "FIX_STATUS_RTK_FIX disagrees with gps.h's STATUS_RTK_FIX");
 #endif
 #ifdef STATUS_RTK_FLT
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_RTK_FLT == static_cast<int32_t>(STATUS_RTK_FLT),
-              "FIX_STATUS_RTK_FLT disagrees with gps.h's STATUS_RTK_FLT");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_RTK_FLT == static_cast<int32_t>(STATUS_RTK_FLT),
+  "FIX_STATUS_RTK_FLT disagrees with gps.h's STATUS_RTK_FLT");
 #endif
 #ifdef STATUS_SIM
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_SIM == static_cast<int32_t>(STATUS_SIM),
-              "FIX_STATUS_SIM disagrees with gps.h's STATUS_SIM");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_SIM == static_cast<int32_t>(STATUS_SIM),
+  "FIX_STATUS_SIM disagrees with gps.h's STATUS_SIM");
 #endif
 #ifdef STATUS_TIME
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_TIME == static_cast<int32_t>(STATUS_TIME),
-              "FIX_STATUS_TIME disagrees with gps.h's STATUS_TIME");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_TIME == static_cast<int32_t>(STATUS_TIME),
+  "FIX_STATUS_TIME disagrees with gps.h's STATUS_TIME");
 #endif
 #ifdef STATUS_UNK
-static_assert(gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_UNK == static_cast<int32_t>(STATUS_UNK),
-              "FIX_STATUS_UNK disagrees with gps.h's STATUS_UNK");
+static_assert(
+  gps_msgs::msg::GPSDRaw16v0::FIX_STATUS_UNK == static_cast<int32_t>(STATUS_UNK),
+  "FIX_STATUS_UNK disagrees with gps.h's STATUS_UNK");
 #endif
 
 GPSD_DEFINE_HAS_MEMBER(NED)
@@ -542,11 +613,11 @@ GPSD_DEFINE_HAS_MEMBER(ydop)
 GPSD_DEFINE_HAS_MEMBER(z)
 
 // Forward declarations; see the note in the generator.
-template <typename T>
-inline void fill(const T& in, gps_msgs::msg::GPSDRaw16v0& out);
+template<typename T>
+inline void fill(const T & in, gps_msgs::msg::GPSDRaw16v0 & out);
 
-template <typename T>
-inline void fill(const T& in, gps_msgs::msg::GPSDRaw16v0& out)
+template<typename T>
+inline void fill(const T & in, gps_msgs::msg::GPSDRaw16v0 & out)
 {
   (void)in;
   (void)out;
@@ -956,10 +1027,12 @@ inline void fill(const T& in, gps_msgs::msg::GPSDRaw16v0& out)
       out.policy_loglevel = in.policy.loglevel;
     }
     if constexpr (has_devpath<T_policy>::value) {
-      out.policy_devpath.assign(in.policy.devpath, strnlen(in.policy.devpath, sizeof(in.policy.devpath)));
+      out.policy_devpath.assign(
+        in.policy.devpath, strnlen(in.policy.devpath, sizeof(in.policy.devpath)));
     }
     if constexpr (has_remote<T_policy>::value) {
-      out.policy_remote.assign(in.policy.remote, strnlen(in.policy.remote, sizeof(in.policy.remote)));
+      out.policy_remote.assign(
+        in.policy.remote, strnlen(in.policy.remote, sizeof(in.policy.remote)));
     }
   }
   if constexpr (has_devices<T>::value) {
@@ -1039,7 +1112,8 @@ inline void fill(const T& in, gps_msgs::msg::GPSDRaw16v0& out)
     if (0 != (in.set & VERSION_SET)) {
       using T_version = std::decay_t<decltype(in.version)>;
       if constexpr (has_release<T_version>::value) {
-        out.version_release.assign(in.version.release, strnlen(in.version.release, sizeof(in.version.release)));
+        out.version_release.assign(
+          in.version.release, strnlen(in.version.release, sizeof(in.version.release)));
       }
       if constexpr (has_rev<T_version>::value) {
         out.version_rev.assign(in.version.rev, strnlen(in.version.rev, sizeof(in.version.rev)));
@@ -1051,7 +1125,8 @@ inline void fill(const T& in, gps_msgs::msg::GPSDRaw16v0& out)
         out.version_proto_minor = in.version.proto_minor;
       }
       if constexpr (has_remote<T_version>::value) {
-        out.version_remote.assign(in.version.remote, strnlen(in.version.remote, sizeof(in.version.remote)));
+        out.version_remote.assign(
+          in.version.remote, strnlen(in.version.remote, sizeof(in.version.remote)));
       }
     }
   }
@@ -1215,9 +1290,10 @@ inline void fill(const T& in, gps_msgs::msg::GPSDRaw16v0& out)
 /// Fill the skyview_* arrays from in.skyview, taking the
 /// elements named by idx. One loop, so every array in the group ends
 /// the same length.
-template <typename T>
-inline void fill_skyview(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
-                          const std::vector<std::size_t>& idx)
+template<typename T>
+inline void fill_skyview(
+  const T & in, gps_msgs::msg::GPSDRaw16v0 & out,
+  const std::vector<std::size_t> & idx)
 {
   (void)in;
   (void)out;
@@ -1303,9 +1379,10 @@ inline void fill_skyview(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
 /// Fill the devices_list_* arrays from in.devices.list, taking the
 /// elements named by idx. One loop, so every array in the group ends
 /// the same length.
-template <typename T>
-inline void fill_devices_list(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
-                          const std::vector<std::size_t>& idx)
+template<typename T>
+inline void fill_devices_list(
+  const T & in, gps_msgs::msg::GPSDRaw16v0 & out,
+  const std::vector<std::size_t> & idx)
 {
   (void)in;
   (void)out;
@@ -1313,93 +1390,111 @@ inline void fill_devices_list(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
   const std::size_t count = idx.size();
   if constexpr (has_devices<T>::value) {
     using T_devices = std::decay_t<decltype(in.devices)>;
-  if constexpr (has_list<T_devices>::value) {
-    out.devices_list_path.resize(count);
-    out.devices_list_flags.resize(count);
-    out.devices_list_driver.resize(count);
-    out.devices_list_subtype.resize(count);
-    out.devices_list_subtype1.resize(count);
-    out.devices_list_sernum.resize(count);
-    out.devices_list_hexdata.resize(count);
-    out.devices_list_activated.resize(count);
-    out.devices_list_baudrate.resize(count);
-    out.devices_list_stopbits.resize(count);
-    out.devices_list_parity.resize(count);
-    out.devices_list_cycle.resize(count);
-    out.devices_list_mincycle.resize(count);
-    out.devices_list_driver_mode.resize(count);
-    for (std::size_t i = 0; i < count; ++i) {
-      const std::size_t src = idx[i];
-      using T_elem_devices_list_path = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_path<T_elem_devices_list_path>::value) {
-        out.devices_list_path[i].assign(in.devices.list[src].path, strnlen(in.devices.list[src].path, sizeof(in.devices.list[src].path)));
-      }
-      using T_elem_devices_list_flags = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_flags<T_elem_devices_list_flags>::value) {
-        out.devices_list_flags[i] = in.devices.list[src].flags;
-      }
-      using T_elem_devices_list_driver = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_driver<T_elem_devices_list_driver>::value) {
-        out.devices_list_driver[i].assign(in.devices.list[src].driver, strnlen(in.devices.list[src].driver, sizeof(in.devices.list[src].driver)));
-      }
-      using T_elem_devices_list_subtype = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_subtype<T_elem_devices_list_subtype>::value) {
-        out.devices_list_subtype[i].assign(in.devices.list[src].subtype, strnlen(in.devices.list[src].subtype, sizeof(in.devices.list[src].subtype)));
-      }
-      using T_elem_devices_list_subtype1 = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_subtype1<T_elem_devices_list_subtype1>::value) {
-        out.devices_list_subtype1[i].assign(in.devices.list[src].subtype1, strnlen(in.devices.list[src].subtype1, sizeof(in.devices.list[src].subtype1)));
-      }
-      using T_elem_devices_list_sernum = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_sernum<T_elem_devices_list_sernum>::value) {
-        out.devices_list_sernum[i].assign(in.devices.list[src].sernum, strnlen(in.devices.list[src].sernum, sizeof(in.devices.list[src].sernum)));
-      }
-      using T_elem_devices_list_hexdata = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_hexdata<T_elem_devices_list_hexdata>::value) {
-        out.devices_list_hexdata[i].assign(in.devices.list[src].hexdata, strnlen(in.devices.list[src].hexdata, sizeof(in.devices.list[src].hexdata)));
-      }
-      using T_elem_devices_list_activated = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_activated<T_elem_devices_list_activated>::value) {
-        out.devices_list_activated[i].sec = static_cast<int32_t>(in.devices.list[src].activated.tv_sec);
-        out.devices_list_activated[i].nanosec = static_cast<uint32_t>(in.devices.list[src].activated.tv_nsec);
-      }
-      using T_elem_devices_list_baudrate = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_baudrate<T_elem_devices_list_baudrate>::value) {
-        out.devices_list_baudrate[i] = in.devices.list[src].baudrate;
-      }
-      using T_elem_devices_list_stopbits = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_stopbits<T_elem_devices_list_stopbits>::value) {
-        out.devices_list_stopbits[i] = in.devices.list[src].stopbits;
-      }
-      using T_elem_devices_list_parity = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_parity<T_elem_devices_list_parity>::value) {
-        out.devices_list_parity[i] = in.devices.list[src].parity;
-      }
-      using T_elem_devices_list_cycle = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_cycle<T_elem_devices_list_cycle>::value) {
-        out.devices_list_cycle[i].sec = static_cast<int32_t>(in.devices.list[src].cycle.tv_sec);
-        out.devices_list_cycle[i].nanosec = static_cast<uint32_t>(in.devices.list[src].cycle.tv_nsec);
-      }
-      using T_elem_devices_list_mincycle = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_mincycle<T_elem_devices_list_mincycle>::value) {
-        out.devices_list_mincycle[i].sec = static_cast<int32_t>(in.devices.list[src].mincycle.tv_sec);
-        out.devices_list_mincycle[i].nanosec = static_cast<uint32_t>(in.devices.list[src].mincycle.tv_nsec);
-      }
-      using T_elem_devices_list_driver_mode = std::decay_t<decltype(in.devices.list[src])>;
-      if constexpr (has_driver_mode<T_elem_devices_list_driver_mode>::value) {
-        out.devices_list_driver_mode[i] = in.devices.list[src].driver_mode;
+    if constexpr (has_list<T_devices>::value) {
+      out.devices_list_path.resize(count);
+      out.devices_list_flags.resize(count);
+      out.devices_list_driver.resize(count);
+      out.devices_list_subtype.resize(count);
+      out.devices_list_subtype1.resize(count);
+      out.devices_list_sernum.resize(count);
+      out.devices_list_hexdata.resize(count);
+      out.devices_list_activated.resize(count);
+      out.devices_list_baudrate.resize(count);
+      out.devices_list_stopbits.resize(count);
+      out.devices_list_parity.resize(count);
+      out.devices_list_cycle.resize(count);
+      out.devices_list_mincycle.resize(count);
+      out.devices_list_driver_mode.resize(count);
+      for (std::size_t i = 0; i < count; ++i) {
+        const std::size_t src = idx[i];
+        using T_elem_devices_list_path = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_path<T_elem_devices_list_path>::value) {
+          out.devices_list_path[i].assign(
+            in.devices.list[src].path,
+            strnlen(in.devices.list[src].path, sizeof(in.devices.list[src].path)));
+        }
+        using T_elem_devices_list_flags = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_flags<T_elem_devices_list_flags>::value) {
+          out.devices_list_flags[i] = in.devices.list[src].flags;
+        }
+        using T_elem_devices_list_driver = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_driver<T_elem_devices_list_driver>::value) {
+          out.devices_list_driver[i].assign(
+            in.devices.list[src].driver,
+            strnlen(in.devices.list[src].driver, sizeof(in.devices.list[src].driver)));
+        }
+        using T_elem_devices_list_subtype = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_subtype<T_elem_devices_list_subtype>::value) {
+          out.devices_list_subtype[i].assign(
+            in.devices.list[src].subtype,
+            strnlen(in.devices.list[src].subtype, sizeof(in.devices.list[src].subtype)));
+        }
+        using T_elem_devices_list_subtype1 = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_subtype1<T_elem_devices_list_subtype1>::value) {
+          out.devices_list_subtype1[i].assign(
+            in.devices.list[src].subtype1,
+            strnlen(in.devices.list[src].subtype1, sizeof(in.devices.list[src].subtype1)));
+        }
+        using T_elem_devices_list_sernum = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_sernum<T_elem_devices_list_sernum>::value) {
+          out.devices_list_sernum[i].assign(
+            in.devices.list[src].sernum,
+            strnlen(in.devices.list[src].sernum, sizeof(in.devices.list[src].sernum)));
+        }
+        using T_elem_devices_list_hexdata = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_hexdata<T_elem_devices_list_hexdata>::value) {
+          out.devices_list_hexdata[i].assign(
+            in.devices.list[src].hexdata,
+            strnlen(in.devices.list[src].hexdata, sizeof(in.devices.list[src].hexdata)));
+        }
+        using T_elem_devices_list_activated = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_activated<T_elem_devices_list_activated>::value) {
+          out.devices_list_activated[i].sec =
+            static_cast<int32_t>(in.devices.list[src].activated.tv_sec);
+          out.devices_list_activated[i].nanosec =
+            static_cast<uint32_t>(in.devices.list[src].activated.tv_nsec);
+        }
+        using T_elem_devices_list_baudrate = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_baudrate<T_elem_devices_list_baudrate>::value) {
+          out.devices_list_baudrate[i] = in.devices.list[src].baudrate;
+        }
+        using T_elem_devices_list_stopbits = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_stopbits<T_elem_devices_list_stopbits>::value) {
+          out.devices_list_stopbits[i] = in.devices.list[src].stopbits;
+        }
+        using T_elem_devices_list_parity = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_parity<T_elem_devices_list_parity>::value) {
+          out.devices_list_parity[i] = in.devices.list[src].parity;
+        }
+        using T_elem_devices_list_cycle = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_cycle<T_elem_devices_list_cycle>::value) {
+          out.devices_list_cycle[i].sec = static_cast<int32_t>(in.devices.list[src].cycle.tv_sec);
+          out.devices_list_cycle[i].nanosec =
+            static_cast<uint32_t>(in.devices.list[src].cycle.tv_nsec);
+        }
+        using T_elem_devices_list_mincycle = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_mincycle<T_elem_devices_list_mincycle>::value) {
+          out.devices_list_mincycle[i].sec =
+            static_cast<int32_t>(in.devices.list[src].mincycle.tv_sec);
+          out.devices_list_mincycle[i].nanosec =
+            static_cast<uint32_t>(in.devices.list[src].mincycle.tv_nsec);
+        }
+        using T_elem_devices_list_driver_mode = std::decay_t<decltype(in.devices.list[src])>;
+        if constexpr (has_driver_mode<T_elem_devices_list_driver_mode>::value) {
+          out.devices_list_driver_mode[i] = in.devices.list[src].driver_mode;
+        }
       }
     }
-  }
   }
 }
 
 /// Fill the raw_meas_* arrays from in.raw.meas, taking the
 /// elements named by idx. One loop, so every array in the group ends
 /// the same length.
-template <typename T>
-inline void fill_raw_meas(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
-                          const std::vector<std::size_t>& idx)
+template<typename T>
+inline void fill_raw_meas(
+  const T & in, gps_msgs::msg::GPSDRaw16v0 & out,
+  const std::vector<std::size_t> & idx)
 {
   (void)in;
   (void)out;
@@ -1407,102 +1502,105 @@ inline void fill_raw_meas(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
   const std::size_t count = idx.size();
   if constexpr (has_raw<T>::value) {
     using T_raw = std::decay_t<decltype(in.raw)>;
-  if constexpr (has_meas<T_raw>::value) {
-    if (0 != (in.set & RAW_SET)) {
-      out.raw_meas_gnssid.resize(count);
-      out.raw_meas_svid.resize(count);
-      out.raw_meas_sigid.resize(count);
-      out.raw_meas_snr.resize(count);
-      out.raw_meas_freqid.resize(count);
-      out.raw_meas_lli.resize(count);
-      out.raw_meas_obs_code.resize(count);
-      out.raw_meas_codephase.resize(count);
-      out.raw_meas_carrierphase.resize(count);
-      out.raw_meas_pseudorange.resize(count);
-      out.raw_meas_deltarange.resize(count);
-      out.raw_meas_doppler.resize(count);
-      out.raw_meas_locktime.resize(count);
-      out.raw_meas_l2c.resize(count);
-      out.raw_meas_c2c.resize(count);
-      out.raw_meas_satstat.resize(count);
-      for (std::size_t i = 0; i < count; ++i) {
-        const std::size_t src = idx[i];
-        using T_elem_raw_meas_gnssid = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_gnssid<T_elem_raw_meas_gnssid>::value) {
-          out.raw_meas_gnssid[i] = in.raw.meas[src].gnssid;
-        }
-        using T_elem_raw_meas_svid = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_svid<T_elem_raw_meas_svid>::value) {
-          out.raw_meas_svid[i] = in.raw.meas[src].svid;
-        }
-        using T_elem_raw_meas_sigid = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_sigid<T_elem_raw_meas_sigid>::value) {
-          out.raw_meas_sigid[i] = in.raw.meas[src].sigid;
-        }
-        using T_elem_raw_meas_snr = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_snr<T_elem_raw_meas_snr>::value) {
-          out.raw_meas_snr[i] = in.raw.meas[src].snr;
-        }
-        using T_elem_raw_meas_freqid = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_freqid<T_elem_raw_meas_freqid>::value) {
-          out.raw_meas_freqid[i] = in.raw.meas[src].freqid;
-        }
-        using T_elem_raw_meas_lli = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_lli<T_elem_raw_meas_lli>::value) {
-          out.raw_meas_lli[i] = in.raw.meas[src].lli;
-        }
-        using T_elem_raw_meas_obs_code = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_obs_code<T_elem_raw_meas_obs_code>::value) {
-          out.raw_meas_obs_code[i].assign(in.raw.meas[src].obs_code, strnlen(in.raw.meas[src].obs_code, sizeof(in.raw.meas[src].obs_code)));
-        }
-        using T_elem_raw_meas_codephase = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_codephase<T_elem_raw_meas_codephase>::value) {
-          out.raw_meas_codephase[i] = in.raw.meas[src].codephase;
-        }
-        using T_elem_raw_meas_carrierphase = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_carrierphase<T_elem_raw_meas_carrierphase>::value) {
-          out.raw_meas_carrierphase[i] = in.raw.meas[src].carrierphase;
-        }
-        using T_elem_raw_meas_pseudorange = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_pseudorange<T_elem_raw_meas_pseudorange>::value) {
-          out.raw_meas_pseudorange[i] = in.raw.meas[src].pseudorange;
-        }
-        using T_elem_raw_meas_deltarange = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_deltarange<T_elem_raw_meas_deltarange>::value) {
-          out.raw_meas_deltarange[i] = in.raw.meas[src].deltarange;
-        }
-        using T_elem_raw_meas_doppler = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_doppler<T_elem_raw_meas_doppler>::value) {
-          out.raw_meas_doppler[i] = in.raw.meas[src].doppler;
-        }
-        using T_elem_raw_meas_locktime = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_locktime<T_elem_raw_meas_locktime>::value) {
-          out.raw_meas_locktime[i] = in.raw.meas[src].locktime;
-        }
-        using T_elem_raw_meas_l2c = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_l2c<T_elem_raw_meas_l2c>::value) {
-          out.raw_meas_l2c[i] = in.raw.meas[src].l2c;
-        }
-        using T_elem_raw_meas_c2c = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_c2c<T_elem_raw_meas_c2c>::value) {
-          out.raw_meas_c2c[i] = in.raw.meas[src].c2c;
-        }
-        using T_elem_raw_meas_satstat = std::decay_t<decltype(in.raw.meas[src])>;
-        if constexpr (has_satstat<T_elem_raw_meas_satstat>::value) {
-          out.raw_meas_satstat[i] = in.raw.meas[src].satstat;
+    if constexpr (has_meas<T_raw>::value) {
+      if (0 != (in.set & RAW_SET)) {
+        out.raw_meas_gnssid.resize(count);
+        out.raw_meas_svid.resize(count);
+        out.raw_meas_sigid.resize(count);
+        out.raw_meas_snr.resize(count);
+        out.raw_meas_freqid.resize(count);
+        out.raw_meas_lli.resize(count);
+        out.raw_meas_obs_code.resize(count);
+        out.raw_meas_codephase.resize(count);
+        out.raw_meas_carrierphase.resize(count);
+        out.raw_meas_pseudorange.resize(count);
+        out.raw_meas_deltarange.resize(count);
+        out.raw_meas_doppler.resize(count);
+        out.raw_meas_locktime.resize(count);
+        out.raw_meas_l2c.resize(count);
+        out.raw_meas_c2c.resize(count);
+        out.raw_meas_satstat.resize(count);
+        for (std::size_t i = 0; i < count; ++i) {
+          const std::size_t src = idx[i];
+          using T_elem_raw_meas_gnssid = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_gnssid<T_elem_raw_meas_gnssid>::value) {
+            out.raw_meas_gnssid[i] = in.raw.meas[src].gnssid;
+          }
+          using T_elem_raw_meas_svid = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_svid<T_elem_raw_meas_svid>::value) {
+            out.raw_meas_svid[i] = in.raw.meas[src].svid;
+          }
+          using T_elem_raw_meas_sigid = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_sigid<T_elem_raw_meas_sigid>::value) {
+            out.raw_meas_sigid[i] = in.raw.meas[src].sigid;
+          }
+          using T_elem_raw_meas_snr = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_snr<T_elem_raw_meas_snr>::value) {
+            out.raw_meas_snr[i] = in.raw.meas[src].snr;
+          }
+          using T_elem_raw_meas_freqid = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_freqid<T_elem_raw_meas_freqid>::value) {
+            out.raw_meas_freqid[i] = in.raw.meas[src].freqid;
+          }
+          using T_elem_raw_meas_lli = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_lli<T_elem_raw_meas_lli>::value) {
+            out.raw_meas_lli[i] = in.raw.meas[src].lli;
+          }
+          using T_elem_raw_meas_obs_code = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_obs_code<T_elem_raw_meas_obs_code>::value) {
+            out.raw_meas_obs_code[i].assign(
+              in.raw.meas[src].obs_code,
+              strnlen(in.raw.meas[src].obs_code, sizeof(in.raw.meas[src].obs_code)));
+          }
+          using T_elem_raw_meas_codephase = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_codephase<T_elem_raw_meas_codephase>::value) {
+            out.raw_meas_codephase[i] = in.raw.meas[src].codephase;
+          }
+          using T_elem_raw_meas_carrierphase = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_carrierphase<T_elem_raw_meas_carrierphase>::value) {
+            out.raw_meas_carrierphase[i] = in.raw.meas[src].carrierphase;
+          }
+          using T_elem_raw_meas_pseudorange = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_pseudorange<T_elem_raw_meas_pseudorange>::value) {
+            out.raw_meas_pseudorange[i] = in.raw.meas[src].pseudorange;
+          }
+          using T_elem_raw_meas_deltarange = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_deltarange<T_elem_raw_meas_deltarange>::value) {
+            out.raw_meas_deltarange[i] = in.raw.meas[src].deltarange;
+          }
+          using T_elem_raw_meas_doppler = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_doppler<T_elem_raw_meas_doppler>::value) {
+            out.raw_meas_doppler[i] = in.raw.meas[src].doppler;
+          }
+          using T_elem_raw_meas_locktime = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_locktime<T_elem_raw_meas_locktime>::value) {
+            out.raw_meas_locktime[i] = in.raw.meas[src].locktime;
+          }
+          using T_elem_raw_meas_l2c = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_l2c<T_elem_raw_meas_l2c>::value) {
+            out.raw_meas_l2c[i] = in.raw.meas[src].l2c;
+          }
+          using T_elem_raw_meas_c2c = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_c2c<T_elem_raw_meas_c2c>::value) {
+            out.raw_meas_c2c[i] = in.raw.meas[src].c2c;
+          }
+          using T_elem_raw_meas_satstat = std::decay_t<decltype(in.raw.meas[src])>;
+          if constexpr (has_satstat<T_elem_raw_meas_satstat>::value) {
+            out.raw_meas_satstat[i] = in.raw.meas[src].satstat;
+          }
         }
       }
     }
-  }
   }
 }
 
 /// Fill the imu_* arrays from in.imu, taking the
 /// elements named by idx. One loop, so every array in the group ends
 /// the same length.
-template <typename T>
-inline void fill_imu(const T& in, gps_msgs::msg::GPSDRaw16v0& out,
-                          const std::vector<std::size_t>& idx)
+template<typename T>
+inline void fill_imu(
+  const T & in, gps_msgs::msg::GPSDRaw16v0 & out,
+  const std::vector<std::size_t> & idx)
 {
   (void)in;
   (void)out;

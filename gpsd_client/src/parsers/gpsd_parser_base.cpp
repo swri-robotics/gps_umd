@@ -9,29 +9,27 @@ namespace gpsd_client
 {
 constexpr uint32_t NANOSECONDS_IN_SECOND = 1e9;
 
-bool GpsdParserBase::isOnline(const gps_data_t& data) const
+bool GpsdParserBase::isOnline(const gps_data_t & data) const
 {
-  return ((data.online.tv_sec > 0) || (data.online.tv_nsec > 0));
+  return (data.online.tv_sec > 0) || (data.online.tv_nsec > 0);
 }
 
-bool GpsdParserBase::usedSbas(const gps_data_t& data)
+bool GpsdParserBase::usedSbas(const gps_data_t & data)
 {
-  for (int i = 0; i < data.satellites_visible; ++i)
-  {
-    if (data.skyview[i].used && data.skyview[i].gnssid == GNSSID_SBAS)
-    {
+  for (int i = 0; i < data.satellites_visible; ++i) {
+    if (data.skyview[i].used && data.skyview[i].gnssid == GNSSID_SBAS) {
       return true;
     }
   }
   return false;
 }
 
-bool GpsdParserBase::sbasAugmented(const gps_data_t& data) const
+bool GpsdParserBase::sbasAugmented(const gps_data_t & data) const
 {
   return context_.override_augmentation_source || usedSbas(data);
 }
 
-bool GpsdParserBase::hasValidVariance(const gps_data_t& data)
+bool GpsdParserBase::hasValidVariance(const gps_data_t & data)
 {
   return std::isfinite(data.fix.epx) &&
          std::isfinite(data.fix.epy) &&
@@ -56,15 +54,11 @@ bool GpsdParserBase::hasValidVariance(const gps_data_t& data)
 
 int16_t GpsdParserBase::mapGpsFixStatus(int gpsd_status, bool sbas_used)
 {
-  switch (gpsd_status)
-  {
+  switch (gpsd_status) {
     case GPSD_STATUS_DGPS:
-      if (sbas_used)
-      {
+      if (sbas_used) {
         return 1;  // gps_msgs::msg::GPSStatus::STATUS_SBAS_FIX
-      }
-      else
-      {
+      } else {
         return 18; // gps_msgs::msg::GPSStatus::STATUS_DGPS_FIX
       }
     case STATUS_RTK_FIX:
@@ -78,15 +72,11 @@ int16_t GpsdParserBase::mapGpsFixStatus(int gpsd_status, bool sbas_used)
 
 int8_t GpsdParserBase::mapNavSatStatus(int gpsd_status, bool sbas_used)
 {
-  switch (gpsd_status)
-  {
+  switch (gpsd_status) {
     case GPSD_STATUS_DGPS:
-      if (sbas_used)
-      {
+      if (sbas_used) {
         return 1;  // sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX
-      }
-      else
-      {
+      } else {
         return 2;  // sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX
       }
     case STATUS_RTK_FIX:
@@ -97,8 +87,9 @@ int8_t GpsdParserBase::mapNavSatStatus(int gpsd_status, bool sbas_used)
   }
 }
 
-gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(const gps_data_t& data,
-                                                  const rclcpp::Time& stamp) const
+gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(
+  const gps_data_t & data,
+  const rclcpp::Time & stamp) const
 {
   gps_msgs::msg::GPSFix fix;
   gps_msgs::msg::GPSStatus status;
@@ -110,10 +101,8 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(const gps_data_t& data,
   status.satellites_used = data.satellites_used;
 
   status.satellite_used_prn.reserve(data.satellites_used);
-  for (int i = 0; i < data.satellites_visible; ++i)
-  {
-    if (data.skyview[i].used)
-    {
+  for (int i = 0; i < data.satellites_visible; ++i) {
+    if (data.skyview[i].used) {
       status.satellite_used_prn.push_back(data.skyview[i].PRN);
     }
   }
@@ -125,8 +114,7 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(const gps_data_t& data,
   status.satellite_visible_azimuth.resize(status.satellites_visible);
   status.satellite_visible_snr.resize(status.satellites_visible);
 
-  for (int i = 0; i < data.satellites_visible; ++i)
-  {
+  for (int i = 0; i < data.satellites_visible; ++i) {
     status.satellite_visible_prn[i] = data.skyview[i].PRN;
     status.satellite_visible_z[i] = data.skyview[i].elevation;
     status.satellite_visible_azimuth[i] = data.skyview[i].azimuth;
@@ -134,7 +122,7 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(const gps_data_t& data,
   }
 
   if (((data.fix.mode == MODE_2D) || (data.fix.mode == MODE_3D)) &&
-      (!context_.check_fix_by_variance || hasValidVariance(data)))
+    (!context_.check_fix_by_variance || hasValidVariance(data)))
   {
     status.motion_source = gps_msgs::msg::GPSStatus::SOURCE_POINTS;
     status.orientation_source = gps_msgs::msg::GPSStatus::SOURCE_POINTS;
@@ -143,15 +131,12 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(const gps_data_t& data,
     status.status = mapGpsFixStatus(getFixStatus(data), sbasAugmented(data));
 
     fix.time = static_cast<double>(data.fix.time.tv_sec) +
-               (static_cast<double>(data.fix.time.tv_nsec) / NANOSECONDS_IN_SECOND);
+      (static_cast<double>(data.fix.time.tv_nsec) / NANOSECONDS_IN_SECOND);
     fix.latitude = data.fix.latitude;
     fix.longitude = data.fix.longitude;
-    if (data.fix.mode == MODE_3D)
-    {
+    if (data.fix.mode == MODE_3D) {
       fix.altitude = data.fix.altitude;
-    }
-    else
-    {
+    } else {
       fix.altitude = std::nan("");
     }
     fix.track = data.fix.track;
@@ -172,9 +157,7 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(const gps_data_t& data,
     fix.err_time = data.fix.ept;
 
     /* TODO: attitude */
-  }
-  else
-  {
+  } else {
     status.status = -1; // gps_msgs::msg::GPSStatus::STATUS_NO_FIX
   }
 
@@ -184,20 +167,17 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(const gps_data_t& data,
 }
 
 std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
-    const gps_data_t& data, const rclcpp::Time& fallback_stamp) const
+  const gps_data_t & data, const rclcpp::Time & fallback_stamp) const
 {
   sensor_msgs::msg::NavSatFix fix;
 
   /* TODO: Support SBAS and other GBAS. */
 
-  if (context_.use_gps_time && ((data.online.tv_sec > 0) || (data.online.tv_nsec > 0)))
-  {
+  if (context_.use_gps_time && ((data.online.tv_sec > 0) || (data.online.tv_nsec > 0))) {
     fix.header.stamp = rclcpp::Time(
       static_cast<uint32_t>(data.fix.time.tv_sec),
       static_cast<uint32_t>(data.fix.time.tv_nsec));
-  }
-  else
-  {
+  } else {
     fix.header.stamp = fallback_stamp;
   }
 
@@ -208,35 +188,23 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
 #else
   fix.status.service = sensor_msgs::msg::NavSatStatus::SERVICE_UNKNOWN;
 #endif
-  for (int i = 0; i < data.satellites_visible; ++i)
-  {
-    if (data.skyview[i].used)
-    {
-      if (data.skyview[i].gnssid == GNSSID_GPS)
-      {
+  for (int i = 0; i < data.satellites_visible; ++i) {
+    if (data.skyview[i].used) {
+      if (data.skyview[i].gnssid == GNSSID_GPS) {
         fix.status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_GPS;
-      }
-      else if (data.skyview[i].gnssid == GNSSID_GLO)
-      {
+      } else if (data.skyview[i].gnssid == GNSSID_GLO) {
         fix.status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS;
-      }
-      else if (data.skyview[i].gnssid == GNSSID_BD)
-      {
+      } else if (data.skyview[i].gnssid == GNSSID_BD) {
         fix.status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_COMPASS;
-      }
-      else if (data.skyview[i].gnssid == GNSSID_GAL)
-      {
+      } else if (data.skyview[i].gnssid == GNSSID_GAL) {
         fix.status.service |= sensor_msgs::msg::NavSatStatus::SERVICE_GALILEO;
       }
     }
   }
 
-  if (data.fix.mode == MODE_2D || data.fix.mode == MODE_3D)
-  {
+  if (data.fix.mode == MODE_2D || data.fix.mode == MODE_3D) {
     fix.status.status = mapNavSatStatus(getFixStatus(data), sbasAugmented(data));
-  }
-  else
-  {
+  } else {
     fix.status.status = -1; // sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX
   }
 
@@ -248,8 +216,7 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
    * there has been a fix previously. Throw out these fake results, which
    * have NaN variance.
    */
-  if (context_.check_fix_by_variance && !hasValidVariance(data))
-  {
+  if (context_.check_fix_by_variance && !hasValidVariance(data)) {
     return std::nullopt;
   }
 
@@ -262,19 +229,16 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
    * check_fix_by_variance is off because when it is on, a fix with a NaN
    * variance has already been dropped above.
    */
-  if (hasValidVariance(data))
-  {
+  if (hasValidVariance(data)) {
     fix.position_covariance[0] = data.fix.epx;
     fix.position_covariance[4] = data.fix.epy;
     fix.position_covariance[8] = data.fix.epv;
 
     fix.position_covariance_type =
-        sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
-  }
-  else
-  {
+      sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+  } else {
     fix.position_covariance_type =
-        sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN;
+      sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN;
   }
 
   return fix;

@@ -30,7 +30,7 @@ namespace gpsd_client
 template<typename NodeT, typename MsgT>
 using PublisherPtr =
   decltype(std::declval<NodeT &>().template create_publisher<MsgT>(
-      std::declval<const std::string &>(), std::declval<const rclcpp::QoS &>()));
+    std::declval<const std::string &>(), std::declval<const rclcpp::QoS &>()));
 
 /* Everything gpsd_client does, minus the question of when it does it.
  *
@@ -92,8 +92,9 @@ protected:
   {
     this->get_parameter_or("use_gps_time", use_gps_time_, use_gps_time_);
     this->get_parameter_or("check_fix_by_variance", check_fix_by_variance_, check_fix_by_variance_);
-    this->get_parameter_or("override_augmentation_source", override_augmentation_source_,
-                           override_augmentation_source_);
+    this->get_parameter_or(
+      "override_augmentation_source", override_augmentation_source_,
+      override_augmentation_source_);
     this->get_parameter_or("publish_gpsd_raw", publish_gpsd_raw_, publish_gpsd_raw_);
     this->get_parameter_or("publish_gpsd_json", publish_gpsd_json_, publish_gpsd_json_);
     this->get_parameter_or("frame_id", frame_id_, frame_id_);
@@ -110,7 +111,7 @@ protected:
     navsatfix_pub_ = this->template create_publisher<sensor_msgs::msg::NavSatFix>("fix", 1);
 
     ParserContext context{frame_id_, use_gps_time_, check_fix_by_variance_,
-                          override_augmentation_source_};
+      override_augmentation_source_};
     parser_ = GpsdParserFactory::create(context);
 
     /* Both extra topics are opt-in, and neither the publisher nor the
@@ -119,13 +120,11 @@ protected:
      * -- so nothing is serialized or advertised for the majority of users
      * who want only a fix.
      */
-    if (publish_gpsd_raw_)
-    {
+    if (publish_gpsd_raw_) {
       raw_parser_ = GpsdParserFactory::createRaw(context);
     }
 
-    if (publish_gpsd_json_)
-    {
+    if (publish_gpsd_json_) {
       /* Every report GPSd sends, as the JSON line libgps handed back.
        *
        * This carries more than the typed topic can. libgps decodes 17 report
@@ -134,19 +133,20 @@ protected:
        * arrives here even though gps_data_t::subframe can never hold it.
        */
       gpsd_json_pub_ =
-          this->template create_publisher<gps_msgs::msg::GPSDJson>("gpsd_json", 10);
-      RCLCPP_INFO(this->get_logger(),
-                  "Publishing raw GPSd JSON reports on gpsd_json");
+        this->template create_publisher<gps_msgs::msg::GPSDJson>("gpsd_json", 10);
+      RCLCPP_INFO(
+        this->get_logger(),
+        "Publishing raw GPSd JSON reports on gpsd_json");
     }
 
-    if (publish_gpsd_raw_)
-    {
+    if (publish_gpsd_raw_) {
       gpsd_raw_pub_ = this->template create_publisher<GpsdRawMsg>("gpsd_raw", 1);
-      RCLCPP_INFO(this->get_logger(),
-                  "Publishing raw GPSd reports on gpsd_raw as %s "
-                  "(libgps API %d.%d)",
-                  GPSD_RAW_MESSAGE_NAME, GPSD_API_MAJOR_VERSION,
-                  GPSD_API_MINOR_VERSION);
+      RCLCPP_INFO(
+        this->get_logger(),
+        "Publishing raw GPSd reports on gpsd_raw as %s "
+        "(libgps API %d.%d)",
+        GPSD_RAW_MESSAGE_NAME, GPSD_API_MAJOR_VERSION,
+        GPSD_API_MINOR_VERSION);
     }
 
     /* These must be members, not locals. gps_open() stores the host and
@@ -165,8 +165,7 @@ protected:
     this->get_parameter_or("port", port, port);
     port_ = std::to_string(port);
 
-    if (0 != gps_open(host_.c_str(), port_.c_str(), &gps_data_))
-    {
+    if (0 != gps_open(host_.c_str(), port_.c_str(), &gps_data_)) {
       RCLCPP_ERROR(this->get_logger(), "Failed to open GPSd");
       return false;
     }
@@ -179,20 +178,19 @@ protected:
   /// Ask GPSd to start streaming and begin polling it.
   bool doActivate()
   {
-    if (!gps_opened_)
-    {
+    if (!gps_opened_) {
       RCLCPP_ERROR(this->get_logger(), "Cannot activate: GPSd is not open");
       return false;
     }
 
-    if (-1 == gps_stream(&gps_data_, WATCH_ENABLE, nullptr))
-    {
+    if (-1 == gps_stream(&gps_data_, WATCH_ENABLE, nullptr)) {
       RCLCPP_ERROR(this->get_logger(), "Failed to start the GPSd stream");
       return false;
     }
 
-    timer_ = this->create_wall_timer(publish_period_ms_,
-                                     std::bind(&GPSDClientBase::step, this));
+    timer_ = this->create_wall_timer(
+      publish_period_ms_,
+      std::bind(&GPSDClientBase::step, this));
     return true;
   }
 
@@ -200,8 +198,7 @@ protected:
   void doDeactivate()
   {
     timer_.reset();
-    if (gps_opened_)
-    {
+    if (gps_opened_) {
       gps_stream(&gps_data_, WATCH_DISABLE, nullptr);
     }
   }
@@ -209,8 +206,7 @@ protected:
   /// Drop the publishers and parsers and close the connection.
   void doCleanup()
   {
-    if (gps_opened_)
-    {
+    if (gps_opened_) {
       gps_close(&gps_data_);
       gps_opened_ = false;
     }
@@ -231,8 +227,7 @@ protected:
    */
   void publishJson(const char * message)
   {
-    if (!gpsd_json_pub_ || nullptr == message || '\0' == message[0])
-    {
+    if (!gpsd_json_pub_ || nullptr == message || '\0' == message[0]) {
       return;
     }
     gps_msgs::msg::GPSDJson msg;
@@ -247,11 +242,13 @@ protected:
     /* The timer only exists while the node is active, but a lifecycle
      * deactivation can land between a firing and its callback.
      */
-    if (!gps_opened_ || !parser_)
+    if (!gps_opened_ || !parser_) {
       return;
+    }
 
-    if (!gps_waiting(&gps_data_, 1000000))
+    if (!gps_waiting(&gps_data_, 1000000)) {
       return;
+    }
 
     /* Drains every queued report and acts on the latest, except for the
      * JSON topic, which publishes per report. See publishJson().
@@ -260,19 +257,18 @@ protected:
      * cycle parsed anything at all.
      */
     bool have_report = false;
-    while (gps_waiting(&gps_data_, 0))
-    {
+    while (gps_waiting(&gps_data_, 0)) {
       message_[0] = '\0';
-      if (0 >= gps_read(&gps_data_, message_, static_cast<int>(sizeof(message_))))
-      {
+      if (0 >= gps_read(&gps_data_, message_, static_cast<int>(sizeof(message_)))) {
         break;    // read error, or the connection closed
       }
       have_report = true;
       publishJson(message_);
     }
 
-    if (!have_report || !parser_->isOnline(gps_data_))
+    if (!have_report || !parser_->isOnline(gps_data_)) {
       return;
+    }
 
     rclcpp::Time now = this->get_clock()->now();
 
@@ -284,21 +280,18 @@ protected:
      * this one: that filter hides GPSd's stale-fix behaviour from NavSatFix
      * consumers, and applying it here would make "raw" a filtered topic.
      */
-    if (gpsd_raw_pub_)
-    {
+    if (gpsd_raw_pub_) {
       RCLCPP_DEBUG(this->get_logger(), "Publishing raw GPSd report...");
       gpsd_raw_pub_->publish(raw_parser_->parseRaw(gps_data_, now));
     }
 
     std::optional<sensor_msgs::msg::NavSatFix> navsat_fix = parser_->parseNavSatFix(gps_data_, now);
-    if (navsat_fix.has_value())
-    {
+    if (navsat_fix.has_value()) {
       RCLCPP_DEBUG(this->get_logger(), "Publishing navsatfix...");
       navsatfix_pub_->publish(*navsat_fix);
-    }
-    else
-    {
-      RCLCPP_DEBUG_THROTTLE(this->get_logger(),
+    } else {
+      RCLCPP_DEBUG_THROTTLE(
+        this->get_logger(),
         *this->get_clock(),
         1000,
         "GPS status was reported as OK, but variance was invalid");

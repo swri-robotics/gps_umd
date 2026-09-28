@@ -49,7 +49,7 @@ gpsd_client::ParserContext makeContext()
 }
 
 std::unique_ptr<gpsd_client::GpsdParser> makeParser(
-    const gpsd_client::ParserContext& context = makeContext())
+  const gpsd_client::ParserContext & context = makeContext())
 {
   return gpsd_client::GpsdParserFactory::create(context);
 }
@@ -57,8 +57,7 @@ std::unique_ptr<gpsd_client::GpsdParser> makeParser(
 std::vector<Satellite> threeSatellites()
 {
   std::vector<Satellite> satellites;
-  for (int i = 0; i < 3; ++i)
-  {
+  for (int i = 0; i < 3; ++i) {
     Satellite sat;
     sat.prn = 10 + i;
     sat.elevation = 30 + i;
@@ -147,9 +146,10 @@ TEST(JsonFixture, SkyPopulatesSkyview)
   dop.pdop = 1.1;
 
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  ASSERT_EQ(gpsd_client::test::unpack(
-                data, gpsd_client::test::skyJson(threeSatellites(), dop)),
-            0);
+  ASSERT_EQ(
+    gpsd_client::test::unpack(
+      data, gpsd_client::test::skyJson(threeSatellites(), dop)),
+    0);
 
   ASSERT_EQ(data.satellites_visible, 3);
   EXPECT_EQ(data.satellites_used, 2);
@@ -174,11 +174,12 @@ TEST(JsonFixture, ConcatenatedReportsAccumulate)
   tpv.latitude = 1.0;
 
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  ASSERT_EQ(gpsd_client::test::unpack(
-                data,
-                gpsd_client::test::tpvJson(tpv) +
-                    gpsd_client::test::skyJson(threeSatellites())),
-            0);
+  ASSERT_EQ(
+    gpsd_client::test::unpack(
+      data,
+      gpsd_client::test::tpvJson(tpv) +
+      gpsd_client::test::skyJson(threeSatellites())),
+    0);
 
   EXPECT_DOUBLE_EQ(data.fix.latitude, 1.0);  // from the TPV
   EXPECT_EQ(data.satellites_visible, 3);     // from the SKY
@@ -200,7 +201,7 @@ TEST(JsonFixture, StatusLandsWhereThisVersionKeepsIt)
   data.online.tv_sec = 100;
 
   gps_msgs::msg::GPSFix fix =
-      makeParser()->parseGpsFix(data, rclcpp::Time(42, 0));
+    makeParser()->parseGpsFix(data, rclcpp::Time(42, 0));
   EXPECT_EQ(fix.status.status, 18 /* GPSStatus::STATUS_DGPS_FIX */);
 }
 
@@ -210,7 +211,7 @@ TEST(JsonFixtureParser, ThreeDFixPopulatesGpsFix)
 {
   gps_data_t data = gpsd_client::test::makeThreeDFixFromJson();
   gps_msgs::msg::GPSFix fix =
-      makeParser()->parseGpsFix(data, rclcpp::Time(42, 0));
+    makeParser()->parseGpsFix(data, rclcpp::Time(42, 0));
 
   EXPECT_EQ(fix.header.frame_id, "gps");
   EXPECT_EQ(fix.header.stamp.sec, 42);
@@ -281,17 +282,20 @@ TEST(JsonFixtureParser, SbasSatelliteYieldsSbasStatus)
   tpv.epv = 3.5;
 
   gps_data_t data = gpsd_client::test::makeEmptyData();
-  ASSERT_EQ(gpsd_client::test::unpack(data,
-                                      gpsd_client::test::tpvJson(tpv) +
-                                          gpsd_client::test::skyJson(satellites)),
-            0);
+  ASSERT_EQ(
+    gpsd_client::test::unpack(
+      data,
+      gpsd_client::test::tpvJson(tpv) +
+      gpsd_client::test::skyJson(satellites)),
+    0);
   data.online.tv_sec = 100;
 
   auto navsat_fix = makeParser()->parseNavSatFix(data, rclcpp::Time(42, 0));
   ASSERT_TRUE(navsat_fix.has_value());
-  EXPECT_EQ(navsat_fix->status.service,
-            sensor_msgs::msg::NavSatStatus::SERVICE_GPS |
-                sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS);
+  EXPECT_EQ(
+    navsat_fix->status.service,
+    sensor_msgs::msg::NavSatStatus::SERVICE_GPS |
+    sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS);
   EXPECT_EQ(navsat_fix->status.status, 1 /* NavSatStatus::STATUS_SBAS_FIX */);
 }
 
@@ -313,10 +317,10 @@ TEST(JsonFixtureParser, NanVarianceFromOmittedKeysIsRejected)
   auto context = makeContext();
   context.check_fix_by_variance = true;
   EXPECT_FALSE(
-      makeParser(context)->parseNavSatFix(data, rclcpp::Time(42, 0)).has_value());
+    makeParser(context)->parseNavSatFix(data, rclcpp::Time(42, 0)).has_value());
 }
 
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

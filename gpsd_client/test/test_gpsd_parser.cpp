@@ -20,7 +20,7 @@ namespace
 // of header states, so version arithmetic does not answer "has this member" in
 // general. See docs/gpsd-quirks.md. Probed in the same style as the STATUS_*
 // macros below.
-void setFixStatus(gps_data_t& data, int status)
+void setFixStatus(gps_data_t & data, int status)
 {
 #ifdef HAVE_GPS_FIX_STATUS
   data.fix.status = status;
@@ -94,8 +94,7 @@ gps_data_t makeThreeDFix()
 
   data.satellites_used = 2;
   data.satellites_visible = 3;
-  for (int i = 0; i < 3; ++i)
-  {
+  for (int i = 0; i < 3; ++i) {
     data.skyview[i].PRN = 10 + i;
     data.skyview[i].elevation = 30 + i;
     data.skyview[i].azimuth = 100 + i;
@@ -108,7 +107,7 @@ gps_data_t makeThreeDFix()
 }
 
 std::unique_ptr<gpsd_client::GpsdParser> makeParser(
-    const gpsd_client::ParserContext& context = makeContext())
+  const gpsd_client::ParserContext & context = makeContext())
 {
   return gpsd_client::GpsdParserFactory::create(context);
 }
@@ -187,8 +186,9 @@ TEST(GpsdParser, ThreeDFixPopulatesNavSatFix)
   EXPECT_DOUBLE_EQ(fix->position_covariance[0], 1.5);
   EXPECT_DOUBLE_EQ(fix->position_covariance[4], 2.5);
   EXPECT_DOUBLE_EQ(fix->position_covariance[8], 3.5);
-  EXPECT_EQ(fix->position_covariance_type,
-            sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN);
+  EXPECT_EQ(
+    fix->position_covariance_type,
+    sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN);
 }
 
 TEST(GpsdParser, TwoDFixHasNanAltitude)
@@ -249,11 +249,11 @@ TEST(GpsdParser, NanVarianceMarksCovarianceUnknown)
   auto fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
 
   ASSERT_TRUE(fix.has_value());
-  EXPECT_EQ(fix->position_covariance_type,
-            sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN);
+  EXPECT_EQ(
+    fix->position_covariance_type,
+    sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_UNKNOWN);
   // An unknown covariance is zero-filled; no NaN reaches subscribers.
-  for (const double element : fix->position_covariance)
-  {
+  for (const double element : fix->position_covariance) {
     EXPECT_DOUBLE_EQ(element, 0.0);
   }
 }
@@ -270,9 +270,10 @@ TEST(GpsdParser, ServiceBitmaskAndSbasStatus)
 
   auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
   ASSERT_TRUE(navsat_fix.has_value());
-  EXPECT_EQ(navsat_fix->status.service,
-            sensor_msgs::msg::NavSatStatus::SERVICE_GPS |
-            sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS);
+  EXPECT_EQ(
+    navsat_fix->status.service,
+    sensor_msgs::msg::NavSatStatus::SERVICE_GPS |
+    sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS);
   EXPECT_EQ(navsat_fix->status.status, 1 /* NavSatStatus::STATUS_SBAS_FIX */);
 
   gps_msgs::msg::GPSFix fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
@@ -338,7 +339,7 @@ TEST(GpsdParser, NavSatFixStampUsesGpsTimeWhenEnabled)
   EXPECT_EQ(fix->header.stamp.nanosec, 7u);
 }
 
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

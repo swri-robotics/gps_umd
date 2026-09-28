@@ -1,4 +1,4 @@
-gps_umd 
+gps_umd
 =======
 
 This package contains messages for representing data from GPS devices and algorithms for manipulating it. It uses GPSd as the underlying method of reading data from GPS receivers.

@@ -145,7 +145,7 @@ void callback(const nav_msgs::OdometryConstPtr& odom) {
   UTMtoLL(northing, easting, zone, latitude, longitude);
 
   fix.latitude = latitude;
-  fix.longitude = longitude; 
+  fix.longitude = longitude;
   fix.altitude = odom->pose.pose.position.z;
 
   fix.position_covariance[0] = odom->pose.covariance[0];
@@ -157,7 +157,7 @@ void callback(const nav_msgs::OdometryConstPtr& odom) {
   fix.position_covariance[6] = odom->pose.covariance[12];
   fix.position_covariance[7] = odom->pose.covariance[13];
   fix.position_covariance[8] = odom->pose.covariance[14];
-  
+
   fix.status.status = sensor_msgs::msg::NavSatStatus::STATUS_FIX;
 
   fix_pub.publish(fix);

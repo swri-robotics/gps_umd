@@ -3,7 +3,7 @@ project(gps_msgs)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(MSG_DEPS builtin_interfaces std_msgs )
+set(MSG_DEPS builtin_interfaces std_msgs)
 
 find_package(ament_cmake REQUIRED)
 find_package(builtin_interfaces REQUIRED)
@@ -52,6 +52,9 @@ ament_export_dependencies(rosidl_default_runtime)
 #############
 
 if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+
   find_package(ament_cmake_pytest REQUIRED)
 
   # The generator's tests live with the generator rather than with a package,

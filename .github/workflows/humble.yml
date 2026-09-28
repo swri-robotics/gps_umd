@@ -4,6 +4,11 @@ on: [push, pull_request]
 
 jobs:
   industrial_ci:
+    # Job-level rather than in the matrix, where it would become part of each
+    # job's name and no longer match the required status checks.
+    env:
+      # ament_cppcheck skips every cppcheck 2.x release unless this is set.
+      DOCKER_RUN_OPTS: '-e AMENT_CPPCHECK_ALLOW_SLOW_VERSIONS=1'
     strategy:
       matrix:
         env:

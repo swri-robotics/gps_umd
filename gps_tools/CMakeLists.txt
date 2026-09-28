@@ -84,6 +84,10 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
   ament_copyright(EXCLUDE include/gps_tools/conversions.h)
   ament_cpplint(FILTERS -legal/copyright)
+
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_conversions test/test_conversions.cpp)
+  target_include_directories(test_conversions PRIVATE include)
 endif()
 
 ament_export_include_directories(include)

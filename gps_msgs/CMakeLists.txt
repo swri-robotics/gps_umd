@@ -55,6 +55,12 @@ if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
+  # ament_lint_auto only sees this package's directory, and tools/ belongs to
+  # no package, so lint the generator here along with its tests.
+  set(TOOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../tools")
+  ament_flake8(TESTNAME flake8_tools "${TOOLS_DIR}")
+  ament_pep257(TESTNAME pep257_tools "${TOOLS_DIR}")
+
   find_package(ament_cmake_pytest REQUIRED)
 
   # The generator's tests live with the generator rather than with a package,

@@ -87,7 +87,12 @@ jobs:
             echo "no test result files were produced" >&2
             exit 1
           fi
-          if ! grep -lq "test_gpsfake_end_to_end" ${results}; then
+          # Find the suite's own result by file name. Searching the contents
+          # would also match the linters' results, which list the test's
+          # source file among the files they checked.
+          file=$(find .gpsd_versions/colcon -path '*test_results*' \
+                   -name 'test_gpsfake_end_to_end.*xml' 2>/dev/null | head -1)
+          if [ -z "${file}" ]; then
             echo "the gpsfake suite produced no results at all" >&2
             exit 1
           fi
@@ -97,7 +102,6 @@ jobs:
           # Read the counts off the <testsuite> attributes rather than
           # counting tags: pytest writes the whole document on one line, so
           # `grep -c` counts lines rather than matches.
-          file=$(grep -l "test_gpsfake_end_to_end" ${results} | head -1)
           total=$(grep -o 'tests="[0-9]*"' "${file}" | head -1 | tr -dc '0-9')
           skipped=$(grep -o 'skipped="[0-9]*"' "${file}" | head -1 | tr -dc '0-9')
           echo "gpsfake suite: ${total:-0} cases, ${skipped:-0} skipped"

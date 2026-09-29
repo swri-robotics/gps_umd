@@ -94,30 +94,29 @@ These messages are complex due to the volume of information contained within the
 NavSatFix vs. GPSFix
 --------------------
 
-The node `fix_translator` converts [sensor_msgs/NavSatFix](http://docs.ros.org/api/sensor_msgs/html/msg/NavSatFix.html) messages to [gps_common/GPSFix](http://docs.ros.org/api/gps_common/html/msg/GPSFix.html) messages and vice versa. Usage examples:
+The node `fix_translator` converts [sensor_msgs/NavSatFix](https://docs.ros.org/en/rolling/p/sensor_msgs/msg/NavSatFix.html) messages to [gps_msgs/GPSFix](gps_msgs/msg/GPSFix.msg) messages and vice versa. It reads NavSatFix on `navsat_fix_in` and publishes GPSFix on `gps_fix_out`, and reads GPSFix on `gps_fix_in` and publishes NavSatFix on `navsat_fix_out`. Remap whichever direction you need.
 
 ### Translate from NavSatFix to GPSFix
 
-```xml
-  <node name="fix_translator" pkg="gps_common" type="fix_translator">
-    <!-- Translate from NavSatFix to GPSFix //-->
-      <remap from="/navsat_fix_in"  to="/YOUR_NAVSATFIX_TOPIC"/>
-      <remap from="/gps_fix_out"    to="/YOUR_GPSFIX_TOPIC"/>
-  </node>
+```bash
+ros2 run gps_tools fix_translator --ros-args \
+  -r navsat_fix_in:=YOUR_NAVSATFIX_TOPIC -r gps_fix_out:=YOUR_GPSFIX_TOPIC
 ```
-
 
 ### Translate from GPSFix to NavSatFix
 
-```xml
-  <node name="fix_translator" pkg="gps_common" type="fix_translator">
-    <!-- Translate from GPSFix to NavSatFix //-->
-       <remap from="/gps_fix_in"     to="/YOUR_GPSFIX_TOPIC"/>
-       <remap from="/navsat_fix_out" to="/YOUR_NAVSATFIX_TOPIC"/>
-  </node>
+```bash
+ros2 run gps_tools fix_translator --ros-args \
+  -r gps_fix_in:=YOUR_GPSFIX_TOPIC -r navsat_fix_out:=YOUR_NAVSATFIX_TOPIC
 ```
 
-Only adjust the topic names after "to=" in each remap line.
+### From a launch file
+
+`fix_translator.launch.py` takes one launch argument per topic. By default it translates NavSatFix on `fix` to GPSFix on `gps_fix`:
+
+```bash
+ros2 launch gps_tools fix_translator.launch.py navsat_fix_in:=fix gps_fix_out:=gps_fix
+```
 
 Disclaimer
 ------------

@@ -64,10 +64,14 @@ install(TARGETS
 install(DIRECTORY include/
   DESTINATION include
 )
+# ros2 run and launch_ros look for a package's executables in lib/<package>.
 install(PROGRAMS
     scripts/bag_converter
     nodes/fix_translator
-  DESTINATION bin
+  DESTINATION lib/${PROJECT_NAME}
+)
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
@@ -109,6 +113,10 @@ if(BUILD_TESTING)
   ament_add_pytest_test(test_gps_message_converter test/test_gps_message_converter.py
     APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
     TIMEOUT 120)
+
+  # Starts the installed fix_translator through its launch file.
+  find_package(launch_testing_ament_cmake REQUIRED)
+  add_launch_test(test/test_fix_translator_launch.py TIMEOUT 120)
 endif()
 
 ament_export_include_directories(include)

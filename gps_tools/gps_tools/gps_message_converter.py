@@ -27,6 +27,16 @@ from gps_msgs.msg import GPSStatus
 from sensor_msgs.msg import NavSatFix
 from sensor_msgs.msg import NavSatStatus
 
+# GPSStatus values that NavSatStatus does not define, mapped the way
+# gpsd_client maps GPSd's statuses: differential and RTK fixes are ground-based
+# augmentation, and WAAS is satellite-based.
+_NAVSAT_STATUS = {
+    GPSStatus.STATUS_DGPS_FIX: NavSatStatus.STATUS_GBAS_FIX,
+    GPSStatus.STATUS_RTK_FIX: NavSatStatus.STATUS_GBAS_FIX,
+    GPSStatus.STATUS_RTK_FLOAT: NavSatStatus.STATUS_GBAS_FIX,
+    GPSStatus.STATUS_WAAS_FIX: NavSatStatus.STATUS_SBAS_FIX,
+}
+
 
 def navsatfix_to_gpsfix(navsat_msg):
     # Convert sensor_msgs/NavSatFix messages to gps_msgs/GPSFix messages
@@ -65,9 +75,8 @@ def gpsfix_to_navsatfix(gpsfix_msg):
     navsat_msg = NavSatFix()
     navsat_msg.header = gpsfix_msg.header
 
-    # Caution: GPSFix has defined some additional status constants, which are
-    # not defined in NavSatFix.
-    navsat_msg.status.status = gpsfix_msg.status.status
+    navsat_msg.status.status = _NAVSAT_STATUS.get(
+        gpsfix_msg.status.status, gpsfix_msg.status.status)
 
     navsat_msg.status.service = 0
     if gpsfix_msg.status.position_source & GPSStatus.SOURCE_GPS:

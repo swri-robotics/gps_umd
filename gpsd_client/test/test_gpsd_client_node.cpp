@@ -510,6 +510,21 @@ TEST_F(ClientNode, FallsBackToOneHertzForAnInvalidPublishRate)
   EXPECT_TRUE(fix_->next(3s).has_value());
 }
 
+TEST_F(ClientNode, DoesNotHoldTheExecutor)
+{
+  start();
+  // GPSd is connected but says nothing. A timer sharing the node's executor
+  // should still fire at its own rate while the client polls.
+  auto ticks = std::make_shared<std::atomic<int>>(0);
+  auto tick = [ticks]() {++*ticks;};
+  auto probe = node_->create_wall_timer(20ms, tick);
+  std::this_thread::sleep_for(1s);
+  probe->cancel();
+
+  // 50 at full rate; allow for a loaded machine.
+  EXPECT_GE(ticks->load(), 25);
+}
+
 TEST_F(ClientNode, KeepsRunningWhenGpsdGoesAway)
 {
   start();

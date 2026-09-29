@@ -292,12 +292,13 @@ protected:
       return;
     }
 
-    if (!gps_waiting(&gps_data_, 1000000)) {
-      return;
-    }
-
     /* Drains every queued report and acts on the latest, except for the
      * JSON topic, which publishes per report. See publishJson().
+     *
+     * Never waits for a report: the timer is already the poll, and this runs
+     * on the executor's thread, so a blocking wait would hold up every other
+     * callback the executor serves -- all the other components in a
+     * container, for one -- for as long as GPSd stays quiet.
      *
      * gps_read() fills gps_data_ in place, so this only tracks whether the
      * cycle parsed anything at all.

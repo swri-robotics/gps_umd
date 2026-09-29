@@ -34,6 +34,7 @@ they pin the behaviour that matters without needing a GPSd checkout. Run with:
 
 import importlib.util
 import os
+import re
 import tempfile
 import unittest
 
@@ -236,6 +237,36 @@ class TypeMapping(unittest.TestCase):
         with self.assertRaises(SystemExit):
             gen.add_field(model, fields, gen.Member(name='alt_hae', ctype='double'),
                           parent='gps_fix_t')
+
+
+class CapturedMacros(unittest.TestCase):
+    """
+    CAPTURED_MACROS has to name exactly the macros gps.hpp undefines.
+
+    A name gps.hpp undefines but the generator does not know about would still
+    get a plain `#ifdef STATUS_X` guard in the fill headers, which is then
+    always false: the assert would silently stop running.
+    """
+
+    def test_matches_what_gps_hpp_undefines(self):
+        header = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), '..', 'gpsd_client', 'include',
+            'gpsd_client', 'gps.hpp')
+        with open(header) as f:
+            undefined = re.findall(r'^#undef\s+(\w+)', f.read(), re.M)
+        self.assertEqual(sorted(gen.CAPTURED_MACROS), sorted(undefined))
+
+    def test_captured_values_are_asserted_through_gps_hpp(self):
+        model = type('Model', (), {'pair': (9, 0)})()
+        lines = gen.emit_value_asserts(
+            model, [('FIX_STATUS_RTK_FIX', 3, 'STATUS_RTK_FIX', False),
+                    ('FIX_STATUS_DR', 5, 'STATUS_DR', False)])
+        text = '\n'.join(lines)
+        self.assertIn('#ifdef GPSD_CLIENT_HAS_STATUS_RTK_FIX', text)
+        self.assertIn('gps_h::STATUS_RTK_FIX', text)
+        self.assertNotIn('#ifdef STATUS_RTK_FIX', text)
+        # Everything else still reads gps.h's macro directly.
+        self.assertIn('#ifdef STATUS_DR', text)
 
 
 class OrphanScope(unittest.TestCase):

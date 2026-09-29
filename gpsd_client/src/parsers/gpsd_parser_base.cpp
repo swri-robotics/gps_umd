@@ -64,54 +64,32 @@ bool GpsdParserBase::hasValidVariance(const gps_data_t & data)
          std::isfinite(data.fix.epv);
 }
 
-/* gpsmm pollutes the global namespace with STATUS_, so we need to use the
- * ROS messages' integer values for status.status in the mapping helpers
- * below.
- *
- * GPSd renamed STATUS_DGPS_FIX to STATUS_DGPS in 3.25. The rename was clean
- * so the spelling has to be selected by the preprocessor here, since it is
- * used as a case label. The other STATUS_ macros are defined by every GPSd
- * we support (API >= 9, enforced in gpsd_parser.hpp) and need no feature
- * detection.
- */
-#ifdef STATUS_DGPS_FIX
-#define GPSD_STATUS_DGPS STATUS_DGPS_FIX
-#else
-#define GPSD_STATUS_DGPS STATUS_DGPS
-#endif
-
 int16_t GpsdParserBase::mapGpsFixStatus(int gpsd_status, bool sbas_used)
 {
+  using gps_msgs::msg::GPSStatus;
   switch (gpsd_status) {
-    case GPSD_STATUS_DGPS:
-      if (sbas_used) {
-        return 1;  // gps_msgs::msg::GPSStatus::STATUS_SBAS_FIX
-      } else {
-        return 18;  // gps_msgs::msg::GPSStatus::STATUS_DGPS_FIX
-      }
-    case STATUS_RTK_FIX:
-      return 19;   // gps_msgs::msg::GPSStatus::STATUS_RTK_FIX
-    case STATUS_RTK_FLT:
-      return 20;   // gps_msgs::msg::GPSStatus::STATUS_RTK_FLOAT
+    case gps_h::kStatusDgps:
+      return sbas_used ? GPSStatus::STATUS_SBAS_FIX : GPSStatus::STATUS_DGPS_FIX;
+    case gps_h::kStatusRtkFix:
+      return GPSStatus::STATUS_RTK_FIX;
+    case gps_h::kStatusRtkFloat:
+      return GPSStatus::STATUS_RTK_FLOAT;
     default:
-      return 0;    // gps_msgs::msg::GPSStatus::STATUS_FIX
+      return GPSStatus::STATUS_FIX;
   }
 }
 
 int8_t GpsdParserBase::mapNavSatStatus(int gpsd_status, bool sbas_used)
 {
+  using sensor_msgs::msg::NavSatStatus;
   switch (gpsd_status) {
-    case GPSD_STATUS_DGPS:
-      if (sbas_used) {
-        return 1;  // sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX
-      } else {
-        return 2;  // sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX
-      }
-    case STATUS_RTK_FIX:
-    case STATUS_RTK_FLT:
-      return 2;    // sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX
+    case gps_h::kStatusDgps:
+      return sbas_used ? NavSatStatus::STATUS_SBAS_FIX : NavSatStatus::STATUS_GBAS_FIX;
+    case gps_h::kStatusRtkFix:
+    case gps_h::kStatusRtkFloat:
+      return NavSatStatus::STATUS_GBAS_FIX;
     default:
-      return 0;    // sensor_msgs::msg::NavSatStatus::STATUS_FIX
+      return NavSatStatus::STATUS_FIX;
   }
 }
 
@@ -186,7 +164,7 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(
 
     /* TODO: attitude */
   } else {
-    status.status = -1;  // gps_msgs::msg::GPSStatus::STATUS_NO_FIX
+    status.status = gps_msgs::msg::GPSStatus::STATUS_NO_FIX;
   }
 
   fix.status = status;
@@ -240,7 +218,7 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
   if (data.fix.mode == MODE_2D || data.fix.mode == MODE_3D) {
     fix.status.status = mapNavSatStatus(getFixStatus(data), sbasAugmented(data));
   } else {
-    fix.status.status = -1;  // sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX
+    fix.status.status = sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX;
   }
 
   fix.latitude = data.fix.latitude;

@@ -46,9 +46,8 @@ namespace gpsd_client
 /// versions is where the fix status lives, which concrete parsers provide
 /// via getFixStatus().
 ///
-/// Separately, GPSd renamed the STATUS_DGPS_FIX macro in 3.25; because it is
-/// used as a case label, that spelling is resolved by the preprocessor in
-/// gpsd_parser_base.cpp rather than through this class hierarchy.
+/// Separately, GPSd renamed some of the fix status macros; gpsd_client/gps.hpp
+/// gives each value one name across the renames.
 class GpsdParserBase : public GpsdParser
 {
 public:

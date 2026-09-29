@@ -70,12 +70,6 @@ using lifecycle_msgs::msg::Transition;
 using sensor_msgs::msg::NavSatFix;
 using sensor_msgs::msg::NavSatStatus;
 
-/* gps.h defines STATUS_* macros whose names collide with the ROS message
- * constants (e.g. STATUS_FIX in GPSd < 3.23), so the expectations below use
- * the messages' integer values with the symbolic name in a comment -- the
- * same convention test_gpsd_parser.cpp and the parser sources use.
- */
-
 /// 2023-11-14T22:13:20.500Z
 constexpr int32_t kGpsSec = 1700000000;
 constexpr uint32_t kGpsNanosec = 500000000;
@@ -297,7 +291,7 @@ TEST_F(ClientNode, PublishesAFixFromATpvReport)
   auto fix = fix_->next();
   ASSERT_TRUE(fix.has_value());
   EXPECT_EQ("gps", fix->header.frame_id);
-  EXPECT_EQ(0 /* NavSatStatus::STATUS_FIX */, fix->status.status);
+  EXPECT_EQ(sensor_msgs::msg::NavSatStatus::STATUS_FIX, fix->status.status);
   EXPECT_EQ(NavSatStatus::SERVICE_GPS, fix->status.service);
   EXPECT_DOUBLE_EQ(29.44, fix->latitude);
   EXPECT_DOUBLE_EQ(-98.61, fix->longitude);
@@ -313,7 +307,7 @@ TEST_F(ClientNode, PublishesAFixFromATpvReport)
   auto extended = extended_fix_->next();
   ASSERT_TRUE(extended.has_value());
   EXPECT_EQ("gps", extended->header.frame_id);
-  EXPECT_EQ(0 /* GPSStatus::STATUS_FIX */, extended->status.status);
+  EXPECT_EQ(gps_msgs::msg::GPSStatus::STATUS_FIX, extended->status.status);
   EXPECT_DOUBLE_EQ(29.44, extended->latitude);
   EXPECT_DOUBLE_EQ(-98.61, extended->longitude);
   EXPECT_DOUBLE_EQ(250.0, extended->altitude);
@@ -332,10 +326,10 @@ TEST_F(ClientNode, PublishesNoFixWithoutAFix)
 
   auto fix = fix_->next();
   ASSERT_TRUE(fix.has_value());
-  EXPECT_EQ(-1 /* NavSatStatus::STATUS_NO_FIX */, fix->status.status);
+  EXPECT_EQ(sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX, fix->status.status);
   auto extended = extended_fix_->next();
   ASSERT_TRUE(extended.has_value());
-  EXPECT_EQ(-1 /* GPSStatus::STATUS_NO_FIX */, extended->status.status);
+  EXPECT_EQ(gps_msgs::msg::GPSStatus::STATUS_NO_FIX, extended->status.status);
 }
 
 TEST_F(ClientNode, NamesEveryTopicsFrameWithFrameId)
@@ -401,7 +395,7 @@ TEST_F(ClientNode, CheckFixByVarianceDropsOnlyTheNavSatFix)
   // GPSFix still reports the report, as a fix it does not trust.
   auto extended = extended_fix_->next();
   ASSERT_TRUE(extended.has_value());
-  EXPECT_EQ(-1 /* GPSStatus::STATUS_NO_FIX */, extended->status.status);
+  EXPECT_EQ(gps_msgs::msg::GPSStatus::STATUS_NO_FIX, extended->status.status);
   EXPECT_TRUE(fix_->staysQuiet(500ms));
 
   // A report with its variances gets through.

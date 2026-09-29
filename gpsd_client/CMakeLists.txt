@@ -152,10 +152,7 @@ if(BUILD_TESTING)
     test/gpsd_json_fixture.cpp
     APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
 
-  # Covers the generated fill code and the raw parser. Its first include is
-  # <gps.h>, which also serves as the standing regression test that a
-  # generated message header survives being parsed after gps.h -- the
-  # collision the constant renaming exists to prevent.
+  # Covers the generated fill code and the raw parser.
   ament_add_gtest(test_gpsd_raw_parser
     test/test_gpsd_raw_parser.cpp
     test/gpsd_json_fixture.cpp
@@ -169,8 +166,18 @@ if(BUILD_TESTING)
     APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
   target_link_libraries(test_gpsd_lifecycle ${PROJECT_NAME})
 
-  # Its own target because it must include <gps.h> before anything else, and
-  # so must not link anything that reaches the legacy GPSFix/GPSStatus headers.
+  # gpsd_client/gps.hpp undefines the gps.h macros that collide with message
+  # constants. Mostly a compile check; see the test.
+  ament_add_gtest(test_gps_h test/test_gps_h.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
+  target_link_libraries(test_gps_h ${PROJECT_NAME})
+
+  # Nothing else may include gps.h itself.
+  ament_add_pytest_test(test_gps_h_includes test/test_gps_h_includes.py)
+
+  # Its own target because it must include <gps.h> before anything else: the
+  # standing check that the message constants survive a downstream file that
+  # includes gps.h first.
   ament_add_gtest(test_gpsd_raw_include_order
     test/test_gpsd_raw_include_order.cpp
     APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")

@@ -28,11 +28,8 @@
 
 /// Tests for the raw parser and the generated fill code behind it.
 ///
-/// Normal include order here (gpsd_client headers first, which pull gps.h in
-/// behind the message headers). The gps.h-first case has its own translation
-/// unit in test_gpsd_raw_include_order.cpp, because it cannot include anything
-/// that reaches the legacy GPSFix/GPSStatus messages -- those still collide
-/// with gps.h and always have.
+/// Normal include order here. The gps.h-first case has its own translation
+/// unit in test_gpsd_raw_include_order.cpp.
 
 #include <gtest/gtest.h>
 
@@ -49,12 +46,7 @@
 namespace
 {
 
-// GPSd renamed STATUS_FIX to STATUS_GPS in 3.23; the value (1) never changed.
-#ifdef STATUS_GPS
-constexpr int kStatusGps = STATUS_GPS;
-#else
-constexpr int kStatusGps = STATUS_FIX;
-#endif
+using gpsd_client::gps_h::kStatusGps;
 
 gpsd_client::ParserContext makeContext()
 {

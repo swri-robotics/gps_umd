@@ -31,18 +31,17 @@
 #ifndef GPSD_CLIENT__PARSERS__GENERATED__GPSD_RAW_FILL_14V0_HPP_
 #define GPSD_CLIENT__PARSERS__GENERATED__GPSD_RAW_FILL_14V0_HPP_
 
-#include <gpsd_client/parsers/generated/gpsd_has_member.hpp>
-
-#include <gps_msgs/msg/gpsd_raw14v0.hpp>
-
-#include <gps.h>
-
 #include <cstddef>
 #include <cstring>
 #include <iterator>
 #include <string>
 #include <type_traits>
 #include <vector>
+
+#include <gps_msgs/msg/gpsd_raw14v0.hpp>
+
+#include <gpsd_client/gps.hpp>
+#include <gpsd_client/parsers/generated/gpsd_has_member.hpp>
 
 // Which pair this build actually uses. gpsd_raw_message.hpp sets these
 // before including one fill header, so a libgps newer than anything
@@ -378,9 +377,9 @@ static_assert(
   gps_msgs::msg::GPSDRaw14v0::FIX_STATUS_PPS_FIX == static_cast<int32_t>(STATUS_PPS_FIX),
   "FIX_STATUS_PPS_FIX disagrees with gps.h's STATUS_PPS_FIX");
 #endif
-#ifdef STATUS_RTK_FIX
+#ifdef GPSD_CLIENT_HAS_STATUS_RTK_FIX
 static_assert(
-  gps_msgs::msg::GPSDRaw14v0::FIX_STATUS_RTK_FIX == static_cast<int32_t>(STATUS_RTK_FIX),
+  gps_msgs::msg::GPSDRaw14v0::FIX_STATUS_RTK_FIX == static_cast<int32_t>(gps_h::STATUS_RTK_FIX),
   "FIX_STATUS_RTK_FIX disagrees with gps.h's STATUS_RTK_FIX");
 #endif
 #ifdef STATUS_RTK_FLT

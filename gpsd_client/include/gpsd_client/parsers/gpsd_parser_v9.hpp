@@ -29,7 +29,7 @@
 #ifndef GPSD_CLIENT__PARSERS__GPSD_PARSER_V9_HPP_
 #define GPSD_CLIENT__PARSERS__GPSD_PARSER_V9_HPP_
 
-#include <gps.h>
+#include <gpsd_client/gps.hpp>
 
 // This parser only compiles against GPSd API 9: it reads the fix status from
 // gps_data_t::status, which was removed (moved into gps_fix_t) in API 10.

@@ -1265,6 +1265,13 @@ def fit(indent: str, statement: str) -> List[str]:
             [inner + parts[-1] + tail])
 
 
+# The gps.h macros that gpsd_client/gps.hpp copies into gpsd_client::gps_h and
+# then undefines, because they share names with ROS message constants. Every
+# generated header includes gps.hpp, so these are asserted through their
+# copies. Keep in step with gps.hpp; test_generate_raw_msgs checks that.
+CAPTURED_MACROS = ('STATUS_DGPS_FIX', 'STATUS_FIX', 'STATUS_NO_FIX', 'STATUS_RTK_FIX')
+
+
 def emit_value_asserts(model: Model, values) -> List[str]:
     """
     static_assert every value constant against the gps.h macro it came from.
@@ -1281,9 +1288,15 @@ def emit_value_asserts(model: Model, values) -> List[str]:
     root = versioned(MESSAGE_PREFIX + 'Raw', model.pair)
     out = ['// Field value constants against the gps.h macros they came from.']
     for name, _value, gpsd_name, _is_bits in values:
-        out.append(f'#ifdef {gpsd_name}')
+        if gpsd_name in CAPTURED_MACROS:
+            guard = f'GPSD_CLIENT_HAS_{gpsd_name}'
+            # The asserts sit inside namespace gpsd_client.
+            value = f'gps_h::{gpsd_name}'
+        else:
+            guard = value = gpsd_name
+        out.append(f'#ifdef {guard}')
         out += fit('', f'static_assert({PACKAGE}::msg::{root}::{name} == '
-                       f'static_cast<int32_t>({gpsd_name}), '
+                       f'static_cast<int32_t>({value}), '
                        f'"{name} disagrees with gps.h\'s {gpsd_name}");')
         out.append('#endif')
     out.append('')
@@ -1353,7 +1366,12 @@ def emit_parser(model: Model, rev: str, constants=()) -> str:
         f'#ifndef GPSD_CLIENT__PARSERS__GENERATED__GPSD_RAW_FILL_{major}V{minor}_HPP_',
         f'#define GPSD_CLIENT__PARSERS__GENERATED__GPSD_RAW_FILL_{major}V{minor}_HPP_',
         '',
-        '#include <gpsd_client/parsers/generated/gpsd_has_member.hpp>',
+        '#include <cstddef>',
+        '#include <cstring>',
+        '#include <iterator>',
+        '#include <string>',
+        '#include <type_traits>',
+        '#include <vector>',
         '',
         f'#include <{PACKAGE}/msg/{ros_header_name(root)}.hpp>',
     ]
@@ -1362,14 +1380,8 @@ def emit_parser(model: Model, rev: str, constants=()) -> str:
             out.append(f'#include <{PACKAGE}/msg/{ros_header_name(name)}.hpp>')
     out += [
         '',
-        '#include <gps.h>',
-        '',
-        '#include <cstddef>',
-        '#include <cstring>',
-        '#include <iterator>',
-        '#include <string>',
-        '#include <type_traits>',
-        '#include <vector>',
+        '#include <gpsd_client/gps.hpp>',
+        '#include <gpsd_client/parsers/generated/gpsd_has_member.hpp>',
         '',
         '// Which pair this build actually uses. gpsd_raw_message.hpp sets these',
         '// before including one fill header, so a libgps newer than anything',
@@ -1686,11 +1698,7 @@ def emit_selection_ladder() -> str:
         '',
         '// GPSD_RAW_MESSAGE_NAME names the selected message for log output, so',
         '// an operator can see which version was compiled in without guessing.',
-        '//',
-        '// gps.h defines STATUS_* macros that collide with the ROS message',
-        '// constants, so a message header must never be parsed after it. Every',
-        '// branch below includes its messages before gps.h is reached.',
-        '#include <gps.h>',
+        '#include <gpsd_client/gps.hpp>',
         '',
         '#if GPSD_API_MAJOR_VERSION < 9',
         '// cppcheck does not read gps.h, so it takes the version as 0.',

@@ -200,6 +200,11 @@ if(BUILD_TESTING)
     target_compile_definitions(${target} PRIVATE ${GPSD_FEATURE_DEFINES})
   endforeach()
 
+  # Brings up the installed gpsd_client-launch.py, managed and unmanaged. Needs
+  # no GPSd: it checks what the container loads, not what it publishes.
+  find_package(launch_testing_ament_cmake REQUIRED)
+  add_launch_test(test/test_gpsd_client_launch.py TIMEOUT 120)
+
   # End-to-end: gpsfake -> real GPSd -> this node -> ROS topics.
   #
   # Skips itself unless pointed at a GPSd built with the daemon and Python

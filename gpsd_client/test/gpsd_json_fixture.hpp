@@ -171,7 +171,10 @@ struct Tpv
   std::string time;
   double latitude = NAN;
   double longitude = NAN;
-  double altitude = NAN;
+  /// Height above the WGS 84 ellipsoid.
+  double alt_hae = NAN;
+  /// Height above mean sea level. GPSd sends this as "alt" too, as it does.
+  double alt_msl = NAN;
   double track = NAN;
   double speed = NAN;
   double climb = NAN;

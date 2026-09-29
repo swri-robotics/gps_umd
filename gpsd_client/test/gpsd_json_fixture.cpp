@@ -117,7 +117,11 @@ std::string tpvJson(const Tpv & tpv)
 
   appendReal(out, "lat", tpv.latitude);
   appendReal(out, "lon", tpv.longitude);
-  appendReal(out, "alt", tpv.altitude);
+  appendReal(out, "altHAE", tpv.alt_hae);
+  appendReal(out, "altMSL", tpv.alt_msl);
+  // GPSd still sends the deprecated "alt" key, filled from altMSL when it has
+  // one and from altHAE otherwise (gpsd/gpsd_json.c).
+  appendReal(out, "alt", std::isfinite(tpv.alt_msl) ? tpv.alt_msl : tpv.alt_hae);
   appendReal(out, "track", tpv.track);
   appendReal(out, "speed", tpv.speed);
   appendReal(out, "climb", tpv.climb);
@@ -201,7 +205,8 @@ gps_data_t makeThreeDFixFromJson()
   tpv.time = "2023-11-14T22:13:20.500Z";  // 1700000000.5
   tpv.latitude = 29.44;
   tpv.longitude = -98.61;
-  tpv.altitude = 250.0;
+  tpv.alt_hae = 250.0;
+  tpv.alt_msl = 280.0;  // a geoid separation of -30 m
   tpv.track = 90.0;
   tpv.speed = 2.5;
   tpv.climb = 0.25;

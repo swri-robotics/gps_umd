@@ -99,7 +99,7 @@ TEST(JsonFixture, EmptyDataUsesNanSentinels)
 
   EXPECT_TRUE(std::isnan(data.fix.latitude));
   EXPECT_TRUE(std::isnan(data.fix.longitude));
-  EXPECT_TRUE(std::isnan(data.fix.altitude));
+  EXPECT_TRUE(std::isnan(data.fix.altHAE));
   EXPECT_TRUE(std::isnan(data.dop.hdop));
   EXPECT_EQ(data.fix.mode, MODE_NOT_SEEN);
   EXPECT_EQ(data.set, 0u);
@@ -133,7 +133,8 @@ TEST(JsonFixture, TpvPopulatesFix)
   tpv.time = "2023-11-14T22:13:20.500Z";
   tpv.latitude = 29.44;
   tpv.longitude = -98.61;
-  tpv.altitude = 250.0;
+  tpv.alt_hae = 250.0;
+  tpv.alt_msl = 280.0;
   tpv.speed = 2.5;
 
   gps_data_t data = gpsd_client::test::makeEmptyData();
@@ -142,6 +143,10 @@ TEST(JsonFixture, TpvPopulatesFix)
   EXPECT_EQ(data.fix.mode, MODE_3D);
   EXPECT_DOUBLE_EQ(data.fix.latitude, 29.44);
   EXPECT_DOUBLE_EQ(data.fix.longitude, -98.61);
+  EXPECT_DOUBLE_EQ(data.fix.altHAE, 250.0);
+  EXPECT_DOUBLE_EQ(data.fix.altMSL, 280.0);
+  // The deprecated member holds whatever "alt" carried: sea level, here.
+  EXPECT_DOUBLE_EQ(data.fix.altitude, 280.0);
   EXPECT_DOUBLE_EQ(data.fix.speed, 2.5);
 
   // The ISO 8601 string went through libgps' own time conversion.
@@ -234,7 +239,7 @@ TEST(JsonFixtureParser, ThreeDFixPopulatesGpsFix)
 
   EXPECT_DOUBLE_EQ(fix.latitude, 29.44);
   EXPECT_DOUBLE_EQ(fix.longitude, -98.61);
-  EXPECT_DOUBLE_EQ(fix.altitude, 250.0);
+  EXPECT_DOUBLE_EQ(fix.altitude, 250.0);  // altHAE, not "alt" (altMSL)
   EXPECT_DOUBLE_EQ(fix.track, 90.0);
   EXPECT_DOUBLE_EQ(fix.speed, 2.5);
   EXPECT_DOUBLE_EQ(fix.climb, 0.25);
@@ -275,7 +280,7 @@ TEST(JsonFixtureParser, ThreeDFixPopulatesNavSatFix)
   EXPECT_EQ(fix->status.service, sensor_msgs::msg::NavSatStatus::SERVICE_GPS);
   EXPECT_DOUBLE_EQ(fix->latitude, 29.44);
   EXPECT_DOUBLE_EQ(fix->longitude, -98.61);
-  EXPECT_DOUBLE_EQ(fix->altitude, 250.0);
+  EXPECT_DOUBLE_EQ(fix->altitude, 250.0);  // altHAE, not "alt" (altMSL)
   EXPECT_DOUBLE_EQ(fix->position_covariance[0], 1.5);
   EXPECT_DOUBLE_EQ(fix->position_covariance[4], 2.5);
   EXPECT_DOUBLE_EQ(fix->position_covariance[8], 3.5);

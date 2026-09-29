@@ -32,11 +32,7 @@
 
 // GPSD_RAW_MESSAGE_NAME names the selected message for log output, so
 // an operator can see which version was compiled in without guessing.
-//
-// gps.h defines STATUS_* macros that collide with the ROS message
-// constants, so a message header must never be parsed after it. Every
-// branch below includes its messages before gps.h is reached.
-#include <gps.h>
+#include <gpsd_client/gps.hpp>
 
 #if GPSD_API_MAJOR_VERSION < 9
 // cppcheck does not read gps.h, so it takes the version as 0.

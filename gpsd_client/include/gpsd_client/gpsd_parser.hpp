@@ -32,20 +32,11 @@
 #include <optional>
 #include <string>
 
-// NOTE: gps.h pollutes the global namespace with STATUS_* macros that
-// collide with the ROS message constants of the same names, so the message
-// headers must be included before it.
 #include <gps_msgs/msg/gps_fix.hpp>
 #include <rclcpp/time.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 
-#include <gps.h>  // NOLINT(build/include_order)
-
-#if GPSD_API_MAJOR_VERSION < 9
-// cppcheck does not read gps.h, so it takes the version as 0.
-// cppcheck-suppress preprocessorErrorDirective
-#error "gpsd_client requires GPSd API version >= 9 (GPSd >= 3.20)"
-#endif
+#include <gpsd_client/gps.hpp>
 
 namespace gpsd_client
 {

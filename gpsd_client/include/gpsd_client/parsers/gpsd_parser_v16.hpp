@@ -29,7 +29,7 @@
 #ifndef GPSD_CLIENT__PARSERS__GPSD_PARSER_V16_HPP_
 #define GPSD_CLIENT__PARSERS__GPSD_PARSER_V16_HPP_
 
-#include <gps.h>
+#include <gpsd_client/gps.hpp>
 
 // Supports GPSd APIs 10 through 16. Per project convention, parsers are named
 // after the highest API version they support: when a newer GPSd API is

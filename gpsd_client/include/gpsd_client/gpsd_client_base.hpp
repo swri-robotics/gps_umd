@@ -40,10 +40,8 @@
 #include <gps_msgs/msg/gps_fix.hpp>
 #include <gps_msgs/msg/gpsd_json.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
-// gps.h defines STATUS_* macros that collide with the ROS message constants,
-// so it has to follow the message headers. See gpsd_parser.hpp.
-#include <gps.h>  // NOLINT(build/include_order)
 
+#include <gpsd_client/gps.hpp>
 #include <gpsd_client/gpsd_parser_factory.hpp>
 #include <gpsd_client/gpsd_raw_message.hpp>
 

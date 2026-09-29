@@ -37,24 +37,20 @@
 /// preprocessor in any file that saw gps.h first -- and downstream users
 /// control neither our naming nor their own include order.
 ///
-/// Two things this deliberately does NOT include:
-///
-///   * gpsd_parser.hpp / gpsd_raw_parser.hpp, which pull in the legacy
-///     GPSFix/GPSStatus messages. Those still collide: GPSStatus defines
-///     STATUS_RTK_FIX = 19 and gps.h defines STATUS_RTK_FIX = 3. That is a
-///     pre-existing conflict in the released gps_msgs package, not something
-///     this work introduced or can fix without changing published constants,
-///     and it is why gpsd_parser.hpp documents a mandatory include order.
-///   * any message header by name, so this keeps working as the selected
-///     version changes.
-///
-/// So the claim under test is precisely: the *generated* GPSDRaw family is
-/// order-independent, even though its neighbours are not.
+/// The legacy GPSStatus and NavSatStatus messages do share names with gps.h
+/// macros: GPSStatus defines STATUS_RTK_FIX = 19, and gps.h STATUS_RTK_FIX = 3.
+/// gpsd_client/gps.hpp, which every gpsd_client header includes instead of
+/// gps.h, undefines those macros, so the legacy messages survive too, as long
+/// as they come after a gpsd_client header. This file names no generated
+/// message header, so it keeps working as the selected version changes.
 
 #include <gps.h>
 #include <gtest/gtest.h>
 
 #include <gpsd_client/gpsd_raw_message.hpp>
+
+#include <gps_msgs/msg/gps_status.hpp>
+#include <sensor_msgs/msg/nav_sat_status.hpp>
 
 TEST(GpsdRawIncludeOrder, GeneratedConstantsSurviveGpsHFirst)
 {
@@ -77,6 +73,16 @@ TEST(GpsdRawIncludeOrder, GeneratedConstantsSurviveGpsHFirst)
   EXPECT_GE(
     gpsd_client::GpsdRawMsg::SET_HIGHEST_BIT,
     static_cast<uint64_t>(SET_HIGH_BIT));
+}
+
+TEST(GpsdRawIncludeOrder, LegacyConstantsSurviveGpsHFirst)
+{
+  // gps.h came first, but gpsd_raw_message.hpp included gps.hpp, which
+  // undefined the macros these would otherwise collide with.
+  EXPECT_EQ(19, gps_msgs::msg::GPSStatus::STATUS_RTK_FIX);
+  EXPECT_EQ(0, gps_msgs::msg::GPSStatus::STATUS_FIX);
+  EXPECT_EQ(0, sensor_msgs::msg::NavSatStatus::STATUS_FIX);
+  EXPECT_EQ(-1, sensor_msgs::msg::NavSatStatus::STATUS_NO_FIX);
 }
 
 TEST(GpsdRawIncludeOrder, SelectedPairMatchesTheBuild)

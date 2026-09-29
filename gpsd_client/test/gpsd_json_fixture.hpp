@@ -50,10 +50,6 @@
 ///     #if for it, unlike hand-built structs.
 ///  2. Version-dependent decode quirks are exercised rather than bypassed. See
 ///     skyJson() for one that silently drops every satellite if ignored.
-///
-/// Include order matters: gps.h defines STATUS_* macros that collide with the
-/// ROS message constants, so gpsd_parser.hpp (which includes the message
-/// headers first) must come before anything that pulls in gps.h.
 
 #include <algorithm>
 #include <cmath>

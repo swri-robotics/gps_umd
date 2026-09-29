@@ -51,20 +51,8 @@ using gpsd_client::test::Dop;
 using gpsd_client::test::Satellite;
 using gpsd_client::test::Tpv;
 
-// GPSd renamed STATUS_FIX to STATUS_GPS in 3.23 and STATUS_DGPS_FIX to
-// STATUS_DGPS in 3.25. The numeric values did not change (1 and 2), but the
-// spellings must still be resolved by the preprocessor.
-#ifdef STATUS_GPS
-constexpr int kStatusGps = STATUS_GPS;
-#else
-constexpr int kStatusGps = STATUS_FIX;
-#endif
-
-#ifdef STATUS_DGPS_FIX
-constexpr int kStatusDgps = STATUS_DGPS_FIX;
-#else
-constexpr int kStatusDgps = STATUS_DGPS;
-#endif
+using gpsd_client::gps_h::kStatusDgps;
+using gpsd_client::gps_h::kStatusGps;
 
 gpsd_client::ParserContext makeContext()
 {
@@ -230,7 +218,7 @@ TEST(JsonFixture, StatusLandsWhereThisVersionKeepsIt)
 
   gps_msgs::msg::GPSFix fix =
     makeParser()->parseGpsFix(data, rclcpp::Time(42, 0));
-  EXPECT_EQ(fix.status.status, 18 /* GPSStatus::STATUS_DGPS_FIX */);
+  EXPECT_EQ(fix.status.status, gps_msgs::msg::GPSStatus::STATUS_DGPS_FIX);
 }
 
 // --- Parsers, driven by libgps-decoded data --------------------------------
@@ -324,7 +312,7 @@ TEST(JsonFixtureParser, SbasSatelliteYieldsSbasStatus)
     navsat_fix->status.service,
     sensor_msgs::msg::NavSatStatus::SERVICE_GPS |
     sensor_msgs::msg::NavSatStatus::SERVICE_GLONASS);
-  EXPECT_EQ(navsat_fix->status.status, 1 /* NavSatStatus::STATUS_SBAS_FIX */);
+  EXPECT_EQ(navsat_fix->status.status, sensor_msgs::msg::NavSatStatus::STATUS_SBAS_FIX);
 }
 
 TEST(JsonFixtureParser, NanVarianceFromOmittedKeysIsRejected)

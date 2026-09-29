@@ -33,6 +33,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <class_loader/class_loader.hpp>
@@ -288,6 +289,33 @@ TEST(UtmOdometry, DropsFixesWithoutAFixOrAStamp)
   EXPECT_FALSE(harness->send(no_stamp, 500ms).has_value());
 
   EXPECT_TRUE(harness->send(makeFix()).has_value());
+}
+
+TEST(UtmOdometry, DropsFixesWithoutAPosition)
+{
+  auto harness = toOdometry({rclcpp::Parameter("append_zone", true)});
+
+  const std::vector<std::pair<double, double>> positions = {
+    {NAN, kLon}, {kLat, NAN}, {NAN, NAN}, {INFINITY, kLon}};
+  for (const auto & [lat, lon] : positions) {
+    SCOPED_TRACE("lat " + std::to_string(lat) + ", lon " + std::to_string(lon));
+    EXPECT_FALSE(harness->send(makeFix(lat, lon), 500ms).has_value());
+  }
+
+  EXPECT_TRUE(harness->send(makeFix()).has_value());
+}
+
+TEST(UtmOdometry, KeepsAFixWithoutAnAltitude)
+{
+  // A 2D fix still has a place in the UTM plane.
+  auto harness = toOdometry();
+  NavSatFix two_d = makeFix();
+  two_d.altitude = NAN;
+  auto odom = harness->send(two_d);
+  ASSERT_TRUE(odom.has_value());
+  EXPECT_NEAR(kEasting, odom->pose.pose.position.x, 1e-3);
+  EXPECT_NEAR(kNorthing, odom->pose.pose.position.y, 1e-3);
+  EXPECT_TRUE(std::isnan(odom->pose.pose.position.z));
 }
 
 TEST(UtmOdometryToNavSatFix, TakesTheZoneFromTheFrameId)

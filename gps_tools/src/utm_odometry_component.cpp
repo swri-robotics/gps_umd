@@ -30,6 +30,9 @@
  * Translates sensor_msgs/NavSat{Fix,Status} into nav_msgs/Odometry using UTM
  */
 
+#include <cmath>
+#include <string>
+
 #include <rclcpp/rclcpp.hpp>
 
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
@@ -64,6 +67,16 @@ public:
         }
 
         if (fix->header.stamp.nanosec == 0 && fix->header.stamp.sec == 0) {
+          return;
+        }
+
+        /* A receiver can report a fix status before it has a position, and
+         * NavSatFix uses NaN for a position it does not have. There is no UTM
+         * zone for NaN. A NaN altitude is only a 2D fix, which is still a
+         * position in the UTM plane.
+         */
+        if (!std::isfinite(fix->latitude) || !std::isfinite(fix->longitude)) {
+          RCLCPP_DEBUG(this->get_logger(), "No position in the fix.");
           return;
         }
 

@@ -203,7 +203,12 @@ if(BUILD_TESTING)
   # Brings up the installed gpsd_client-launch.py, managed and unmanaged. Needs
   # no GPSd: it checks what the container loads, not what it publishes.
   find_package(launch_testing_ament_cmake REQUIRED)
-  add_launch_test(test/test_gpsd_client_launch.py TIMEOUT 120)
+  # The container loads this package's library, so it needs the same libgps on
+  # its library path as the gtests: tools/test_against_gpsd.sh builds against
+  # a libgps outside the default search path.
+  add_launch_test(test/test_gpsd_client_launch.py
+    TIMEOUT 120
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}")
 
   # End-to-end: gpsfake -> real GPSd -> this node -> ROS topics.
   #

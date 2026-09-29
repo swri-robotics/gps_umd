@@ -78,8 +78,9 @@ static inline void UTM(double lat, double lon, double * x, double * y)
   double clat = cos(rlat);
   double tlat = tan(rlat);
 
-  // decide the false northing at origin
-  double fn = (lat > 0) ? UTM_FN_N : UTM_FN_S;
+  // decide the false northing at origin; the equator is in the northern
+  // hemisphere, as in LLtoUTM()
+  double fn = (lat >= 0) ? UTM_FN_N : UTM_FN_S;
 
   double T = tlat * tlat;
   double C = UTM_EP2 * clat * clat;
@@ -179,8 +180,10 @@ static inline void LLtoUTM(
   double eccPrimeSquared;
   double N, T, C, A, M;
 
-  // Make sure the longitude is between -180.00 .. 179.9
-  double LongTemp = (Long + 180) - static_cast<int>((Long + 180) / 360) * 360 - 180;
+  // Make sure the longitude is between -180.00 .. 179.9. floor() rather than a
+  // cast to int, which truncates toward zero and so left longitudes below -180
+  // unwrapped.
+  double LongTemp = (Long + 180) - std::floor((Long + 180) / 360) * 360 - 180;
 
   double LatRad = Lat * RADIANS_PER_DEGREE;
   double LongRad = LongTemp * RADIANS_PER_DEGREE;

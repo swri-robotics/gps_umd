@@ -179,7 +179,17 @@ if(BUILD_TESTING)
   # A loop rather than one call per target. These probes sit far above the
   # targets that consume them, and missing a target does not break the build --
   # it silently takes the #else branch.
-  foreach(target test_gpsd_parser test_gpsd_raw_parser test_gpsd_json_fixture)
+  # The whole node against a fake GPSd on a loopback socket, which needs no
+  # GPSd build, unlike the gpsfake suite below.
+  ament_add_gtest(test_gpsd_client_node
+    test/test_gpsd_client_node.cpp
+    test/gpsd_json_fixture.cpp
+    APPEND_LIBRARY_DIRS "${libgps_LIBRARY_DIRS}"
+    TIMEOUT 180)
+  target_link_libraries(test_gpsd_client_node ${PROJECT_NAME})
+
+  foreach(target test_gpsd_parser test_gpsd_raw_parser test_gpsd_json_fixture
+      test_gpsd_client_node)
     target_compile_definitions(${target} PRIVATE ${GPSD_FEATURE_DEFINES})
   endforeach()
 

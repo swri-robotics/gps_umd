@@ -29,6 +29,7 @@
 #ifndef GPSD_CLIENT__GPSD_CLIENT_BASE_HPP_
 #define GPSD_CLIENT__GPSD_CLIENT_BASE_HPP_
 
+#include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <memory>
@@ -47,6 +48,17 @@
 
 namespace gpsd_client
 {
+/// The highest publish_rate, in Hz, the timer can run at: its period is a
+/// whole number of milliseconds.
+constexpr int kMaxPublishRate = 1000;
+
+/// The publish_rate the node runs at when @p requested is asked for: at least
+/// 1 Hz and at most kMaxPublishRate.
+inline int clampPublishRate(int requested)
+{
+  return std::clamp(requested, 1, kMaxPublishRate);
+}
+
 /* The publisher type NodeT hands back: rclcpp::Publisher from a plain node,
  * rclcpp_lifecycle::LifecyclePublisher from a lifecycle one.
  *
@@ -128,9 +140,15 @@ protected:
     this->get_parameter_or("frame_id", frame_id_, frame_id_);
     this->get_parameter_or("publish_rate", publish_rate_, publish_rate_);
 
-    if (publish_rate_ <= 0) {
-      RCLCPP_WARN(this->get_logger(), "Invalid publish_rate %d; using 1 Hz", publish_rate_);
-      publish_rate_ = 1;
+    /* Above kMaxPublishRate, 1000 / publish_rate_ rounds down to a 0 ms
+     * period, and the timer would fire as fast as the executor can run it.
+     */
+    const int requested_rate = publish_rate_;
+    publish_rate_ = clampPublishRate(requested_rate);
+    if (publish_rate_ != requested_rate) {
+      RCLCPP_WARN(
+        this->get_logger(), "Invalid publish_rate %d; using %d Hz", requested_rate,
+        publish_rate_);
     }
 
     publish_period_ms_ = std::chrono::milliseconds{static_cast<int>(1000 / publish_rate_)};

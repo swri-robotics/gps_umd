@@ -24,7 +24,7 @@ Parameter | Type | Default | Description
 `host` | string | `localhost` | Hostname or address of the GPSd server to connect to.
 `port` | int | `2947` | TCP port of the GPSd server.
 `frame_id` | string | `gps` | `frame_id` set on the header of published `GPSFix` and `NavSatFix` messages.
-`publish_rate` | int | `10` | How often, in Hz, to poll GPSd and publish. Values `<= 0` are rejected with a warning and fall back to 1 Hz.
+`publish_rate` | int | `10` | How often, in Hz, to poll GPSd and publish. Values `<= 0` fall back to 1 Hz, and values above `1000` to 1000 Hz, with a warning.
 `use_gps_time` | bool | `true` | Stamp `NavSatFix` messages with the time reported by the GPS receiver instead of the current ROS time.
 `check_fix_by_variance` | bool | `false` | Discard fixes whose reported variances (`epx`/`epy`/`epv`) are not finite. GPSd reports a status of OK even when there is no current fix, as long as there was one previously; this rejects those stale results.
 `override_augmentation_source` | bool | `false` | When GPSd reports a DGPS fix, always report it as an SBAS fix, whether or not a satellite with an SBAS ID was used in the solution. Useful for receivers that apply SBAS corrections without listing the SBAS satellite in their skyview. Affects both `NavSatFix` and `GPSFix` status.

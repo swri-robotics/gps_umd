@@ -467,6 +467,26 @@ TEST_F(ClientNode, JsonTopicCarriesEveryReportAndTheFixTopicsTheLatest)
   EXPECT_DOUBLE_EQ(29.3, fix->latitude);
 }
 
+TEST(PublishRate, IsClampedToWhatTheTimerCanRun)
+{
+  EXPECT_EQ(1, gpsd_client::clampPublishRate(-5));
+  EXPECT_EQ(1, gpsd_client::clampPublishRate(0));
+  EXPECT_EQ(1, gpsd_client::clampPublishRate(1));
+  EXPECT_EQ(10, gpsd_client::clampPublishRate(10));
+  EXPECT_EQ(1000, gpsd_client::clampPublishRate(1000));
+  // 1000 / 1001 would be a 0 ms timer period.
+  EXPECT_EQ(1000, gpsd_client::clampPublishRate(1001));
+  EXPECT_EQ(1000, gpsd_client::clampPublishRate(5000));
+}
+
+TEST_F(ClientNode, PublishesAtAnOverlyHighPublishRate)
+{
+  start({rclcpp::Parameter("publish_rate", 5000)});
+  waitForDiscovery();
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix())));
+  EXPECT_TRUE(fix_->next(3s).has_value());
+}
+
 TEST_F(ClientNode, FallsBackToOneHertzForAnInvalidPublishRate)
 {
   start({rclcpp::Parameter("publish_rate", 0)});

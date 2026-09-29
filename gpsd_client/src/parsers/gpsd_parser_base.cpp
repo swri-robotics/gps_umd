@@ -201,7 +201,14 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
 
   /* TODO: Support SBAS and other GBAS. */
 
-  if (context_.use_gps_time && ((data.online.tv_sec > 0) || (data.online.tv_nsec > 0))) {
+  /* GPSd leaves the fix time unset when the receiver has no time to give,
+   * which a receiver without a fix often does not. Stamping with it would put
+   * the message at the epoch.
+   */
+  const bool have_gps_time = (data.fix.time.tv_sec > 0) || (data.fix.time.tv_nsec > 0);
+  if (context_.use_gps_time && have_gps_time &&
+    ((data.online.tv_sec > 0) || (data.online.tv_nsec > 0)))
+  {
     fix.header.stamp = rclcpp::Time(
       static_cast<uint32_t>(data.fix.time.tv_sec),
       static_cast<uint32_t>(data.fix.time.tv_nsec));

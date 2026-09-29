@@ -367,6 +367,23 @@ TEST(GpsdParser, NavSatFixStampUsesGpsTimeWhenEnabled)
   EXPECT_EQ(fix->header.stamp.nanosec, 7u);
 }
 
+TEST(GpsdParser, NavSatFixStampFallsBackWithoutGpsTime)
+{
+  // A receiver without a fix often has no time either, and then GPSd leaves
+  // the fix time unset. use_gps_time cannot stamp with it.
+  gps_data_t data = makeThreeDFix();
+  data.fix.mode = MODE_NO_FIX;
+  data.fix.time.tv_sec = 0;
+  data.fix.time.tv_nsec = 0;
+
+  auto context = makeContext();
+  context.use_gps_time = true;
+  auto fix = makeParser(context)->parseNavSatFix(data, rclcpp::Time(42, 7));
+  ASSERT_TRUE(fix.has_value());
+  EXPECT_EQ(fix->header.stamp.sec, 42);
+  EXPECT_EQ(fix->header.stamp.nanosec, 7u);
+}
+
 int main(int argc, char ** argv)
 {
   testing::InitGoogleTest(&argc, argv);

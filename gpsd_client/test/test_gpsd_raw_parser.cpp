@@ -100,7 +100,10 @@ TEST(GpsdRawParser, CopiesScalarsAndNestedStructs)
 
   EXPECT_DOUBLE_EQ(msg.fix_latitude, 29.44);
   EXPECT_DOUBLE_EQ(msg.fix_longitude, -98.61);
-  EXPECT_DOUBLE_EQ(msg.fix_altitude, 250.0);
+  // The raw message mirrors every altitude member as GPSd filled it.
+  EXPECT_DOUBLE_EQ(msg.fix_alt_hae, 250.0);
+  EXPECT_DOUBLE_EQ(msg.fix_alt_msl, 280.0);
+  EXPECT_DOUBLE_EQ(msg.fix_altitude, 280.0);
   EXPECT_DOUBLE_EQ(msg.fix_speed, 2.5);
   EXPECT_EQ(msg.fix_mode, MODE_3D);
 

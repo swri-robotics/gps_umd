@@ -582,6 +582,31 @@ class EndToEnd(unittest.TestCase):
         self.assertEqual(set(), seen - truth,
                          'positions published that are not in the .chk ground truth')
 
+    def test_published_altitudes_are_above_the_ellipsoid(self):
+        # ac12.log has a geoid separation of about -14 m, so altHAE and the
+        # deprecated "alt" (altMSL) differ. NavSatFix defines altitude against
+        # the WGS 84 ellipsoid, and GPSFix follows it.
+        hae = {rounded(r['altHAE']) for r in self.chk.get('TPV', []) if 'altHAE' in r}
+        msl = {rounded(r['altMSL']) for r in self.chk.get('TPV', []) if 'altMSL' in r}
+        self.assertTrue(hae, 'ac12.log.chk carries no TPV altHAE')
+        self.assertFalse(hae & msl, 'ac12.log.chk cannot tell altHAE from altMSL')
+
+        no_fix = -1  # STATUS_NO_FIX in both NavSatStatus and GPSStatus
+
+        def has_altitude(msg):
+            # NaN is no 3D fix yet. A GPSFix without a fix leaves its position
+            # at the message defaults, zero, so skip those by status.
+            return msg.altitude == msg.altitude and msg.status.status != no_fix
+
+        for topic in ('/fix', '/extended_fix'):
+            with self.subTest(topic=topic):
+                seen = {rounded(msg.altitude)
+                        for msg in self.session.messages.get(topic, [])
+                        if has_altitude(msg)}
+                self.assertTrue(seen, f'no {topic} message ever carried an altitude')
+                self.assertEqual(set(), seen - hae,
+                                 f'{topic} altitudes that are not altHAE in the .chk')
+
     def test_skyview_length_always_agrees_with_the_count(self):
         # The array is trimmed to satellites_visible on the way out; a
         # mismatch means the trim is wrong and subscribers are reading

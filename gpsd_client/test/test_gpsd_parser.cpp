@@ -82,7 +82,11 @@ gps_data_t makeThreeDFix()
 
   data.fix.latitude = 29.44;
   data.fix.longitude = -98.61;
-  data.fix.altitude = 250.0;
+  // As GPSd fills them: the deprecated member carries sea level, not the
+  // ellipsoid height NavSatFix wants.
+  data.fix.altHAE = 250.0;
+  data.fix.altMSL = 280.0;
+  data.fix.altitude = 280.0;
   data.fix.track = 90.0;
   data.fix.speed = 2.5;
   data.fix.climb = 0.25;
@@ -212,6 +216,28 @@ TEST(GpsdParser, TwoDFixHasNanAltitude)
   EXPECT_EQ(fix.status.status, gps_msgs::msg::GPSStatus::STATUS_FIX);
   EXPECT_DOUBLE_EQ(fix.latitude, 29.44);
   EXPECT_TRUE(std::isnan(fix.altitude));
+
+  auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
+  ASSERT_TRUE(navsat_fix.has_value());
+  EXPECT_EQ(navsat_fix->status.status, sensor_msgs::msg::NavSatStatus::STATUS_FIX);
+  EXPECT_DOUBLE_EQ(navsat_fix->latitude, 29.44);
+  EXPECT_TRUE(std::isnan(navsat_fix->altitude));
+}
+
+TEST(GpsdParser, AltitudeIsAboveTheEllipsoid)
+{
+  // NavSatFix defines altitude as height above the WGS 84 ellipsoid. GPSd's
+  // deprecated altitude member is height above sea level whenever it has one.
+  auto parser = makeParser();
+  gps_data_t data = makeThreeDFix();
+  data.fix.altHAE = -44.3;
+  data.fix.altMSL = -30.4;
+  data.fix.altitude = -30.4;
+
+  EXPECT_DOUBLE_EQ(parser->parseGpsFix(data, rclcpp::Time(42, 0)).altitude, -44.3);
+  auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
+  ASSERT_TRUE(navsat_fix.has_value());
+  EXPECT_DOUBLE_EQ(navsat_fix->altitude, -44.3);
 }
 
 TEST(GpsdParser, NoFixSetsNoFixStatus)

@@ -57,6 +57,22 @@ bool GpsdParserBase::sbasAugmented(const gps_data_t & data) const
   return context_.override_augmentation_source || usedSbas(data);
 }
 
+double GpsdParserBase::ellipsoidAltitude(const gps_data_t & data)
+{
+  /* gps_fix_t::altitude has been "DEPRECATED, undefined" since GPSd 3.20.
+   * GPSd still sends the old "alt" key, but fills it from altMSL whenever it
+   * has one, so it is height above the geoid. NavSatFix defines altitude as
+   * height above the WGS 84 ellipsoid, which is altHAE; the two differ by the
+   * geoid separation, which can be tens of meters.
+   *
+   * Only a 3D fix has an altitude. Both messages use NaN for "no altitude".
+   */
+  if (data.fix.mode != MODE_3D) {
+    return std::nan("");
+  }
+  return data.fix.altHAE;
+}
+
 bool GpsdParserBase::hasValidVariance(const gps_data_t & data)
 {
   return std::isfinite(data.fix.epx) &&
@@ -140,11 +156,7 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(
       (static_cast<double>(data.fix.time.tv_nsec) / NANOSECONDS_IN_SECOND);
     fix.latitude = data.fix.latitude;
     fix.longitude = data.fix.longitude;
-    if (data.fix.mode == MODE_3D) {
-      fix.altitude = data.fix.altitude;
-    } else {
-      fix.altitude = std::nan("");
-    }
+    fix.altitude = ellipsoidAltitude(data);
     fix.track = data.fix.track;
     fix.speed = data.fix.speed;
     fix.climb = data.fix.climb;
@@ -223,7 +235,7 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
 
   fix.latitude = data.fix.latitude;
   fix.longitude = data.fix.longitude;
-  fix.altitude = data.fix.altitude;
+  fix.altitude = ellipsoidAltitude(data);
 
   /* GPSd reports status=OK even when there is no current fix, as long as
    * there has been a fix previously. Throw out these fake results, which

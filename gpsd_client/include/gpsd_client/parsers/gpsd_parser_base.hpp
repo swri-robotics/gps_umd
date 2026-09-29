@@ -78,6 +78,9 @@ private:
   /// satellite was used, or the context forces it.
   [[nodiscard]] bool sbasAugmented(const gps_data_t & data) const;
 
+  /// Height above the WGS 84 ellipsoid, or NaN without a 3D fix.
+  static double ellipsoidAltitude(const gps_data_t & data);
+
   /// True if epx/epy/epv are all finite.
   static bool hasValidVariance(const gps_data_t & data);
 

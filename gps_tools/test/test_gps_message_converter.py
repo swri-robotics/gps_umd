@@ -97,18 +97,18 @@ class NavSatFixToGpsFix(unittest.TestCase):
 
     def test_any_satellite_service_makes_gps_the_source(self):
         for service in (NavSatStatus.SERVICE_GPS, NavSatStatus.SERVICE_GLONASS,
-                        NavSatStatus.SERVICE_GALILEO):
+                        NavSatStatus.SERVICE_COMPASS, NavSatStatus.SERVICE_GALILEO):
             with self.subTest(service=service):
                 status = converter.navsatfix_to_gpsfix(make_navsatfix(service=service)).status
                 self.assertEqual(GPSStatus.SOURCE_GPS, status.position_source)
                 self.assertEqual(GPSStatus.SOURCE_GPS, status.motion_source)
                 self.assertEqual(GPSStatus.SOURCE_GPS, status.orientation_source)
 
-    def test_a_compass_adds_a_magnetic_orientation_source(self):
+    def test_beidou_is_not_a_magnetic_compass(self):
+        # SERVICE_COMPASS is BeiDou, a constellation, not a magnetometer.
         service = NavSatStatus.SERVICE_GPS | NavSatStatus.SERVICE_COMPASS
         status = converter.navsatfix_to_gpsfix(make_navsatfix(service=service)).status
-        self.assertEqual(GPSStatus.SOURCE_GPS | GPSStatus.SOURCE_MAGNETIC,
-                         status.orientation_source)
+        self.assertEqual(GPSStatus.SOURCE_GPS, status.orientation_source)
         self.assertEqual(GPSStatus.SOURCE_GPS, status.position_source)
 
     def test_no_service_means_no_source(self):
@@ -153,18 +153,22 @@ class GpsFixToNavSatFix(unittest.TestCase):
                 self.assertEqual(navsat_status, navsat.status.status)
 
     def test_maps_the_sources_to_services(self):
-        navsat = converter.gpsfix_to_navsatfix(make_gpsfix(
-            orientation_source=GPSStatus.SOURCE_MAGNETIC))
-        self.assertEqual(NavSatStatus.SERVICE_GPS | NavSatStatus.SERVICE_COMPASS,
-                         navsat.status.service)
+        navsat = converter.gpsfix_to_navsatfix(make_gpsfix())
+        self.assertEqual(NavSatStatus.SERVICE_GPS, navsat.status.service)
         navsat = converter.gpsfix_to_navsatfix(make_gpsfix(
             position_source=GPSStatus.SOURCE_NONE))
         self.assertEqual(0, navsat.status.service)
 
+    def test_a_magnetic_source_is_not_beidou(self):
+        navsat = converter.gpsfix_to_navsatfix(make_gpsfix(
+            orientation_source=GPSStatus.SOURCE_MAGNETIC))
+        self.assertEqual(NavSatStatus.SERVICE_GPS, navsat.status.service)
+
     def test_round_trips_a_navsatfix(self):
+        # GPSFix has no field for which constellations were used, so only
+        # SERVICE_GPS survives the trip.
         original = make_navsatfix(
-            status=NavSatStatus.STATUS_SBAS_FIX,
-            service=NavSatStatus.SERVICE_GPS | NavSatStatus.SERVICE_COMPASS)
+            status=NavSatStatus.STATUS_SBAS_FIX, service=NavSatStatus.SERVICE_GPS)
         back = converter.gpsfix_to_navsatfix(converter.navsatfix_to_gpsfix(original))
         self.assertEqual(original.header, back.header)
         self.assertEqual(original.status, back.status)

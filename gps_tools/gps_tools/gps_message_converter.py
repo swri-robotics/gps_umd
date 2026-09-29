@@ -37,6 +37,12 @@ _NAVSAT_STATUS = {
     GPSStatus.STATUS_WAAS_FIX: NavSatStatus.STATUS_SBAS_FIX,
 }
 
+# Every NavSatStatus service is a satellite constellation. SERVICE_COMPASS is
+# BeiDou, once called Compass, not a magnetic compass, so it is a GNSS source
+# like the others and says nothing about orientation from magnetic sensors.
+_GNSS_SERVICES = (NavSatStatus.SERVICE_GPS | NavSatStatus.SERVICE_GLONASS |
+                  NavSatStatus.SERVICE_COMPASS | NavSatStatus.SERVICE_GALILEO)
+
 
 def navsatfix_to_gpsfix(navsat_msg):
     # Convert sensor_msgs/NavSatFix messages to gps_msgs/GPSFix messages
@@ -47,19 +53,13 @@ def navsatfix_to_gpsfix(navsat_msg):
     gpsfix_msg.status.motion_source = GPSStatus.SOURCE_NONE
     gpsfix_msg.status.orientation_source = GPSStatus.SOURCE_NONE
     gpsfix_msg.status.position_source = GPSStatus.SOURCE_NONE
-    if ((navsat_msg.status.service & NavSatStatus.SERVICE_GPS) or
-            (navsat_msg.status.service & NavSatStatus.SERVICE_GLONASS) or
-            (navsat_msg.status.service & NavSatStatus.SERVICE_GALILEO)):
+    if navsat_msg.status.service & _GNSS_SERVICES:
         gpsfix_msg.status.motion_source = \
             gpsfix_msg.status.motion_source | GPSStatus.SOURCE_GPS
         gpsfix_msg.status.orientation_source = \
             gpsfix_msg.status.orientation_source | GPSStatus.SOURCE_GPS
         gpsfix_msg.status.position_source = \
             gpsfix_msg.status.position_source | GPSStatus.SOURCE_GPS
-
-    if navsat_msg.status.service & NavSatStatus.SERVICE_COMPASS:
-        gpsfix_msg.status.orientation_source = \
-            gpsfix_msg.status.orientation_source | GPSStatus.SOURCE_MAGNETIC
 
     gpsfix_msg.latitude = navsat_msg.latitude
     gpsfix_msg.longitude = navsat_msg.longitude
@@ -82,9 +82,6 @@ def gpsfix_to_navsatfix(gpsfix_msg):
     if gpsfix_msg.status.position_source & GPSStatus.SOURCE_GPS:
         navsat_msg.status.service = \
             navsat_msg.status.service | NavSatStatus.SERVICE_GPS
-    if gpsfix_msg.status.orientation_source & GPSStatus.SOURCE_MAGNETIC:
-        navsat_msg.status.service = \
-            navsat_msg.status.service | NavSatStatus.SERVICE_COMPASS
 
     navsat_msg.latitude = gpsfix_msg.latitude
     navsat_msg.longitude = gpsfix_msg.longitude

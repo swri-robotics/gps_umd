@@ -36,6 +36,7 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -168,19 +169,33 @@ public:
   : node_(node)
   {
     executor_.add_node(node_);
-    thread_ = std::thread([this]() {executor_.spin();});
+    thread_ = std::thread(&Spinner::run, this);
   }
 
   ~Spinner()
   {
-    executor_.cancel();
+    /* cancel() only stops a spin() that is already running; a spin() that
+     * starts after it runs until the context shuts down. The thread may not
+     * have reached spin() yet, so keep cancelling until spin() has returned.
+     */
+    while (!stopped_) {
+      executor_.cancel();
+      std::this_thread::sleep_for(1ms);
+    }
     thread_.join();
     executor_.remove_node(node_);
   }
 
 private:
+  void run()
+  {
+    executor_.spin();
+    stopped_ = true;
+  }
+
   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_;
   rclcpp::executors::SingleThreadedExecutor executor_;
+  std::atomic<bool> stopped_{false};
   std::thread thread_;
 };
 

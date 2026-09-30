@@ -25,9 +25,11 @@
 """Tests for gps_message_converter and the fix_translator node built on it."""
 
 from importlib.machinery import SourceFileLoader
+import importlib.util
 import os
 import time
 import unittest
+import warnings
 
 from gps_msgs.msg import GPSFix
 from gps_msgs.msg import GPSStatus
@@ -40,6 +42,17 @@ from sensor_msgs.msg import NavSatStatus
 
 FIX_TRANSLATOR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), '..', 'nodes', 'fix_translator')
+
+
+def load_fix_translator():
+    # nodes/fix_translator has no .py suffix, so its loader has to be named
+    # explicitly. SourceFileLoader.load_module() would do all of this in one
+    # call, but Python deprecates it and removes it in 3.15.
+    loader = SourceFileLoader('fix_translator', FIX_TRANSLATOR)
+    spec = importlib.util.spec_from_loader(loader.name, loader)
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
 
 
 def make_navsatfix(status=NavSatStatus.STATUS_FIX, service=NavSatStatus.SERVICE_GPS):
@@ -179,13 +192,21 @@ class GpsFixToNavSatFix(unittest.TestCase):
         self.assertEqual(original.position_covariance_type, back.position_covariance_type)
 
 
+class LoadingFixTranslator(unittest.TestCase):
+
+    def test_loads_without_deprecation_warnings(self):
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', DeprecationWarning)
+            load_fix_translator()
+
+
 class FixTranslatorNode(unittest.TestCase):
     """Runs fix_translator in this process and translates through its topics."""
 
     @classmethod
     def setUpClass(cls):
         rclpy.init()
-        cls.module = SourceFileLoader('fix_translator', FIX_TRANSLATOR).load_module()
+        cls.module = load_fix_translator()
 
     @classmethod
     def tearDownClass(cls):

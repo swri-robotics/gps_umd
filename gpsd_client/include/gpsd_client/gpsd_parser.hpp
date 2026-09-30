@@ -42,6 +42,10 @@ namespace gpsd_client
 {
 
 /// Options controlling how GPSd reports are converted into ROS messages.
+/// The default uncertainty_to_sigma: GPSd's error estimates are meant as 95%
+/// figures, and 1.96 standard deviations covers 95% of a normal distribution.
+inline constexpr double kDefaultUncertaintyToSigma = 1.96;
+
 struct ParserContext
 {
   std::string frame_id;
@@ -51,6 +55,12 @@ struct ParserContext
   /// used in the solution. Some receivers apply SBAS corrections without
   /// listing the SBAS satellite in the skyview.
   bool override_augmentation_source;
+  /// What GPSd's epx, epy and epv are divided by to give a standard deviation,
+  /// before squaring into a variance. See GpsdParserBase::variance().
+  double uncertainty_to_sigma = kDefaultUncertaintyToSigma;
+  /// Publish fix (NavSatFix) the way releases before this option did, with
+  /// GPSd's uncertainties copied into the covariance unscaled.
+  bool legacy_fix_semantics = false;
 };
 
 /// Converts GPSd's gps_data_t reports into ROS messages.

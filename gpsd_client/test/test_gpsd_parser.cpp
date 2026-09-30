@@ -58,6 +58,14 @@ void setFixStatus(gps_data_t & data, int status)
 using gpsd_client::gps_h::kStatusDgps;
 using gpsd_client::gps_h::kStatusGps;
 
+/// The variance published for a GPSd uncertainty, with GPSd's 95% figure
+/// taken as 1.96 standard deviations unless told otherwise.
+double expectedVariance(double uncertainty, double to_sigma = 1.96)
+{
+  const double sigma = uncertainty / to_sigma;
+  return sigma * sigma;
+}
+
 gpsd_client::ParserContext makeContext()
 {
   gpsd_client::ParserContext context;
@@ -170,6 +178,12 @@ TEST(GpsdParser, ThreeDFixPopulatesGpsFix)
   EXPECT_DOUBLE_EQ(fix.err_climb, 1.25);
   EXPECT_DOUBLE_EQ(fix.err_time, 0.005);
 
+  EXPECT_DOUBLE_EQ(fix.position_covariance[0], expectedVariance(1.5));
+  EXPECT_DOUBLE_EQ(fix.position_covariance[4], expectedVariance(2.5));
+  EXPECT_DOUBLE_EQ(fix.position_covariance[8], expectedVariance(3.5));
+  EXPECT_EQ(
+    fix.position_covariance_type, gps_msgs::msg::GPSFix::COVARIANCE_TYPE_DIAGONAL_KNOWN);
+
   EXPECT_EQ(fix.status.status, gps_msgs::msg::GPSStatus::STATUS_FIX);
   EXPECT_EQ(fix.status.satellites_used, 2);
   ASSERT_EQ(fix.status.satellite_used_prn.size(), 2u);
@@ -197,9 +211,13 @@ TEST(GpsdParser, ThreeDFixPopulatesNavSatFix)
   EXPECT_DOUBLE_EQ(fix->latitude, 29.44);
   EXPECT_DOUBLE_EQ(fix->longitude, -98.61);
   EXPECT_DOUBLE_EQ(fix->altitude, 250.0);
-  EXPECT_DOUBLE_EQ(fix->position_covariance[0], 1.5);
-  EXPECT_DOUBLE_EQ(fix->position_covariance[4], 2.5);
-  EXPECT_DOUBLE_EQ(fix->position_covariance[8], 3.5);
+  // GPSd's uncertainties are meters; the covariance holds variances, m².
+  EXPECT_DOUBLE_EQ(fix->position_covariance[0], expectedVariance(1.5));
+  EXPECT_DOUBLE_EQ(fix->position_covariance[4], expectedVariance(2.5));
+  EXPECT_DOUBLE_EQ(fix->position_covariance[8], expectedVariance(3.5));
+  // The off-diagonal terms are unknown to GPSd and stay zero.
+  EXPECT_DOUBLE_EQ(fix->position_covariance[1], 0.0);
+  EXPECT_DOUBLE_EQ(fix->position_covariance[5], 0.0);
   EXPECT_EQ(
     fix->position_covariance_type,
     sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN);
@@ -292,6 +310,56 @@ TEST(GpsdParser, NanVarianceMarksCovarianceUnknown)
   for (const double element : fix->position_covariance) {
     EXPECT_DOUBLE_EQ(element, 0.0);
   }
+
+  // The same goes for GPSFix.
+  gps_msgs::msg::GPSFix gps_fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
+  EXPECT_EQ(
+    gps_fix.position_covariance_type, gps_msgs::msg::GPSFix::COVARIANCE_TYPE_UNKNOWN);
+  for (const double element : gps_fix.position_covariance) {
+    EXPECT_DOUBLE_EQ(element, 0.0);
+  }
+}
+
+TEST(GpsdParser, UncertaintyToSigmaScalesTheCovariance)
+{
+  // 1.0 treats GPSd's uncertainties as standard deviations.
+  auto context = makeContext();
+  context.uncertainty_to_sigma = 1.0;
+  auto parser = makeParser(context);
+  gps_data_t data = makeThreeDFix();
+
+  auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
+  ASSERT_TRUE(navsat_fix.has_value());
+  EXPECT_DOUBLE_EQ(navsat_fix->position_covariance[0], 2.25);
+  EXPECT_DOUBLE_EQ(navsat_fix->position_covariance[4], 6.25);
+  EXPECT_DOUBLE_EQ(navsat_fix->position_covariance[8], 12.25);
+
+  gps_msgs::msg::GPSFix gps_fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
+  EXPECT_DOUBLE_EQ(gps_fix.position_covariance[0], 2.25);
+  EXPECT_DOUBLE_EQ(gps_fix.position_covariance[4], 6.25);
+  EXPECT_DOUBLE_EQ(gps_fix.position_covariance[8], 12.25);
+}
+
+TEST(GpsdParser, LegacyFixSemanticsKeepsTheOldNavSatFixCovariance)
+{
+  auto context = makeContext();
+  context.legacy_fix_semantics = true;
+  auto parser = makeParser(context);
+  gps_data_t data = makeThreeDFix();
+
+  // NavSatFix carries the uncertainties themselves, as it used to.
+  auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
+  ASSERT_TRUE(navsat_fix.has_value());
+  EXPECT_DOUBLE_EQ(navsat_fix->position_covariance[0], 1.5);
+  EXPECT_DOUBLE_EQ(navsat_fix->position_covariance[4], 2.5);
+  EXPECT_DOUBLE_EQ(navsat_fix->position_covariance[8], 3.5);
+  EXPECT_EQ(
+    navsat_fix->position_covariance_type,
+    sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN);
+
+  // GPSFix never had a covariance to be compatible with, so it gets variances.
+  gps_msgs::msg::GPSFix gps_fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
+  EXPECT_DOUBLE_EQ(gps_fix.position_covariance[0], expectedVariance(1.5));
 }
 
 TEST(GpsdParser, ServiceBitmaskAndSbasStatus)

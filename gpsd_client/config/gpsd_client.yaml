@@ -8,6 +8,14 @@ gpsd_client:
     override_augmentation_source: false
     frame_id: gps
     publish_rate: 10
+    # GPSd's position uncertainties are divided by this to give a standard
+    # deviation, then squared into the published covariance. 1.96 treats them
+    # as 95% figures, as GPSd intends; use 1.0 if the receiver reports
+    # standard deviations.
+    uncertainty_to_sigma: 1.96
+    # Publish fix's covariance as older releases did (uncertainties in meters,
+    # not variances). Will be removed in a future release.
+    legacy_fix_semantics: false
     # Mirror of gpsd's gps_data_t on gpsd_raw, in a message named after the
     # libgps API this package was built against (GPSDRaw<MAJOR>v<MINOR>).
     # Off by default: the message is large and most users want fix/extended_fix.

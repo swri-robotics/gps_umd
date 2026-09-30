@@ -31,6 +31,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <memory>
 #include <optional>
@@ -112,6 +113,8 @@ public:
     this->declare_parameter("publish_gpsd_json", rclcpp::PARAMETER_BOOL);
     this->declare_parameter("frame_id", rclcpp::PARAMETER_STRING);
     this->declare_parameter("publish_rate", rclcpp::PARAMETER_INTEGER);
+    this->declare_parameter("uncertainty_to_sigma", rclcpp::PARAMETER_DOUBLE);
+    this->declare_parameter("legacy_fix_semantics", rclcpp::PARAMETER_BOOL);
     this->declare_parameter("host", rclcpp::PARAMETER_STRING);
     this->declare_parameter("port", rclcpp::PARAMETER_INTEGER);
   }
@@ -139,6 +142,23 @@ protected:
     this->get_parameter_or("publish_gpsd_json", publish_gpsd_json_, publish_gpsd_json_);
     this->get_parameter_or("frame_id", frame_id_, frame_id_);
     this->get_parameter_or("publish_rate", publish_rate_, publish_rate_);
+    this->get_parameter_or("uncertainty_to_sigma", uncertainty_to_sigma_, uncertainty_to_sigma_);
+    this->get_parameter_or("legacy_fix_semantics", legacy_fix_semantics_, legacy_fix_semantics_);
+
+    if (!std::isfinite(uncertainty_to_sigma_) || uncertainty_to_sigma_ <= 0.0) {
+      RCLCPP_WARN(
+        this->get_logger(), "Invalid uncertainty_to_sigma %f; using %.2f",
+        uncertainty_to_sigma_, kDefaultUncertaintyToSigma);
+      uncertainty_to_sigma_ = kDefaultUncertaintyToSigma;
+    }
+
+    if (legacy_fix_semantics_) {
+      RCLCPP_WARN(
+        this->get_logger(),
+        "legacy_fix_semantics is set: fix (NavSatFix) keeps its old position "
+        "covariance, GPSd's uncertainties in meters rather than variances. "
+        "This option will be removed in a future release.");
+    }
 
     /* Above kMaxPublishRate, 1000 / publish_rate_ rounds down to a 0 ms
      * period, and the timer would fire as fast as the executor can run it.
@@ -157,7 +177,7 @@ protected:
     navsatfix_pub_ = this->template create_publisher<sensor_msgs::msg::NavSatFix>("fix", 1);
 
     ParserContext context{frame_id_, use_gps_time_, check_fix_by_variance_,
-      override_augmentation_source_};
+      override_augmentation_source_, uncertainty_to_sigma_, legacy_fix_semantics_};
     parser_ = GpsdParserFactory::create(context);
 
     /* Both extra topics are opt-in, and neither the publisher nor the
@@ -396,6 +416,8 @@ private:
   bool publish_gpsd_json_;
   std::string frame_id_;
   int publish_rate_;
+  double uncertainty_to_sigma_{kDefaultUncertaintyToSigma};
+  bool legacy_fix_semantics_{false};
   std::chrono::milliseconds publish_period_ms_{};
   rclcpp::TimerBase::SharedPtr timer_;
 };

@@ -281,9 +281,10 @@ TEST(JsonFixtureParser, ThreeDFixPopulatesNavSatFix)
   EXPECT_DOUBLE_EQ(fix->latitude, 29.44);
   EXPECT_DOUBLE_EQ(fix->longitude, -98.61);
   EXPECT_DOUBLE_EQ(fix->altitude, 250.0);  // altHAE, not "alt" (altMSL)
-  EXPECT_DOUBLE_EQ(fix->position_covariance[0], 1.5);
-  EXPECT_DOUBLE_EQ(fix->position_covariance[4], 2.5);
-  EXPECT_DOUBLE_EQ(fix->position_covariance[8], 3.5);
+  // Variances, in m², from GPSd's uncertainties taken as 95% (1.96 sigma).
+  EXPECT_DOUBLE_EQ(fix->position_covariance[0], (1.5 / 1.96) * (1.5 / 1.96));
+  EXPECT_DOUBLE_EQ(fix->position_covariance[4], (2.5 / 1.96) * (2.5 / 1.96));
+  EXPECT_DOUBLE_EQ(fix->position_covariance[8], (3.5 / 1.96) * (3.5 / 1.96));
 }
 
 TEST(JsonFixtureParser, SbasSatelliteYieldsSbasStatus)

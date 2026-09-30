@@ -69,6 +69,7 @@ surface as a confusing mid-test failure.
 """
 
 import json
+import math
 import os
 import re
 import socket
@@ -606,6 +607,30 @@ class EndToEnd(unittest.TestCase):
                 self.assertTrue(seen, f'no {topic} message ever carried an altitude')
                 self.assertEqual(set(), seen - hae,
                                  f'{topic} altitudes that are not altHAE in the .chk')
+
+    def test_published_covariances_are_gpsds_uncertainties_as_variances(self):
+        # The covariance diagonal is (ep / 1.96)², with GPSd's uncertainties
+        # taken as 95% figures. Undo that and every known diagonal must be an
+        # epx/epy/epv triple GPSd reported for this log. The .chk prints them
+        # to three decimals, so compare within that rounding.
+        truth = [(r['epx'], r['epy'], r['epv']) for r in self.chk.get('TPV', [])
+                 if 'epx' in r and 'epy' in r and 'epv' in r]
+        self.assertTrue(truth, 'ac12.log.chk carries no TPV with epx, epy and epv')
+
+        def matches(triple):
+            return any(all(abs(got - want) <= 0.0015 for got, want in zip(triple, row))
+                       for row in truth)
+
+        known = 2  # COVARIANCE_TYPE_DIAGONAL_KNOWN in both messages
+        for topic in ('/fix', '/extended_fix'):
+            with self.subTest(topic=topic):
+                seen = [tuple(math.sqrt(msg.position_covariance[i]) * 1.96 for i in (0, 4, 8))
+                        for msg in self.session.messages.get(topic, [])
+                        if msg.position_covariance_type == known]
+                self.assertTrue(seen, f'no {topic} message carried a known covariance')
+                unmatched = [triple for triple in seen if not matches(triple)]
+                self.assertEqual([], unmatched[:5],
+                                 f'{topic} covariances that are not GPSd uncertainties')
 
     def test_skyview_length_always_agrees_with_the_count(self):
         # The array is trimmed to satellites_visible on the way out; a

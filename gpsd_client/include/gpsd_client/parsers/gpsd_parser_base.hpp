@@ -81,6 +81,9 @@ private:
   /// Height above the WGS 84 ellipsoid, or NaN without a 3D fix.
   static double ellipsoidAltitude(const gps_data_t & data);
 
+  /// A variance, in m², from one of GPSd's position uncertainties, in m.
+  [[nodiscard]] double variance(double uncertainty) const;
+
   /// True if epx/epy/epv are all finite.
   static bool hasValidVariance(const gps_data_t & data);
 

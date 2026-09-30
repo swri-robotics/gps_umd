@@ -73,6 +73,29 @@ double GpsdParserBase::ellipsoidAltitude(const gps_data_t & data)
   return data.fix.altHAE;
 }
 
+double GpsdParserBase::variance(double uncertainty) const
+{
+  /* GPSd's epx, epy and epv are error estimates in meters, not variances, and
+   * GPSd does not say how confident they are ("Certainty unknown", in its JSON
+   * documentation). Where they come from varies:
+   *
+   *   - GPSd's own estimate, used when the receiver gives none, is DOP times a
+   *     user range error constant labelled "95% confidence" (libgpsd_core.c).
+   *   - Some drivers scale the receiver's figure toward 95%: NavCom by 1.96,
+   *     Garmin and Zodiac by CEP95_SIGMA (2.45).
+   *   - Others pass the receiver's own figure through: NMEA GBS "expected
+   *     error", AllyStar, SiRF.
+   *
+   * So the uncertainty is divided by uncertainty_to_sigma to give a standard
+   * deviation, and squared. The default, 1.96, follows GPSd's 95% intent. A
+   * receiver known to report standard deviations wants 1.0, which is also the
+   * conservative choice: it overstates the variance of a 95% figure, where
+   * 1.96 would understate the variance of a 1-sigma one.
+   */
+  const double sigma = uncertainty / context_.uncertainty_to_sigma;
+  return sigma * sigma;
+}
+
 bool GpsdParserBase::hasValidVariance(const gps_data_t & data)
 {
   return std::isfinite(data.fix.epx) &&
@@ -167,6 +190,15 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(
     fix.tdop = data.dop.tdop;
     fix.gdop = data.dop.gdop;
 
+    if (hasValidVariance(data)) {
+      fix.position_covariance[0] = variance(data.fix.epx);
+      fix.position_covariance[4] = variance(data.fix.epy);
+      fix.position_covariance[8] = variance(data.fix.epv);
+      fix.position_covariance_type = gps_msgs::msg::GPSFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+    } else {
+      fix.position_covariance_type = gps_msgs::msg::GPSFix::COVARIANCE_TYPE_UNKNOWN;
+    }
+
     fix.err = data.fix.eph;
     fix.err_vert = data.fix.epv;
     fix.err_track = data.fix.epd;
@@ -245,19 +277,22 @@ std::optional<sensor_msgs::msg::NavSatFix> GpsdParserBase::parseNavSatFix(
     return std::nullopt;
   }
 
-  /* Covariance is a 3x3 matrix, and this sets the diagonal elements based on
-   * the reported variances. GPSd reports a variance it does not have as NaN,
-   * so the matrix is only advertised as known when all three are finite;
-   * otherwise it stays zero-filled and UNKNOWN, since NavSatFix has no way to
-   * mark individual elements as missing and downstream consumers are entitled
-   * to treat a KNOWN covariance as usable numbers. This matters when
-   * check_fix_by_variance is off because when it is on, a fix with a NaN
-   * variance has already been dropped above.
+  /* Covariance is a 3x3 matrix, and this sets the diagonal elements from the
+   * reported uncertainties; see variance(). GPSd reports an uncertainty it
+   * does not have as NaN, so the matrix is only advertised as known when all
+   * three are finite; otherwise it stays zero-filled and UNKNOWN, since
+   * NavSatFix has no way to mark individual elements as missing and
+   * downstream consumers are entitled to treat a KNOWN covariance as usable
+   * numbers. This matters when check_fix_by_variance is off because when it is
+   * on, a fix with a NaN uncertainty has already been dropped above.
    */
   if (hasValidVariance(data)) {
-    fix.position_covariance[0] = data.fix.epx;
-    fix.position_covariance[4] = data.fix.epy;
-    fix.position_covariance[8] = data.fix.epv;
+    // legacy_fix_semantics keeps what earlier releases published: the
+    // uncertainties themselves, in meters, rather than variances.
+    const bool legacy = context_.legacy_fix_semantics;
+    fix.position_covariance[0] = legacy ? data.fix.epx : variance(data.fix.epx);
+    fix.position_covariance[4] = legacy ? data.fix.epy : variance(data.fix.epy);
+    fix.position_covariance[8] = legacy ? data.fix.epv : variance(data.fix.epv);
 
     fix.position_covariance_type =
       sensor_msgs::msg::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;

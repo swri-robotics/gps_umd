@@ -71,6 +71,13 @@ using lifecycle_msgs::msg::Transition;
 using sensor_msgs::msg::NavSatFix;
 using sensor_msgs::msg::NavSatStatus;
 
+/// The published variance for a GPSd uncertainty, taken as 1.96 sigma.
+double Variance(double uncertainty)
+{
+  const double sigma = uncertainty / 1.96;
+  return sigma * sigma;
+}
+
 /// 2023-11-14T22:13:20.500Z
 constexpr int32_t kGpsSec = 1700000000;
 constexpr uint32_t kGpsNanosec = 500000000;
@@ -312,9 +319,9 @@ TEST_F(ClientNode, PublishesAFixFromATpvReport)
   EXPECT_DOUBLE_EQ(29.44, fix->latitude);
   EXPECT_DOUBLE_EQ(-98.61, fix->longitude);
   EXPECT_DOUBLE_EQ(250.0, fix->altitude);
-  EXPECT_DOUBLE_EQ(1.5, fix->position_covariance[0]);
-  EXPECT_DOUBLE_EQ(2.5, fix->position_covariance[4]);
-  EXPECT_DOUBLE_EQ(3.5, fix->position_covariance[8]);
+  EXPECT_DOUBLE_EQ(Variance(1.5), fix->position_covariance[0]);
+  EXPECT_DOUBLE_EQ(Variance(2.5), fix->position_covariance[4]);
+  EXPECT_DOUBLE_EQ(Variance(3.5), fix->position_covariance[8]);
   EXPECT_EQ(NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN, fix->position_covariance_type);
   // use_gps_time defaults to true.
   EXPECT_EQ(kGpsSec, fix->header.stamp.sec);
@@ -328,6 +335,10 @@ TEST_F(ClientNode, PublishesAFixFromATpvReport)
   EXPECT_DOUBLE_EQ(-98.61, extended->longitude);
   EXPECT_DOUBLE_EQ(250.0, extended->altitude);
   EXPECT_DOUBLE_EQ(4.5, extended->err);
+  EXPECT_DOUBLE_EQ(Variance(1.5), extended->position_covariance[0]);
+  EXPECT_DOUBLE_EQ(Variance(2.5), extended->position_covariance[4]);
+  EXPECT_DOUBLE_EQ(Variance(3.5), extended->position_covariance[8]);
+  EXPECT_EQ(GPSFix::COVARIANCE_TYPE_DIAGONAL_KNOWN, extended->position_covariance_type);
   EXPECT_DOUBLE_EQ(1700000000.5, extended->time);
 }
 
@@ -458,6 +469,47 @@ TEST_F(ClientNode, WithoutCheckFixByVarianceMarksTheCovarianceUnknown)
   ASSERT_TRUE(fix.has_value());
   EXPECT_EQ(NavSatFix::COVARIANCE_TYPE_UNKNOWN, fix->position_covariance_type);
   EXPECT_EQ(0.0, fix->position_covariance[0]);
+}
+
+TEST_F(ClientNode, UncertaintyToSigmaScalesTheCovariance)
+{
+  start({rclcpp::Parameter("uncertainty_to_sigma", 1.0)});
+  waitForDiscovery();
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix())));
+
+  auto fix = fix_->next();
+  ASSERT_TRUE(fix.has_value());
+  EXPECT_DOUBLE_EQ(2.25, fix->position_covariance[0]);
+  EXPECT_DOUBLE_EQ(12.25, fix->position_covariance[8]);
+}
+
+TEST_F(ClientNode, FallsBackToTheDefaultForAnInvalidUncertaintyToSigma)
+{
+  // Zero would divide by zero; the node warns and uses 1.96.
+  start({rclcpp::Parameter("uncertainty_to_sigma", 0.0)});
+  waitForDiscovery();
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix())));
+
+  auto fix = fix_->next();
+  ASSERT_TRUE(fix.has_value());
+  EXPECT_DOUBLE_EQ(Variance(1.5), fix->position_covariance[0]);
+  EXPECT_EQ(NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN, fix->position_covariance_type);
+}
+
+TEST_F(ClientNode, LegacyFixSemanticsKeepsTheOldNavSatFixCovariance)
+{
+  start({rclcpp::Parameter("legacy_fix_semantics", true)});
+  waitForDiscovery();
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix())));
+
+  auto fix = fix_->next();
+  ASSERT_TRUE(fix.has_value());
+  EXPECT_DOUBLE_EQ(1.5, fix->position_covariance[0]);
+  EXPECT_DOUBLE_EQ(3.5, fix->position_covariance[8]);
+
+  auto extended = extended_fix_->next();
+  ASSERT_TRUE(extended.has_value());
+  EXPECT_DOUBLE_EQ(Variance(1.5), extended->position_covariance[0]);
 }
 
 TEST_F(ClientNode, AdvertisesTheRawAndJsonTopicsOnlyWhenAsked)

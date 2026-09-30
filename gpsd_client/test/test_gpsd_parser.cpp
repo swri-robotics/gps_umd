@@ -29,7 +29,9 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstdint>
 #include <memory>
+#include <vector>
 
 #include <gpsd_client/gpsd_parser_factory.hpp>
 
@@ -396,6 +398,98 @@ TEST(GpsdParser, DgpsStatusWithoutSbas)
   auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
   ASSERT_TRUE(navsat_fix.has_value());
   EXPECT_EQ(navsat_fix->status.status, sensor_msgs::msg::NavSatStatus::STATUS_GBAS_FIX);
+}
+
+namespace
+{
+struct StatusCase
+{
+  const char * name;
+  int gpsd_status;
+  int16_t gps_status;
+  int8_t navsat_status;
+  uint16_t position_source;
+  uint16_t motion_source;
+};
+
+void checkStatus(const gpsd_client::ParserContext & context, const StatusCase & c)
+{
+  SCOPED_TRACE(c.name);
+  auto parser = makeParser(context);
+  gps_data_t data = makeThreeDFix();
+  setFixStatus(data, c.gpsd_status);
+
+  gps_msgs::msg::GPSFix fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
+  EXPECT_EQ(fix.status.status, c.gps_status);
+  EXPECT_EQ(fix.status.position_source, c.position_source);
+  EXPECT_EQ(fix.status.motion_source, c.motion_source);
+  EXPECT_EQ(fix.status.orientation_source, c.motion_source);
+
+  auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
+  ASSERT_TRUE(navsat_fix.has_value());
+  EXPECT_EQ(navsat_fix->status.status, c.navsat_status);
+}
+}  // namespace
+
+TEST(GpsdParser, MapsEveryGpsdStatus)
+{
+  using gps_msgs::msg::GPSStatus;
+  using sensor_msgs::msg::NavSatStatus;
+  using gpsd_client::gps_h::kStatusDr;
+  using gpsd_client::gps_h::kStatusGnssDr;
+  using gpsd_client::gps_h::kStatusRtkFix;
+  using gpsd_client::gps_h::kStatusRtkFloat;
+  using gpsd_client::gps_h::kStatusSim;
+  using gpsd_client::gps_h::kStatusTime;
+  constexpr uint16_t kGps = GPSStatus::SOURCE_GPS;
+  constexpr uint16_t kPoints = GPSStatus::SOURCE_POINTS;
+  constexpr uint16_t kNone = GPSStatus::SOURCE_NONE;
+  const std::vector<StatusCase> cases = {
+    {"GPS", kStatusGps, GPSStatus::STATUS_FIX, NavSatStatus::STATUS_FIX, kGps, kPoints},
+    {"DGPS", kStatusDgps, GPSStatus::STATUS_DGPS_FIX, NavSatStatus::STATUS_GBAS_FIX, kGps,
+      kPoints},
+    {"RTK fixed", kStatusRtkFix, GPSStatus::STATUS_RTK_FIX, NavSatStatus::STATUS_GBAS_FIX,
+      kGps, kPoints},
+    {"RTK float", kStatusRtkFloat, GPSStatus::STATUS_RTK_FLOAT,
+      NavSatStatus::STATUS_GBAS_FIX, kGps, kPoints},
+    // Dead reckoning alone has no GNSS in it, so it claims no source.
+    {"DR", kStatusDr, GPSStatus::STATUS_DR_FIX, NavSatStatus::STATUS_FIX, kNone, kNone},
+    // GNSS aided by dead reckoning is still a GNSS fix.
+    {"GNSS+DR", kStatusGnssDr, GPSStatus::STATUS_FIX, NavSatStatus::STATUS_FIX, kGps,
+      kPoints},
+    {"time only", kStatusTime, GPSStatus::STATUS_TIME_FIX, NavSatStatus::STATUS_FIX, kGps,
+      kPoints},
+    {"simulated", kStatusSim, GPSStatus::STATUS_SIM_FIX, NavSatStatus::STATUS_FIX, kGps,
+      kPoints},
+    // Anything else, such as unknown (0) or PPS (9), is a plain fix.
+    {"unknown", 0, GPSStatus::STATUS_FIX, NavSatStatus::STATUS_FIX, kGps, kPoints},
+    {"PPS", 9, GPSStatus::STATUS_FIX, NavSatStatus::STATUS_FIX, kGps, kPoints},
+  };
+  for (const StatusCase & c : cases) {
+    checkStatus(makeContext(), c);
+  }
+}
+
+TEST(GpsdParser, LegacyFixSemanticsReportsEveryFixAsAPlainGpsFix)
+{
+  using gps_msgs::msg::GPSStatus;
+  using sensor_msgs::msg::NavSatStatus;
+  using gpsd_client::gps_h::kStatusDr;
+  using gpsd_client::gps_h::kStatusSim;
+  using gpsd_client::gps_h::kStatusTime;
+  auto context = makeContext();
+  context.legacy_fix_semantics = true;
+  const std::vector<StatusCase> cases = {
+    {"DR", kStatusDr, GPSStatus::STATUS_FIX, NavSatStatus::STATUS_FIX,
+      GPSStatus::SOURCE_GPS, GPSStatus::SOURCE_POINTS},
+    {"time only", kStatusTime, GPSStatus::STATUS_FIX, NavSatStatus::STATUS_FIX,
+      GPSStatus::SOURCE_GPS, GPSStatus::SOURCE_POINTS},
+    {"simulated", kStatusSim, GPSStatus::STATUS_FIX, NavSatStatus::STATUS_FIX,
+      GPSStatus::SOURCE_GPS, GPSStatus::SOURCE_POINTS},
+  };
+  for (const StatusCase & c : cases) {
+    checkStatus(context, c);
+  }
 }
 
 TEST(GpsdParser, OverrideAugmentationSourceReportsSbasWithoutSbasSatellites)

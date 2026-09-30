@@ -751,6 +751,67 @@ class LifecycleEndToEnd(unittest.TestCase):
 
 
 @unittest.skipIf(SKIP, SKIP or '')
+class ExtendedStatuses(unittest.TestCase):
+    """GPSd's dead-reckoned and time-only fixes, from its own logs."""
+
+    # Simulated fixes are covered by the parser tests only. GPSd's simulated
+    # logs (GPSmap-76S.log, garmin-geko201.log) report every fix as SIM, but a
+    # live replay reports them all in mode 1, so none reaches extended_fix as
+    # a fix.
+
+    # GPSStatus and NavSatStatus values, as published.
+    NO_FIX = -1
+    FIX = 0
+    DGPS_FIX = 18
+    SBAS_FIX = 1
+    DR_FIX = 34
+    TIME_FIX = 36
+    SOURCE_NONE = 0
+    NAVSAT_STATUSES = {-1, 0, 1, 2}  # NavSatStatus defines no others
+
+    # These logs group their statuses in long runs -- trimble-smtx-dr.log opens
+    # with 34 time-only fixes before any dead-reckoned one -- and several are
+    # binary logs with many packets per fix. At the default pace a capture only
+    # sees the first run, so replay them faster, and for long enough to cover a
+    # whole pass. Only the statuses matter here, not every report.
+    CYCLE = 0.02
+    SECONDS = 25.0
+
+    def published(self, log_name):
+        if not os.path.exists(os.path.join(LOG_DIR, log_name)):
+            self.skipTest(f'{log_name} is not in this GPSd checkout')
+        session = capture(log_name, seconds=self.SECONDS, cycle=self.CYCLE)
+        extended = session.messages.get('/extended_fix', [])
+        fixes = session.messages.get('/fix', [])
+        self.assertTrue(extended, f'no /extended_fix messages from {log_name}')
+        # fix never carries anything NavSatStatus does not define.
+        self.assertLessEqual({m.status.status for m in fixes}, self.NAVSAT_STATUSES)
+        return [m for m in extended if m.status.status != self.NO_FIX]
+
+    def test_dead_reckoning_and_time_only(self):
+        # trimble-smtx-dr.log reports only DR (5) and TIME (7) fixes.
+        fixed = self.published('trimble-smtx-dr.log')
+        statuses = {m.status.status for m in fixed}
+        self.assertLessEqual(statuses, {self.DR_FIX, self.TIME_FIX})
+        self.assertIn(self.DR_FIX, statuses)
+        # A dead-reckoned position claims no GNSS source.
+        for m in fixed:
+            if m.status.status == self.DR_FIX:
+                self.assertEqual(self.SOURCE_NONE, m.status.position_source)
+
+    def test_time_only(self):
+        # u-blox-m8t-time.log is a timing receiver: every fix is TIME (7).
+        statuses = {m.status.status for m in self.published('u-blox-m8t-time.log')}
+        self.assertEqual({self.TIME_FIX}, statuses)
+
+    def test_gnss_aided_dead_reckoning_is_a_plain_fix(self):
+        # ublox-neo-m8l.log reports GNSSDR (6) and DGPS (2) fixes.
+        statuses = {m.status.status for m in self.published('ublox-neo-m8l.log')}
+        self.assertIn(self.FIX, statuses)
+        self.assertLessEqual(statuses, {self.FIX, self.DGPS_FIX, self.SBAS_FIX})
+
+
+@unittest.skipIf(SKIP, SKIP or '')
 class GstReports(unittest.TestCase):
     """gr8013-w.log carries GST, which reaches the `gst` member."""
 

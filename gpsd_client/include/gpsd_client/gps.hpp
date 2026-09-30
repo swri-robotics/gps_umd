@@ -79,6 +79,11 @@ inline constexpr int kStatusDgps = STATUS_DGPS_FIX;
 #endif
 inline constexpr int kStatusRtkFix = STATUS_RTK_FIX;
 inline constexpr int kStatusRtkFloat = STATUS_RTK_FLT;
+// Present, with these names, in every supported GPSd.
+inline constexpr int kStatusDr = STATUS_DR;
+inline constexpr int kStatusGnssDr = STATUS_GNSSDR;
+inline constexpr int kStatusTime = STATUS_TIME;
+inline constexpr int kStatusSim = STATUS_SIM;
 
 namespace detail
 {

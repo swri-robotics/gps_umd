@@ -156,8 +156,9 @@ protected:
       RCLCPP_WARN(
         this->get_logger(),
         "legacy_fix_semantics is set: fix (NavSatFix) keeps its old position "
-        "covariance, GPSd's uncertainties in meters rather than variances. "
-        "This option will be removed in a future release.");
+        "covariance, GPSd's uncertainties in meters rather than variances, and "
+        "extended_fix reports dead-reckoned, simulated and time-only fixes as "
+        "STATUS_FIX. This option will be removed in a future release.");
     }
 
     /* Above kMaxPublishRate, 1000 / publish_rate_ rounds down to a 0 ms

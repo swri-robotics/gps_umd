@@ -35,6 +35,11 @@ _NAVSAT_STATUS = {
     GPSStatus.STATUS_RTK_FIX: NavSatStatus.STATUS_GBAS_FIX,
     GPSStatus.STATUS_RTK_FLOAT: NavSatStatus.STATUS_GBAS_FIX,
     GPSStatus.STATUS_WAAS_FIX: NavSatStatus.STATUS_SBAS_FIX,
+    # Positions that are not a live GNSS fix, which NavSatStatus has no value
+    # for. gpsd_client publishes them on its NavSatFix topic as STATUS_FIX.
+    GPSStatus.STATUS_DR_FIX: NavSatStatus.STATUS_FIX,
+    GPSStatus.STATUS_SIM_FIX: NavSatStatus.STATUS_FIX,
+    GPSStatus.STATUS_TIME_FIX: NavSatStatus.STATUS_FIX,
 }
 
 # Every NavSatStatus service is a satellite constellation. SERVICE_COMPASS is

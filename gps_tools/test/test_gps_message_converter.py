@@ -159,6 +159,10 @@ class GpsFixToNavSatFix(unittest.TestCase):
             GPSStatus.STATUS_RTK_FIX: NavSatStatus.STATUS_GBAS_FIX,
             GPSStatus.STATUS_RTK_FLOAT: NavSatStatus.STATUS_GBAS_FIX,
             GPSStatus.STATUS_WAAS_FIX: NavSatStatus.STATUS_SBAS_FIX,
+            # Positions that are not a live GNSS fix are still fixes.
+            GPSStatus.STATUS_DR_FIX: NavSatStatus.STATUS_FIX,
+            GPSStatus.STATUS_SIM_FIX: NavSatStatus.STATUS_FIX,
+            GPSStatus.STATUS_TIME_FIX: NavSatStatus.STATUS_FIX,
         }
         for status, navsat_status in expected.items():
             with self.subTest(status=status):

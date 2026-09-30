@@ -87,7 +87,7 @@ private:
   /// True if epx/epy/epv are all finite.
   static bool hasValidVariance(const gps_data_t & data);
 
-  static int16_t mapGpsFixStatus(int gpsd_status, bool sbas_used);
+  [[nodiscard]] int16_t mapGpsFixStatus(int gpsd_status, bool sbas_used) const;
 
   static int8_t mapNavSatStatus(int gpsd_status, bool sbas_used);
 

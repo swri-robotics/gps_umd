@@ -84,6 +84,9 @@ if(BUILD_TESTING)
       "${CMAKE_CURRENT_SOURCE_DIR}/../tools/${test_file}"
       TIMEOUT 600)
   endforeach()
+
+  # Recorded bags depend on GPSFix and GPSStatus keeping their fields.
+  ament_add_pytest_test(test_message_fields test/test_message_fields.py)
 endif()
 
 ament_package()

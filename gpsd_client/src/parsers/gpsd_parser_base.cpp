@@ -31,6 +31,7 @@
 #include <cmath>
 
 #include <gps_msgs/msg/gps_status.hpp>
+#include <rclcpp/logging.hpp>
 #include <sensor_msgs/msg/nav_sat_status.hpp>
 
 namespace gpsd_client
@@ -103,9 +104,17 @@ bool GpsdParserBase::hasValidVariance(const gps_data_t & data)
          std::isfinite(data.fix.epv);
 }
 
-int16_t GpsdParserBase::mapGpsFixStatus(int gpsd_status, bool sbas_used)
+int16_t GpsdParserBase::mapGpsFixStatus(int gpsd_status, bool sbas_used) const
 {
   using gps_msgs::msg::GPSStatus;
+  /* Dead-reckoned, simulated and time-only positions each get their own
+   * GPSStatus value, so extended_fix does not pass them off as GNSS fixes.
+   * All three are positive: they still carry a position, and consumers that
+   * compare against STATUS_NO_FIX keep treating them as fixes, as before.
+   * NavSatStatus has no room for them, so fix reports them as STATUS_FIX.
+   * GNSSDR is a GNSS solution aided by dead reckoning, so it stays a fix.
+   */
+  const bool legacy = context_.legacy_fix_semantics;
   switch (gpsd_status) {
     case gps_h::kStatusDgps:
       return sbas_used ? GPSStatus::STATUS_SBAS_FIX : GPSStatus::STATUS_DGPS_FIX;
@@ -113,6 +122,12 @@ int16_t GpsdParserBase::mapGpsFixStatus(int gpsd_status, bool sbas_used)
       return GPSStatus::STATUS_RTK_FIX;
     case gps_h::kStatusRtkFloat:
       return GPSStatus::STATUS_RTK_FLOAT;
+    case gps_h::kStatusDr:
+      return legacy ? GPSStatus::STATUS_FIX : GPSStatus::STATUS_DR_FIX;
+    case gps_h::kStatusSim:
+      return legacy ? GPSStatus::STATUS_FIX : GPSStatus::STATUS_SIM_FIX;
+    case gps_h::kStatusTime:
+      return legacy ? GPSStatus::STATUS_FIX : GPSStatus::STATUS_TIME_FIX;
     default:
       return GPSStatus::STATUS_FIX;
   }
@@ -169,11 +184,24 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(
   if (((data.fix.mode == MODE_2D) || (data.fix.mode == MODE_3D)) &&
     (!context_.check_fix_by_variance || hasValidVariance(data)))
   {
-    status.motion_source = gps_msgs::msg::GPSStatus::SOURCE_POINTS;
-    status.orientation_source = gps_msgs::msg::GPSStatus::SOURCE_POINTS;
-    status.position_source = gps_msgs::msg::GPSStatus::SOURCE_GPS;
+    const int gpsd_status = getFixStatus(data);
+    if (gpsd_status == gps_h::kStatusSim) {
+      RCLCPP_WARN_ONCE(
+        rclcpp::get_logger("gpsd_client"),
+        "GPSd reports a simulated fix; positions are not from a receiver");
+    }
 
-    status.status = mapGpsFixStatus(getFixStatus(data), sbasAugmented(data));
+    /* A dead-reckoned position has no GNSS in it, and GPSFix has no source bit
+     * for the odometry or inertial sensors it came from, so it claims none.
+     */
+    using gps_msgs::msg::GPSStatus;
+    const bool dead_reckoned =
+      !context_.legacy_fix_semantics && gpsd_status == gps_h::kStatusDr;
+    status.motion_source = dead_reckoned ? GPSStatus::SOURCE_NONE : GPSStatus::SOURCE_POINTS;
+    status.orientation_source = dead_reckoned ? GPSStatus::SOURCE_NONE : GPSStatus::SOURCE_POINTS;
+    status.position_source = dead_reckoned ? GPSStatus::SOURCE_NONE : GPSStatus::SOURCE_GPS;
+
+    status.status = mapGpsFixStatus(gpsd_status, sbasAugmented(data));
 
     fix.time = static_cast<double>(data.fix.time.tv_sec) +
       (static_cast<double>(data.fix.time.tv_nsec) / NANOSECONDS_IN_SECOND);

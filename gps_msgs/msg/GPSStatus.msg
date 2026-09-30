@@ -20,6 +20,12 @@ int16 STATUS_DGPS_FIX=18  # Fixed with DGPS
 int16 STATUS_RTK_FIX=19   # Real-Time Kinematic, fixed integers
 int16 STATUS_RTK_FLOAT=20 # Real-Time Kinematic, float integers
 int16 STATUS_WAAS_FIX=33  # Fixed with WAAS
+# Positions that are not a live GNSS fix. They read as a fix to code that
+# checks status != STATUS_NO_FIX, which they are: each carries a position.
+# Constants only: adding fields here would break every recorded bag.
+int16 STATUS_DR_FIX=34    # Dead reckoning only, with no GNSS in the solution
+int16 STATUS_SIM_FIX=35   # Simulated
+int16 STATUS_TIME_FIX=36  # Time-only receiver, reporting its surveyed or entered position
 int16 status
 
 uint16 SOURCE_NONE=0 # No information is available

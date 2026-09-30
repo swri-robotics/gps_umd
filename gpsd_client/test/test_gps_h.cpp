@@ -61,6 +61,9 @@ TEST(GpsH, MessageConstantsKeepTheirValues)
   EXPECT_EQ(19, GPSStatus::STATUS_RTK_FIX);
   EXPECT_EQ(20, GPSStatus::STATUS_RTK_FLOAT);
   EXPECT_EQ(33, GPSStatus::STATUS_WAAS_FIX);
+  EXPECT_EQ(34, GPSStatus::STATUS_DR_FIX);
+  EXPECT_EQ(35, GPSStatus::STATUS_SIM_FIX);
+  EXPECT_EQ(36, GPSStatus::STATUS_TIME_FIX);
 
   EXPECT_EQ(-1, NavSatStatus::STATUS_NO_FIX);
   EXPECT_EQ(0, NavSatStatus::STATUS_FIX);
@@ -75,6 +78,10 @@ TEST(GpsH, KeepsGpsdsFixStatusValues)
   EXPECT_EQ(2, gpsd_client::gps_h::kStatusDgps);
   EXPECT_EQ(3, gpsd_client::gps_h::kStatusRtkFix);
   EXPECT_EQ(4, gpsd_client::gps_h::kStatusRtkFloat);
+  EXPECT_EQ(5, gpsd_client::gps_h::kStatusDr);
+  EXPECT_EQ(6, gpsd_client::gps_h::kStatusGnssDr);
+  EXPECT_EQ(7, gpsd_client::gps_h::kStatusTime);
+  EXPECT_EQ(8, gpsd_client::gps_h::kStatusSim);
   EXPECT_EQ(3, gpsd_client::gps_h::STATUS_RTK_FIX);
 #ifdef GPSD_CLIENT_HAS_STATUS_NO_FIX
   EXPECT_EQ(0, gpsd_client::gps_h::STATUS_NO_FIX);

@@ -357,6 +357,8 @@ TEST_F(ClientNode, PublishesNoFixWithoutAFix)
   auto extended = extended_fix_->next();
   ASSERT_TRUE(extended.has_value());
   EXPECT_EQ(gps_msgs::msg::GPSStatus::STATUS_NO_FIX, extended->status.status);
+  EXPECT_TRUE(std::isnan(extended->latitude));
+  EXPECT_TRUE(std::isnan(extended->longitude));
 }
 
 TEST_F(ClientNode, NamesEveryTopicsFrameWithFrameId)

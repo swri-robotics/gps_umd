@@ -119,6 +119,6 @@ class FixTranslatorLaunch(unittest.TestCase):
 class FixTranslatorShutdown(unittest.TestCase):
 
     def test_exits_cleanly(self, proc_info):
-        # launch stops the node with SIGINT at the end of the test.
-        launch_testing.asserts.assertExitCodes(
-            proc_info, allowable_exit_codes=[0, -2, -15])
+        # launch stops the node with SIGINT at the end of the test, which it
+        # should handle as a requested shutdown and exit 0.
+        launch_testing.asserts.assertExitCodes(proc_info)

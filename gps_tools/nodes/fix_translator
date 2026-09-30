@@ -5,6 +5,7 @@
 from gps_msgs.msg import GPSFix
 import gps_tools.gps_message_converter as converter
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
 from rclpy.qos import QoSProfile
@@ -39,11 +40,24 @@ class FixTranslator(Node):
         self.navsat_pub.publish(navsat_msg)
 
 
-if __name__ == '__main__':
+def main():
     rclpy.init()
-
     node = FixTranslator()
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    except Exception:
+        # rclpy's SIGINT and SIGTERM handlers shut the context down under spin(),
+        # which can surface as an RCLError from the wait set rather than as
+        # ExternalShutdownException. Once the context is shut down, that is
+        # the requested shutdown, not a failure.
+        if rclpy.ok():
+            raise
+    finally:
+        node.destroy_node()
+        rclpy.try_shutdown()
 
-    rclpy.spin(node)
 
-    rclpy.shutdown()
+if __name__ == '__main__':
+    main()

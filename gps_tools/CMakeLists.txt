@@ -114,6 +114,10 @@ if(BUILD_TESTING)
     APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
     TIMEOUT 120)
 
+  # Stops the installed fix_translator with SIGINT and SIGTERM.
+  ament_add_pytest_test(test_fix_translator_shutdown test/test_fix_translator_shutdown.py
+    TIMEOUT 120)
+
   # Starts the installed fix_translator through its launch file.
   find_package(launch_testing_ament_cmake REQUIRED)
   add_launch_test(test/test_fix_translator_launch.py TIMEOUT 120)

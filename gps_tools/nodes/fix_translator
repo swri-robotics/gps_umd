@@ -6,6 +6,7 @@ from gps_msgs.msg import GPSFix
 import gps_tools.gps_message_converter as converter
 import rclpy
 from rclpy.executors import ExternalShutdownException
+from rclpy.executors import SingleThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
 from rclpy.qos import QoSProfile
@@ -43,8 +44,16 @@ class FixTranslator(Node):
 def main():
     rclpy.init()
     node = FixTranslator()
+    executor = SingleThreadedExecutor()
+    executor.add_node(node)
     try:
-        rclpy.spin(node)
+        # Wait in short slices rather than indefinitely. rclpy's SIGINT and
+        # SIGTERM handling shuts the context down but does not always wake an
+        # executor that is already waiting (seen under heavy CPU load), which
+        # left the node spinning forever; a bounded wait notices on the next
+        # slice.
+        while rclpy.ok():
+            executor.spin_once(timeout_sec=0.5)
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
     except Exception:
@@ -55,6 +64,7 @@ def main():
         if rclpy.ok():
             raise
     finally:
+        executor.shutdown()
         node.destroy_node()
         rclpy.try_shutdown()
 

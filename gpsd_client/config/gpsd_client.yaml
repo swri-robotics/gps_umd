@@ -1,5 +1,8 @@
 gpsd_client:
   ros__parameters:
+    # Stamp fix (NavSatFix) with the receiver's time rather than ROS time.
+    # extended_fix and gpsd_raw are always stamped with ROS time; GPSFix.time
+    # carries the receiver's time.
     use_gps_time: true
     check_fix_by_variance: false
     override_augmentation_source: false

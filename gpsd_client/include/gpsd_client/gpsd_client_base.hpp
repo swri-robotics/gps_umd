@@ -322,10 +322,14 @@ protected:
     RCLCPP_DEBUG(this->get_logger(), "Publishing gps fix...");
     gps_fix_pub_->publish(parser_->parseGpsFix(gps_data_, now));
 
-    /* Carries the same report and timestamp as the other two topics, so a
-     * subscriber can line all three up. check_fix_by_variance does not gate
-     * this one: that filter hides GPSd's stale-fix behaviour from NavSatFix
-     * consumers, and applying it here would make "raw" a filtered topic.
+    /* Carries the same report as the other two topics, and the same header
+     * stamp as extended_fix, so a subscriber can line those two up. fix may be
+     * stamped differently: use_gps_time stamps it with the receiver's time,
+     * which extended_fix carries in GPSFix::time instead.
+     *
+     * check_fix_by_variance does not gate this one: that filter hides GPSd's
+     * stale-fix behaviour from NavSatFix consumers, and applying it here would
+     * make "raw" a filtered topic.
      */
     if (gpsd_raw_pub_) {
       RCLCPP_DEBUG(this->get_logger(), "Publishing raw GPSd report...");

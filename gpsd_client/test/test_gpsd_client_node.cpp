@@ -381,6 +381,33 @@ TEST_F(ClientNode, StampsWithTheNodeClockWhenUseGpsTimeIsOff)
   EXPECT_LE(stamp, node_->get_clock()->now().nanoseconds());
 }
 
+TEST_F(ClientNode, UseGpsTimeStampsOnlyTheNavSatFix)
+{
+  // use_gps_time defaults to true.
+  start({rclcpp::Parameter("publish_gpsd_raw", true)});
+  waitForDiscovery(true);
+  const rclcpp::Time before = node_->get_clock()->now();
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix())));
+
+  auto fix = fix_->next();
+  ASSERT_TRUE(fix.has_value());
+  EXPECT_EQ(kGpsSec, fix->header.stamp.sec);
+  EXPECT_EQ(kGpsNanosec, fix->header.stamp.nanosec);
+
+  // extended_fix and gpsd_raw keep the ROS time the report was read, and
+  // share it, while GPSFix::time carries the receiver's time.
+  auto extended = extended_fix_->next();
+  ASSERT_TRUE(extended.has_value());
+  const int64_t stamp = rclcpp::Time(extended->header.stamp).nanoseconds();
+  EXPECT_GE(stamp, before.nanoseconds());
+  EXPECT_LE(stamp, node_->get_clock()->now().nanoseconds());
+  EXPECT_DOUBLE_EQ(1700000000.5, extended->time);
+
+  auto raw = raw_->next();
+  ASSERT_TRUE(raw.has_value());
+  EXPECT_EQ(extended->header.stamp, raw->header.stamp);
+}
+
 TEST_F(ClientNode, FallsBackToTheNodeClockWhenTheReportHasNoTime)
 {
   // A receiver without a fix often has no time either, and GPSd then leaves

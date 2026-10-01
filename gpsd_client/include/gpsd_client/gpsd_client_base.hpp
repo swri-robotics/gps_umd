@@ -115,6 +115,7 @@ public:
     this->declare_parameter("publish_rate", rclcpp::PARAMETER_INTEGER);
     this->declare_parameter("uncertainty_to_sigma", rclcpp::PARAMETER_DOUBLE);
     this->declare_parameter("legacy_fix_semantics", rclcpp::PARAMETER_BOOL);
+    this->declare_parameter("reconnect_interval", rclcpp::PARAMETER_DOUBLE);
     this->declare_parameter("host", rclcpp::PARAMETER_STRING);
     this->declare_parameter("port", rclcpp::PARAMETER_INTEGER);
   }
@@ -144,6 +145,7 @@ protected:
     this->get_parameter_or("publish_rate", publish_rate_, publish_rate_);
     this->get_parameter_or("uncertainty_to_sigma", uncertainty_to_sigma_, uncertainty_to_sigma_);
     this->get_parameter_or("legacy_fix_semantics", legacy_fix_semantics_, legacy_fix_semantics_);
+    this->get_parameter_or("reconnect_interval", reconnect_interval_, reconnect_interval_);
 
     if (!std::isfinite(uncertainty_to_sigma_) || uncertainty_to_sigma_ <= 0.0) {
       RCLCPP_WARN(
@@ -246,24 +248,53 @@ protected:
   bool doActivate()
   {
     if (!gps_opened_) {
-      RCLCPP_ERROR(this->get_logger(), "Cannot activate: GPSd is not open");
-      return false;
+      // The connection was lost while the node was inactive.
+      if (!reconnecting()) {
+        RCLCPP_ERROR(this->get_logger(), "Cannot activate: GPSd is not open");
+        return false;
+      }
+      startPolling();
+      retryNow();
+      return true;
     }
 
     if (-1 == gps_stream(&gps_data_, WATCH_ENABLE, nullptr)) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to start the GPSd stream");
-      return false;
+      if (!reconnecting()) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to start the GPSd stream");
+        return false;
+      }
+      // Most likely GPSd went away while the node was inactive.
+      startPolling();
+      loseConnection();
+      retryNow();
+      return true;
     }
 
-    timer_ = this->create_wall_timer(
-      publish_period_ms_,
-      std::bind(&GPSDClientBase::step, this));
+    startPolling();
+    return true;
+  }
+
+  /* Start polling without a connection, retrying it every reconnect_interval,
+   * for a node that could not reach GPSd when it was configured. Returns false
+   * if reconnecting is disabled, when there is nothing to poll.
+   */
+  bool doActivateDisconnected()
+  {
+    if (!reconnecting()) {
+      return false;
+    }
+    RCLCPP_WARN(
+      this->get_logger(), "GPSd is not reachable at %s:%s; retrying every %.1f s",
+      host_.c_str(), port_.c_str(), reconnect_interval_);
+    startPolling();
+    scheduleRetry();
     return true;
   }
 
   /// Stop polling and tell GPSd to stop streaming; the connection stays open.
   void doDeactivate()
   {
+    active_ = false;
     timer_.reset();
     if (gps_opened_) {
       gps_stream(&gps_data_, WATCH_DISABLE, nullptr);
@@ -309,7 +340,10 @@ protected:
     /* The timer only exists while the node is active, but a lifecycle
      * deactivation can land between a firing and its callback.
      */
-    if (!gps_opened_ || !parser_) {
+    if (!active_ || !parser_) {
+      return;
+    }
+    if (!gps_opened_ && !retryConnection()) {
       return;
     }
 
@@ -327,8 +361,15 @@ protected:
     bool have_report = false;
     while (gps_waiting(&gps_data_, 0)) {
       message_[0] = '\0';
-      if (0 >= gps_read(&gps_data_, message_, static_cast<int>(sizeof(message_)))) {
-        break;    // read error, or the connection closed
+      const int status = gps_read(&gps_data_, message_, static_cast<int>(sizeof(message_)));
+      if (status < 0) {
+        // libgps returns -1 when GPSd closes the connection, as it does when
+        // it exits or restarts, and 0 when there is simply nothing to read.
+        loseConnection();
+        return;
+      }
+      if (status == 0) {
+        break;
       }
       have_report = true;
       publishJson(message_);
@@ -371,6 +412,84 @@ protected:
   }
 
 private:
+  bool reconnecting() const
+  {
+    return reconnect_interval_ > 0.0;
+  }
+
+  void startPolling()
+  {
+    active_ = true;
+    timer_ = this->create_wall_timer(
+      publish_period_ms_,
+      std::bind(&GPSDClientBase::step, this));
+  }
+
+  void scheduleRetry()
+  {
+    next_retry_ = std::chrono::steady_clock::now() +
+      std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+      std::chrono::duration<double>(reconnect_interval_));
+  }
+
+  void retryNow()
+  {
+    next_retry_ = std::chrono::steady_clock::now();
+    retryConnection();
+  }
+
+  /* GPSd went away -- it exited or restarted -- so close the connection and,
+   * if reconnecting is enabled, retry it from step() every
+   * reconnect_interval. host_ and port_ are reused unchanged, so the pointers
+   * gps_open() keeps into them stay valid; see doConfigure().
+   */
+  void loseConnection()
+  {
+    gps_close(&gps_data_);
+    gps_opened_ = false;
+    if (reconnecting()) {
+      RCLCPP_WARN(
+        this->get_logger(), "Lost the connection to GPSd at %s:%s; retrying every %.1f s",
+        host_.c_str(), port_.c_str(), reconnect_interval_);
+      scheduleRetry();
+    } else {
+      RCLCPP_ERROR(
+        this->get_logger(), "Lost the connection to GPSd at %s:%s; reconnect_interval is "
+        "not positive, so not retrying", host_.c_str(), port_.c_str());
+    }
+  }
+
+  /* Reopen the connection and restart the stream, at most once per
+   * reconnect_interval. Returns true once connected.
+   *
+   * gps_open() connects over TCP on the executor's thread. Refused connections
+   * -- GPSd not running on a reachable host -- fail at once, but a host that
+   * does not answer at all can hold the executor for the system's connect
+   * timeout on each attempt.
+   */
+  bool retryConnection()
+  {
+    if (!reconnecting() || std::chrono::steady_clock::now() < next_retry_) {
+      return false;
+    }
+    scheduleRetry();
+    if (0 != gps_open(host_.c_str(), port_.c_str(), &gps_data_)) {
+      RCLCPP_WARN_THROTTLE(
+        this->get_logger(), *this->get_clock(), 30000,
+        "GPSd is still not reachable at %s:%s", host_.c_str(), port_.c_str());
+      return false;
+    }
+    gps_opened_ = true;
+    if (-1 == gps_stream(&gps_data_, WATCH_ENABLE, nullptr)) {
+      gps_close(&gps_data_);
+      gps_opened_ = false;
+      return false;
+    }
+    RCLCPP_INFO(
+      this->get_logger(), "Reconnected to GPSd at %s:%s", host_.c_str(), port_.c_str());
+    return true;
+  }
+
   PublisherPtr<NodeT, gps_msgs::msg::GPSFix> gps_fix_pub_;
   PublisherPtr<NodeT, sensor_msgs::msg::NavSatFix> navsatfix_pub_;
   /// Null unless publish_gpsd_raw is set; doubles as the enabled flag.
@@ -417,6 +536,11 @@ private:
   bool publish_gpsd_json_;
   std::string frame_id_;
   int publish_rate_;
+  /// Seconds between attempts to reconnect to GPSd; 0 or less never retries.
+  double reconnect_interval_{1.0};
+  /// True from activation to deactivation: while polling, and so retrying.
+  bool active_{false};
+  std::chrono::steady_clock::time_point next_retry_{};
   double uncertainty_to_sigma_{kDefaultUncertaintyToSigma};
   bool legacy_fix_semantics_{false};
   std::chrono::milliseconds publish_period_ms_{};

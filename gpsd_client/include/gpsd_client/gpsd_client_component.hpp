@@ -47,7 +47,10 @@ public:
   explicit GPSDClientComponent(const rclcpp::NodeOptions & options)
   : GPSDClientBase<rclcpp::Node>(options)
   {
-    if (!doConfigure() || !doActivate()) {
+    // doConfigure() fails only when it cannot reach GPSd, and then the node
+    // keeps retrying unless reconnect_interval says not to.
+    const bool started = doConfigure() ? doActivate() : doActivateDisconnected();
+    if (!started) {
       RCLCPP_ERROR(this->get_logger(), "Failed to start gpsd_client; timer not created.");
       return;
     }

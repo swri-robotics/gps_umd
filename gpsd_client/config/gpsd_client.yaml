@@ -8,6 +8,9 @@ gpsd_client:
     override_augmentation_source: false
     frame_id: gps
     publish_rate: 10
+    # Seconds between attempts to reconnect when GPSd is unreachable or goes
+    # away; 0 disables reconnecting.
+    reconnect_interval: 1.0
     # GPSd's position uncertainties are divided by this to give a standard
     # deviation, then squared into the published covariance. 1.96 treats them
     # as 95% figures, as GPSd intends; use 1.0 if the receiver reports

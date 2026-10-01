@@ -614,9 +614,63 @@ TEST_F(ClientNode, KeepsRunningWhenGpsdGoesAway)
   ASSERT_TRUE(fix_->next().has_value());
 
   fake_.disconnect();
-  // Nothing more to publish, and nothing to crash on while it tries.
+  // Nothing to crash on while it notices and reconnects, and GPSd sends
+  // nothing more, so nothing more is published.
   EXPECT_TRUE(fix_->staysQuiet(1500ms));
   EXPECT_EQ(1u, publishers("fix"));
+}
+
+TEST_F(ClientNode, ReconnectsWhenGpsdComesBack)
+{
+  start();
+  waitForDiscovery();
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix())));
+  ASSERT_TRUE(fix_->next().has_value());
+
+  // GPSd restarts: the node notices, closes, and reconnects after
+  // reconnect_interval (1 s by default), asking it to stream again.
+  fake_.disconnect();
+  ASSERT_TRUE(fake_.acceptClient(5s)) << "the node never reconnected";
+  ASSERT_FALSE(fake_.waitFor("?WATCH=").empty()) << "the node never restarted the stream";
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix(30.0))));
+  auto fix = fix_->next();
+  ASSERT_TRUE(fix.has_value());
+  EXPECT_DOUBLE_EQ(30.0, fix->latitude);
+}
+
+TEST_F(ClientNode, RetriesWhenGpsdIsNotUpAtStart)
+{
+  // Nothing is listening when the node starts, so its first connection fails.
+  fake_.stopListening();
+  create();
+  waitForDiscovery();
+  std::this_thread::sleep_for(300ms);
+
+  fake_.startListening();
+  ASSERT_TRUE(fake_.acceptClient(5s)) << "the node never retried";
+  ASSERT_FALSE(fake_.waitFor("?WATCH=").empty());
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix())));
+  EXPECT_TRUE(fix_->next().has_value());
+}
+
+TEST_F(ClientNode, ZeroReconnectIntervalDoesNotReconnect)
+{
+  start({rclcpp::Parameter("reconnect_interval", 0.0)});
+  waitForDiscovery();
+  fake_.disconnect();
+  EXPECT_FALSE(fake_.acceptClient(2500ms)) << "the node reconnected anyway";
+}
+
+TEST_F(ClientNode, ReconnectIntervalSpacesAttempts)
+{
+  start({rclcpp::Parameter("reconnect_interval", 2.0)});
+  waitForDiscovery();
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix())));
+  ASSERT_TRUE(fix_->next().has_value());
+
+  fake_.disconnect();
+  EXPECT_FALSE(fake_.acceptClient(1000ms)) << "reconnected well inside the 2 s interval";
+  EXPECT_TRUE(fake_.acceptClient(5s)) << "never reconnected";
 }
 
 namespace
@@ -683,6 +737,40 @@ TEST_F(LifecycleNode, ConnectsOnConfigureAndStreamsOnlyWhileActive)
   auto fix = fix_->next();
   ASSERT_TRUE(fix.has_value());
   EXPECT_DOUBLE_EQ(29.5, fix->latitude);
+}
+
+TEST_F(LifecycleNode, ReconnectsWhileActive)
+{
+  ASSERT_TRUE(transition(Transition::TRANSITION_CONFIGURE));
+  ASSERT_TRUE(fake_.acceptClient());
+  ASSERT_TRUE(transition(Transition::TRANSITION_ACTIVATE));
+  ASSERT_FALSE(fake_.waitFor("?WATCH=").empty());
+
+  fake_.disconnect();
+  ASSERT_TRUE(fake_.acceptClient(5s)) << "the active node never reconnected";
+  ASSERT_FALSE(fake_.waitFor("?WATCH=").empty());
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix())));
+  EXPECT_TRUE(fix_->next().has_value());
+}
+
+TEST_F(LifecycleNode, RetriesOnlyOnceActivatedAgain)
+{
+  ASSERT_TRUE(transition(Transition::TRANSITION_CONFIGURE));
+  ASSERT_TRUE(fake_.acceptClient());
+  ASSERT_TRUE(transition(Transition::TRANSITION_ACTIVATE));
+  ASSERT_FALSE(fake_.waitFor("?WATCH=").empty());
+  ASSERT_TRUE(transition(Transition::TRANSITION_DEACTIVATE));
+
+  // An inactive node does not poll, so it neither notices nor retries.
+  fake_.disconnect();
+  EXPECT_FALSE(fake_.acceptClient(2500ms)) << "the inactive node reconnected";
+
+  // Activating finds the link gone and reconnects rather than failing.
+  ASSERT_TRUE(transition(Transition::TRANSITION_ACTIVATE));
+  ASSERT_TRUE(fake_.acceptClient(5s)) << "activation never reconnected";
+  ASSERT_FALSE(fake_.waitFor("?WATCH=").empty());
+  ASSERT_TRUE(fake_.send(gpsd_client::test::tpvJson(threeDFix())));
+  EXPECT_TRUE(fix_->next().has_value());
 }
 
 TEST_F(LifecycleNode, CleanupClosesTheConnection)

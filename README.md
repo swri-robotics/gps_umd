@@ -23,6 +23,7 @@ Parameter | Type | Default | Description
 :-------- | :--- | :------ | :----------
 `host` | string | `localhost` | Hostname or address of the GPSd server to connect to.
 `port` | int | `2947` | TCP port of the GPSd server.
+`reconnect_interval` | double | `1.0` | Seconds between attempts to reconnect when GPSd is unreachable or goes away, as when it restarts. The node keeps retrying at this interval and resumes publishing once GPSd is back. A managed node retries only while active. `0` or less disables reconnecting, as in earlier releases.
 `frame_id` | string | `gps` | `frame_id` set on the header of published `GPSFix` and `NavSatFix` messages.
 `publish_rate` | int | `10` | How often, in Hz, to poll GPSd and publish. Values `<= 0` fall back to 1 Hz, and values above `1000` to 1000 Hz, with a warning.
 `use_gps_time` | bool | `true` | Stamp `NavSatFix` messages (`fix`) with the time reported by the GPS receiver instead of the current ROS time. Only `fix` is affected: `extended_fix` and `gpsd_raw` headers are always stamped with the ROS time the report was read, and `GPSFix.time` carries the receiver's time.
@@ -68,7 +69,7 @@ connect, another to start the flow of reports.
 Transition | What it does
 :--------- | :-----------
 `configure` | Reads the parameters, creates the parsers and publishers, and connects to GPSd (`gps_open`). An unreachable daemon fails this transition and leaves the node unconfigured, rather than leaving a node that exists but never publishes.
-`activate` | Asks GPSd to stream (`gps_stream(WATCH_ENABLE)`) and starts polling it. The publishers, which drop messages while inactive, begin publishing.
+`activate` | Asks GPSd to stream (`gps_stream(WATCH_ENABLE)`) and starts polling it. The publishers, which drop messages while inactive, begin publishing. While active, a lost connection is retried every `reconnect_interval` rather than failing the node; if the connection was lost while inactive, activating reconnects.
 `deactivate` | Stops polling and stops the stream, but holds the connection open so reactivating it does not force a reconnect.
 `cleanup` | Destroys the publishers and parsers and closes the connection (`gps_close`), returning the node to unconfigured.
 `shutdown` | Deactivates and cleans up, from whatever state the node is in.

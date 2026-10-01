@@ -62,29 +62,52 @@ class FakeGpsd
 public:
   FakeGpsd()
   {
+    startListening();
+  }
+
+  ~FakeGpsd()
+  {
+    disconnect();
+    stopListening();
+  }
+
+  /// Stop accepting connections, as a GPSd that is not running would: the
+  /// client's connections are refused until startListening().
+  void stopListening()
+  {
+    if (listen_fd_ >= 0) {
+      close(listen_fd_);
+      listen_fd_ = -1;
+    }
+  }
+
+  /// Listen again, on the same port as before, or on any free port the first
+  /// time.
+  void startListening()
+  {
+    if (listen_fd_ >= 0) {
+      return;
+    }
     listen_fd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (listen_fd_ < 0) {
       throw std::runtime_error("socket() failed");
     }
+    const int reuse = 1;
+    setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
     sockaddr_in address{};
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    address.sin_port = 0;  // any free port
+    address.sin_port = htons(static_cast<uint16_t>(port_));  // 0: any free port
     socklen_t length = sizeof(address);
     if (bind(listen_fd_, reinterpret_cast<sockaddr *>(&address), length) != 0 ||
       listen(listen_fd_, 1) != 0 ||
       getsockname(listen_fd_, reinterpret_cast<sockaddr *>(&address), &length) != 0)
     {
       close(listen_fd_);
+      listen_fd_ = -1;
       throw std::runtime_error("could not listen on a loopback port");
     }
     port_ = ntohs(address.sin_port);
-  }
-
-  ~FakeGpsd()
-  {
-    disconnect();
-    close(listen_fd_);
   }
 
   FakeGpsd(const FakeGpsd &) = delete;
@@ -102,7 +125,7 @@ public:
     if (client_fd_ >= 0) {
       return true;
     }
-    if (!readable(listen_fd_, timeout)) {
+    if (listen_fd_ < 0 || !readable(listen_fd_, timeout)) {
       return false;
     }
     client_fd_ = accept(listen_fd_, nullptr, nullptr);

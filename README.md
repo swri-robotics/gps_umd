@@ -120,6 +120,16 @@ ros2 run gps_tools fix_translator --ros-args \
 ros2 launch gps_tools fix_translator.launch.py navsat_fix_in:=fix gps_fix_out:=gps_fix
 ```
 
+### Converting recorded bags
+
+`bag_converter` does the same conversion offline. It writes a copy of a bag in which every NavSatFix topic is a GPSFix topic and every GPSFix topic a NavSatFix one, at the same timestamps. Every other topic is copied unchanged, and the input bag is never modified.
+
+```bash
+ros2 run gps_tools bag_converter INPUT_BAG OUTPUT_BAG
+```
+
+`--topics` converts only the named topics, and `--storage-id` (`sqlite3` or `mcap`) picks the output format, which otherwise matches the input's.
+
 Disclaimer
 ------------
 This project is not affiliated with the GPSd project. `gps_umd` utilizes the GPSd library as an interface to GPS receivers but is not a part of the GPSd project itself.

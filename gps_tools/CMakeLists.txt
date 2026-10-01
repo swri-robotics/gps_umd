@@ -115,6 +115,10 @@ if(BUILD_TESTING)
     TIMEOUT 120)
 
   # Stops the installed fix_translator with SIGINT and SIGTERM.
+  ament_add_pytest_test(test_bag_converter test/test_bag_converter.py
+    APPEND_ENV PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
+    TIMEOUT 120)
+
   ament_add_pytest_test(test_fix_translator_shutdown test/test_fix_translator_shutdown.py
     TIMEOUT 120)
 

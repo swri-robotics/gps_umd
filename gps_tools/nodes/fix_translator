@@ -43,10 +43,16 @@ class FixTranslator(Node):
 
 def main():
     rclpy.init()
-    node = FixTranslator()
-    executor = SingleThreadedExecutor()
-    executor.add_node(node)
+    node = None
+    executor = None
     try:
+        # Built inside the try: rclpy's signal handlers are already installed,
+        # so a Ctrl-C or kill that lands while the node is still being set up
+        # is a requested shutdown like any other.
+        node = FixTranslator()
+        executor = SingleThreadedExecutor()
+        executor.add_node(node)
+
         # Wait in short slices rather than indefinitely. rclpy's SIGINT and
         # SIGTERM handling shuts the context down but does not always wake an
         # executor that is already waiting (seen under heavy CPU load), which
@@ -64,8 +70,10 @@ def main():
         if rclpy.ok():
             raise
     finally:
-        executor.shutdown()
-        node.destroy_node()
+        if executor is not None:
+            executor.shutdown()
+        if node is not None:
+            node.destroy_node()
         rclpy.try_shutdown()
 
 

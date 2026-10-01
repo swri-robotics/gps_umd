@@ -592,12 +592,8 @@ class EndToEnd(unittest.TestCase):
         self.assertTrue(hae, 'ac12.log.chk carries no TPV altHAE')
         self.assertFalse(hae & msl, 'ac12.log.chk cannot tell altHAE from altMSL')
 
-        no_fix = -1  # STATUS_NO_FIX in both NavSatStatus and GPSStatus
-
         def has_altitude(msg):
-            # NaN is no 3D fix yet. A GPSFix without a fix leaves its position
-            # at the message defaults, zero, so skip those by status.
-            return msg.altitude == msg.altitude and msg.status.status != no_fix
+            return msg.altitude == msg.altitude  # NaN: no 3D fix yet
 
         for topic in ('/fix', '/extended_fix'):
             with self.subTest(topic=topic):
@@ -631,6 +627,18 @@ class EndToEnd(unittest.TestCase):
                 unmatched = [triple for triple in seen if not matches(triple)]
                 self.assertEqual([], unmatched[:5],
                                  f'{topic} covariances that are not GPSd uncertainties')
+
+    def test_extended_fix_without_a_fix_has_no_position(self):
+        # A GPSFix without a fix used to keep its message defaults, putting it
+        # at 0N 0E. It must carry NaN, like NavSatFix does.
+        no_fix = -1  # STATUS_NO_FIX
+        unfixed = [m for m in self.session.messages.get('/extended_fix', [])
+                   if m.status.status == no_fix]
+        if not unfixed:
+            self.skipTest('this replay published no extended_fix without a fix')
+        for msg in unfixed:
+            self.assertNotEqual(msg.latitude, msg.latitude, 'latitude is not NaN')
+            self.assertNotEqual(msg.longitude, msg.longitude, 'longitude is not NaN')
 
     def test_skyview_length_always_agrees_with_the_count(self):
         # The array is trimmed to satellites_visible on the way out; a

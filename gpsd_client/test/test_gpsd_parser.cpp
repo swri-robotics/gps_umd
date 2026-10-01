@@ -268,8 +268,17 @@ TEST(GpsdParser, NoFixSetsNoFixStatus)
 
   gps_msgs::msg::GPSFix fix = parser->parseGpsFix(data, rclcpp::Time(42, 0));
   EXPECT_EQ(fix.status.status, gps_msgs::msg::GPSStatus::STATUS_NO_FIX);
-  // Position fields are only filled in when there is a fix.
-  EXPECT_DOUBLE_EQ(fix.latitude, 0.0);
+  // Without a fix every measurement is unknown, not 0: 0,0 is a real place.
+  const std::vector<double> measurements = {
+    fix.time, fix.latitude, fix.longitude, fix.altitude, fix.track, fix.speed,
+    fix.climb, fix.pdop, fix.hdop, fix.vdop, fix.tdop, fix.gdop, fix.err,
+    fix.err_vert, fix.err_track, fix.err_speed, fix.err_climb, fix.err_time};
+  for (const double value : measurements) {
+    EXPECT_TRUE(std::isnan(value));
+  }
+  // The skyview is still valid, and there is no covariance to report.
+  EXPECT_EQ(fix.status.satellites_visible, 3);
+  EXPECT_EQ(fix.position_covariance_type, gps_msgs::msg::GPSFix::COVARIANCE_TYPE_UNKNOWN);
 
   auto navsat_fix = parser->parseNavSatFix(data, rclcpp::Time(42, 0));
   ASSERT_TRUE(navsat_fix.has_value());  // variance check is off

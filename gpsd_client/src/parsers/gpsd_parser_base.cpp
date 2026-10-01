@@ -28,7 +28,9 @@
 
 #include <gpsd_client/parsers/gpsd_parser_base.hpp>
 
+#include <array>
 #include <cmath>
+#include <limits>
 
 #include <gps_msgs/msg/gps_status.hpp>
 #include <rclcpp/logging.hpp>
@@ -237,6 +239,22 @@ gps_msgs::msg::GPSFix GpsdParserBase::parseGpsFix(
     /* TODO: attitude */
   } else {
     status.status = gps_msgs::msg::GPSStatus::STATUS_NO_FIX;
+
+    /* Without a fix there is nothing to measure. Left at the message defaults
+     * these would read 0, which looks like a real position (0N 0E), speed and
+     * time; NaN is what GPSd and NavSatFix use for "unknown". The satellite
+     * lists above are still valid. pitch, roll and dip are never filled, fix
+     * or no fix, and the covariance stays zero-filled and UNKNOWN.
+     */
+    const std::array<double *, 18> measurements = {
+      &fix.time, &fix.latitude, &fix.longitude, &fix.altitude,
+      &fix.track, &fix.speed, &fix.climb,
+      &fix.pdop, &fix.hdop, &fix.vdop, &fix.tdop, &fix.gdop,
+      &fix.err, &fix.err_vert, &fix.err_track, &fix.err_speed, &fix.err_climb,
+      &fix.err_time};
+    for (double * field : measurements) {
+      *field = std::numeric_limits<double>::quiet_NaN();
+    }
   }
 
   fix.status = status;

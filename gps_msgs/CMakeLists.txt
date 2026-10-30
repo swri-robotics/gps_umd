@@ -90,3 +90,8 @@ if(BUILD_TESTING)
 endif()
 
 ament_package()
+
+install(
+  FILES ros1_ros2_mapping.yaml
+  DESTINATION share/${PROJECT_NAME}
+)

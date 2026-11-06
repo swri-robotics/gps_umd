@@ -15,8 +15,29 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
+# Debian and Ubuntu ship GeographicLib with only a find module, outside CMake's
+# default search path. Where it is absent, as on RHEL, find_package falls back
+# to GeographicLib's own package config. Both set the variables used below.
+list(APPEND CMAKE_MODULE_PATH /usr/share/cmake/geographiclib)
+find_package(GeographicLib REQUIRED)
+
 # Install the python module for this package
 ament_python_install_package(${PROJECT_NAME})
+
+# The UTM conversions in gps_tools/conversions.hpp. GeographicLib is private to
+# this library, so packages using the header need neither its headers nor a
+# way to find it.
+add_library(gps_tools_conversions SHARED
+  src/conversions.cpp)
+target_include_directories(gps_tools_conversions
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_include_directories(gps_tools_conversions SYSTEM PRIVATE ${GeographicLib_INCLUDE_DIRS})
+target_link_libraries(gps_tools_conversions PRIVATE ${GeographicLib_LIBRARIES})
+# The header carries no export macros.
+set_target_properties(gps_tools_conversions PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 add_library(utm_odometry_component SHARED
   src/utm_odometry_component.cpp)
@@ -30,6 +51,7 @@ target_compile_definitions(utm_odometry_component
 
 rclcpp_components_register_nodes(utm_odometry_component "gps_tools::UtmOdometryComponent")
 target_link_libraries(utm_odometry_component PRIVATE
+  gps_tools_conversions
   ${nav_msgs_TARGETS}
   ${sensor_msgs_TARGETS}
   rclcpp::rclcpp
@@ -48,6 +70,7 @@ target_compile_definitions(utm_odometry_to_navsatfix_component
   PRIVATE "COMPOSITION_BUILDING_DLL")
 rclcpp_components_register_nodes(utm_odometry_to_navsatfix_component "gps_tools::UtmOdometryToNavSatFixComponent")
 target_link_libraries(utm_odometry_to_navsatfix_component PRIVATE
+  gps_tools_conversions
   ${nav_msgs_TARGETS}
   ${sensor_msgs_TARGETS}
   rclcpp::rclcpp
@@ -55,6 +78,7 @@ target_link_libraries(utm_odometry_to_navsatfix_component PRIVATE
 )
 
 install(TARGETS
+    gps_tools_conversions
     utm_odometry_component
     utm_odometry_to_navsatfix_component
   ARCHIVE DESTINATION lib
@@ -76,28 +100,24 @@ install(DIRECTORY launch
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  # Uncrustify and cppcheck would read conversions.h as C, which cannot parse
-  # its namespace.
-  set(ament_cmake_cppcheck_LANGUAGE c++)
-  set(ament_cmake_uncrustify_ADDITIONAL_ARGS LANGUAGE CPP)
-  # conversions.h is Chuck Gantz's UTM code by way of utexas-art-ros-pkg. It
-  # keeps its original attribution, which names no license, so it cannot carry
-  # this package's license header. ament_copyright skips it, and cpplint skips
-  # its copyright check, which ament_copyright covers for every other file.
-  list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_copyright ament_cmake_cpplint)
+  # cppcheck parses .h files as C, which fails on the C++ that the deprecated
+  # conversions.h pulls in from conversions.hpp.
+  set(ament_cmake_cppcheck_LANGUAGE "c++")
   ament_lint_auto_find_test_dependencies()
-  ament_copyright(EXCLUDE include/gps_tools/conversions.h)
-  ament_cpplint(FILTERS -legal/copyright)
 
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(test_conversions test/test_conversions.cpp)
-  target_include_directories(test_conversions PRIVATE include)
+  target_link_libraries(test_conversions gps_tools_conversions)
+
+  # The deprecated conversions.h must keep compiling and forwarding.
+  ament_add_gtest(test_conversions_deprecated_header test/test_conversions_deprecated_header.cpp)
+  target_link_libraries(test_conversions_deprecated_header gps_tools_conversions)
 
   # Loads both components from their libraries, as a container would.
   find_package(class_loader REQUIRED)
   ament_add_gtest(test_utm_components test/test_utm_components.cpp TIMEOUT 120)
-  target_include_directories(test_utm_components PRIVATE include)
   target_link_libraries(test_utm_components
+    gps_tools_conversions
     class_loader::class_loader
     ${nav_msgs_TARGETS}
     ${sensor_msgs_TARGETS}
@@ -128,7 +148,8 @@ if(BUILD_TESTING)
 endif()
 
 ament_export_include_directories(include)
-ament_export_libraries(utm_odometry_component utm_odometry_to_navsatfix_component)
+ament_export_libraries(
+  gps_tools_conversions utm_odometry_component utm_odometry_to_navsatfix_component)
 ament_export_dependencies(ament_cmake)
 
 ament_package()

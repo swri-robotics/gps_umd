@@ -42,7 +42,7 @@
 #include <rclcpp_components/node_factory.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 
-#include "gps_tools/conversions.h"
+#include "gps_tools/conversions.hpp"
 
 using namespace std::chrono_literals;
 

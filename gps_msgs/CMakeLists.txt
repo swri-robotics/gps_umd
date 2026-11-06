@@ -45,7 +45,14 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   DEPENDENCIES ${MSG_DEPS}
 )
 
-ament_export_dependencies(rosidl_default_runtime)
+#############
+## Install ##
+#############
+
+install(
+  FILES ros1_ros2_mapping.yaml
+  DESTINATION share/${PROJECT_NAME}
+)
 
 #############
 ## Testing ##
@@ -88,5 +95,7 @@ if(BUILD_TESTING)
   # Recorded bags depend on GPSFix and GPSStatus keeping their fields.
   ament_add_pytest_test(test_message_fields test/test_message_fields.py)
 endif()
+
+ament_export_dependencies(rosidl_default_runtime)
 
 ament_package()

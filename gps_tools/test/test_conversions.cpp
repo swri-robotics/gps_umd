@@ -32,7 +32,7 @@
 #include <string>
 #include <vector>
 
-#include "gps_tools/conversions.h"
+#include "gps_tools/conversions.hpp"
 
 namespace
 {
@@ -64,9 +64,11 @@ const std::vector<Reference> kReferences = {
   {"East of the antimeridian", 10.0000, -179.9000, 1, 182044.5723, 1106810.6571},
 };
 
-// The series LLtoUTM() uses stays well inside a millimeter at these points.
-constexpr double kPositionTolerance = 1e-3;
-constexpr double kRoundTripTolerance = 0.01;
+// LLtoUTM() uses GeographicLib's projection, so the only error left is the
+// rounding of the references to 0.1 mm.
+constexpr double kPositionTolerance = 1e-4;
+// A micrometer; the round trip itself is good to nanometers.
+constexpr double kRoundTripTolerance = 1e-6;
 // About a millimeter of latitude.
 constexpr double kAngleTolerance = 1e-8;
 constexpr double kMetersPerDegree = 111320.0;
@@ -181,9 +183,8 @@ TEST(UTMtoLL, InvertsLLtoUTMEverywhere)
       double lon_back = 0.0;
       gps_tools::UTMtoLL(utm.northing, utm.easting, utm.zone, lat_back, lon_back);
       // Compare on the ground, since a degree of longitude shrinks toward
-      // the poles. The inverse series is the less accurate one, and it drifts
-      // furthest in the wide Svalbard zones: about 9 mm at 73N 22E, 5 degrees
-      // from the central meridian of zone 35X.
+      // the poles. This includes the wide Svalbard zones, where the series
+      // conversions.h used before GeographicLib drifted by about 9 mm.
       const double north_error = (lat_back - lat) * kMetersPerDegree;
       const double east_error =
         (lon_back - lon) * kMetersPerDegree * std::cos(lat * M_PI / 180.0);
@@ -230,4 +231,85 @@ TEST(UTM, PutsTheEquatorInTheNorthernHemisphere)
   gps_tools::UTM(0.0, 3.0, &x, &y);
   EXPECT_NEAR(0.0, y, kPositionTolerance);
   EXPECT_NEAR(toUtm(0.0, 3.0).northing, y, kPositionTolerance);
+}
+
+TEST(UTMLetterDesignator, MarksNaNWithZ)
+{
+  EXPECT_EQ('Z', gps_tools::UTMLetterDesignator(std::nan("")));
+}
+
+TEST(UTMLetterDesignator, KeepsBandEdgesExact)
+{
+  // Each band starts exactly on its southern edge.
+  const std::string bands = "CDEFGHJKLMNPQRSTUVWX";
+  for (std::size_t i = 0; i < bands.size(); ++i) {
+    const double edge = -80.0 + 8.0 * static_cast<double>(i);
+    SCOPED_TRACE(edge);
+    EXPECT_EQ(bands[i], gps_tools::UTMLetterDesignator(edge));
+    if (i > 0) {
+      EXPECT_EQ(bands[i - 1], gps_tools::UTMLetterDesignator(std::nextafter(edge, -90.0)));
+    }
+  }
+}
+
+TEST(LLtoUTM, ProjectsLatitudesOutsideUtmInTheNearestZone)
+{
+  // Outside 80S to 84N the band is 'Z', but the point is still projected in
+  // the zone its longitude falls in, with no Svalbard exception north of 84N.
+  const Utm north = toUtm(85.0, 15.0);
+  EXPECT_EQ("33Z", north.zone);
+  EXPECT_TRUE(std::isfinite(north.easting));
+  EXPECT_TRUE(std::isfinite(north.northing));
+  const Utm south = toUtm(-85.0, 15.0);
+  EXPECT_EQ("33Z", south.zone);
+  EXPECT_TRUE(std::isfinite(south.easting));
+  EXPECT_TRUE(std::isfinite(south.northing));
+}
+
+TEST(LLtoUTM, GivesNaNForInvalidInput)
+{
+  const Utm bad_lat = toUtm(95.0, 3.0);
+  EXPECT_EQ("31Z", bad_lat.zone);
+  EXPECT_TRUE(std::isnan(bad_lat.easting));
+  EXPECT_TRUE(std::isnan(bad_lat.northing));
+
+  // A non-finite longitude has no zone, which zone number 0 marks.
+  const Utm bad_lon = toUtm(10.0, std::nan(""));
+  EXPECT_EQ("0P", bad_lon.zone);
+  EXPECT_TRUE(std::isnan(bad_lon.easting));
+  EXPECT_TRUE(std::isnan(bad_lon.northing));
+}
+
+TEST(UTMtoLL, KeepsLongitudeNearTheZoneCentralMeridian)
+{
+  // Points past the antimeridian, projected in zones 60 and 1, come back on
+  // the zone's side of it rather than wrapped into [-180, 180].
+  double lat = 0.0;
+  double lon = 0.0;
+  gps_tools::UTMtoLL(1000000.0, 900000.0, "60N", lat, lon);
+  EXPECT_GT(lon, 180.0);
+  gps_tools::UTMtoLL(1000000.0, 100000.0, "1N", lat, lon);
+  EXPECT_LT(lon, -180.0);
+}
+
+TEST(UTMtoLL, ReadsAMissingBandLetterAsSouth)
+{
+  const Utm south = toUtm(-1.0, 3.0);
+  double lat = 0.0;
+  double lon = 0.0;
+  gps_tools::UTMtoLL(south.northing, south.easting, "31", lat, lon);
+  EXPECT_NEAR(-1.0, lat, kAngleTolerance);
+  EXPECT_NEAR(3.0, lon, kAngleTolerance);
+}
+
+TEST(UTM, GivesNaNForNonFiniteInput)
+{
+  double x = 0.0;
+  double y = 0.0;
+  gps_tools::UTM(10.0, std::nan(""), &x, &y);
+  EXPECT_TRUE(std::isnan(x));
+  EXPECT_TRUE(std::isnan(y));
+  gps_tools::UTM(INFINITY, 3.0, &x, &y);
+  EXPECT_TRUE(std::isnan(x));
+  EXPECT_TRUE(std::isnan(y));
 }

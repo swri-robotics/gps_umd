@@ -100,6 +100,9 @@ install(DIRECTORY launch
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  # cppcheck parses .h files as C, which fails on the C++ that the deprecated
+  # conversions.h pulls in from conversions.hpp.
+  set(ament_cmake_cppcheck_LANGUAGE "c++")
   ament_lint_auto_find_test_dependencies()
 
   find_package(ament_cmake_gtest REQUIRED)

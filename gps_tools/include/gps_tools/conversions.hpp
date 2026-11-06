@@ -38,37 +38,10 @@
  * library, so link it (it is in ${gps_tools_LIBRARIES}).
  */
 
-// <cstdio> and <cstdlib> are not used here; they are kept because the old
-// header-only conversions.h provided them, and callers may rely on that.
-#include <cmath>
-#include <cstdio>
-#include <cstdlib>
 #include <string>
 
 namespace gps_tools
 {
-
-// These constants are not used by the conversions below, which take their
-// ellipsoid from GeographicLib. They stay for code that already uses them.
-const double RADIANS_PER_DEGREE = M_PI / 180.0;
-const double DEGREES_PER_RADIAN = 180.0 / M_PI;
-
-// WGS84 ellipsoid
-const double WGS84_A = 6378137.0;         // semi-major axis (m)
-const double WGS84_B = 6356752.31424518;  // semi-minor axis (m)
-const double WGS84_F = 0.0033528107;      // flattening
-const double WGS84_E = 0.0818191908;      // first eccentricity
-const double WGS84_EP = 0.0820944379;     // second eccentricity
-
-// UTM projection
-const double UTM_K0 = 0.9996;          // scale factor on the central meridian
-const double UTM_FE = 500000.0;        // false easting (m)
-const double UTM_FN_N = 0.0;           // false northing, northern hemisphere (m)
-const double UTM_FN_S = 10000000.0;    // false northing, southern hemisphere (m)
-const double UTM_E2 = (WGS84_E * WGS84_E);       // e^2
-const double UTM_E4 = (UTM_E2 * UTM_E2);         // e^4
-const double UTM_E6 = (UTM_E4 * UTM_E2);         // e^6
-const double UTM_EP2 = (UTM_E2 / (1 - UTM_E2));  // e'^2
 
 /**
  * Project a latitude and longitude (degrees) into UTM easting @p x and
@@ -78,7 +51,7 @@ const double UTM_EP2 = (UTM_E2 / (1 - UTM_E2));  // e'^2
  * Norway and Svalbard exceptions LLtoUTM() applies. The equator is in the
  * northern hemisphere. A non-finite latitude or longitude gives NaN.
  */
-void UTM(double lat, double lon, double * x, double * y);
+void UTM(const double lat, const double lon, double * const x, double * const y);
 
 /**
  * The UTM latitude band letter for @p Lat (degrees), 'C' through 'X'.
@@ -86,7 +59,7 @@ void UTM(double lat, double lon, double * x, double * y);
  * Returns 'Z' if the latitude is outside the UTM limits of 80S to 84N, or is
  * NaN.
  */
-char UTMLetterDesignator(double Lat);
+char UTMLetterDesignator(const double Lat);
 
 /**
  * Convert a latitude and longitude (degrees, north and east positive) to UTM.
@@ -103,7 +76,7 @@ char UTMLetterDesignator(double Lat);
 void LLtoUTM(
   const double Lat, const double Long,
   double & UTMNorthing, double & UTMEasting,
-  char * UTMZone);
+  char * const UTMZone);
 
 /// LLtoUTM() returning the zone as a std::string.
 void LLtoUTM(
@@ -121,12 +94,12 @@ void LLtoUTM(
  */
 void UTMtoLL(
   const double UTMNorthing, const double UTMEasting,
-  const char * UTMZone, double & Lat, double & Long);
+  const char * const UTMZone, double & Lat, double & Long);
 
 /// UTMtoLL() taking the zone as a std::string.
 void UTMtoLL(
   const double UTMNorthing, const double UTMEasting,
-  std::string UTMZone, double & Lat, double & Long);
+  const std::string UTMZone, double & Lat, double & Long);
 
 }  // namespace gps_tools
 

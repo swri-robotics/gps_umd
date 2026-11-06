@@ -29,7 +29,6 @@
 #include "gps_tools/conversions.hpp"
 
 #include <cmath>
-#include <cstdio>
 #include <cstdlib>
 #include <string>
 
@@ -48,11 +47,18 @@ namespace gps_tools
 namespace
 {
 
-// Room for any "%d%c" zone designator, matching the buffer callers of the
-// char * LLtoUTM() have always been told to pass.
+// The buffer callers of the char * LLtoUTM() have always been told to pass,
+// with room for any zone designator and its terminator.
 constexpr std::size_t kZoneLength = 13;
 // The zone number in a designator is written in decimal.
 constexpr int kDecimalBase = 10;
+
+// UTM's false origin, in meters, added so eastings and northings are never
+// negative. The ellipsoid and scale factor come from GeographicLib, which
+// keeps these private.
+constexpr double kFalseEasting = 500000.0;
+constexpr double kFalseNorthingNorth = 0.0;
+constexpr double kFalseNorthingSouth = 10000000.0;
 
 // Angles, in degrees.
 constexpr double kHalfTurn = 180.0;
@@ -97,30 +103,30 @@ constexpr int kSvalbardEastZone = 37;
 
 // The edges and center of a zone's standard strip of longitude. All are
 // whole degrees, which doubles hold exactly.
-double zoneWestEdge(int zone)
+double zoneWestEdge(const int zone)
 {
   return kFirstZoneWestEdge + (zone - kFirstZone) * kZoneWidth;
 }
 
-double zoneEastEdge(int zone)
+double zoneEastEdge(const int zone)
 {
   return zoneWestEdge(zone) + kZoneWidth;
 }
 
-double centralMeridian(int zone)
+double centralMeridian(const int zone)
 {
   return zoneWestEdge(zone) + kHalfZoneWidth;
 }
 
 // Wraps a longitude into [-180, 180).
-double wrapLongitude(double lon)
+double wrapLongitude(const double lon)
 {
   return (lon + kHalfTurn) - std::floor((lon + kHalfTurn) / kFullTurn) * kFullTurn - kHalfTurn;
 }
 
 // The UTM zone for a latitude and a longitude already in [-180, 180),
 // including the Norway and Svalbard exceptions.
-int zoneNumber(double lat, double lon)
+int zoneNumber(const double lat, const double lon)
 {
   if (lat >= kSvalbardSouthEdge && lat < kSvalbardNorthEdge &&
     lon >= zoneWestEdge(kSvalbardWestZone))
@@ -147,18 +153,20 @@ int zoneNumber(double lat, double lon)
 
 // Projects into the UTM zone centered on lon0. The equator is in the northern
 // hemisphere.
-void project(double lat, double lon, double lon0, double & easting, double & northing)
+void project(
+  const double lat, const double lon, const double lon0,
+  double & easting, double & northing)
 {
   double x = 0.0;
   double y = 0.0;
   GeographicLib::TransverseMercator::UTM().Forward(lon0, lat, lon, x, y);
-  easting = x + UTM_FE;
-  northing = y + (lat < 0.0 ? UTM_FN_S : UTM_FN_N);
+  easting = x + kFalseEasting;
+  northing = y + (lat < 0.0 ? kFalseNorthingSouth : kFalseNorthingNorth);
 }
 
 }  // namespace
 
-void UTM(double lat, double lon, double * x, double * y)
+void UTM(const double lat, const double lon, double * const x, double * const y)
 {
   if (!std::isfinite(lat) || !std::isfinite(lon)) {
     *x = NAN;
@@ -176,7 +184,7 @@ void UTM(double lat, double lon, double * x, double * y)
   project(lat, lon, cm, *x, *y);
 }
 
-char UTMLetterDesignator(double Lat)
+char UTMLetterDesignator(const double Lat)
 {
   // Comparing against each band's southern edge, rather than dividing, keeps
   // the edges exact. The negated test also sends NaN to kNoBand.
@@ -193,12 +201,13 @@ char UTMLetterDesignator(double Lat)
 void LLtoUTM(
   const double Lat, const double Long,
   double & UTMNorthing, double & UTMEasting,
-  char * UTMZone)
+  std::string & UTMZone)
 {
   const double lon = wrapLongitude(Long);
   const int zone = std::isfinite(lon) ? zoneNumber(Lat, lon) : kNoZone;
 
-  snprintf(UTMZone, kZoneLength, "%d%c", zone, UTMLetterDesignator(Lat));
+  // At most four characters, so std::string holds it without allocating.
+  UTMZone = std::to_string(zone) + UTMLetterDesignator(Lat);
 
   if (zone == kNoZone) {
     UTMNorthing = NAN;
@@ -211,26 +220,33 @@ void LLtoUTM(
 void LLtoUTM(
   const double Lat, const double Long,
   double & UTMNorthing, double & UTMEasting,
-  std::string & UTMZone)
+  char * const UTMZone)
 {
-  char zone[kZoneLength] = {0};
+  std::string zone;
   LLtoUTM(Lat, Long, UTMNorthing, UTMEasting, zone);
-  UTMZone = zone;
+  // copy() never writes a terminator, so add one after what it copied.
+  UTMZone[zone.copy(UTMZone, kZoneLength - 1)] = '\0';
 }
 
 void UTMtoLL(
   const double UTMNorthing, const double UTMEasting,
-  const char * UTMZone, double & Lat, double & Long)
+  const char * const UTMZone, double & Lat, double & Long)
 {
+  // std::strtol rather than C++17's std::from_chars: unlike strtol,
+  // from_chars skips no leading whitespace and rejects a leading '+', so
+  // zones such as " 14R" or "+14R" that have always parsed would stop parsing.
   char * letter = nullptr;
   const int zone = static_cast<int>(std::strtol(UTMZone, &letter, kDecimalBase));
   // A missing letter reads as the terminating '\0', and so as south too.
   const bool south = *letter < kFirstNorthernBand;
   const double lon0 = centralMeridian(zone);
 
+  // Remove the false origin to get coordinates relative to the zone's own.
+  const double x = UTMEasting - kFalseEasting;
+  const double y = UTMNorthing - (south ? kFalseNorthingSouth : kFalseNorthingNorth);
+
   double lon = 0.0;
-  GeographicLib::TransverseMercator::UTM().Reverse(
-    lon0, UTMEasting - UTM_FE, UTMNorthing - (south ? UTM_FN_S : UTM_FN_N), Lat, lon);
+  GeographicLib::TransverseMercator::UTM().Reverse(lon0, x, y, Lat, lon);
 
   // GeographicLib wraps the longitude into [-180, 180]. Report it relative to
   // the zone's central meridian instead, as UTMtoLL() always has, so a point
@@ -240,7 +256,7 @@ void UTMtoLL(
 
 void UTMtoLL(
   const double UTMNorthing, const double UTMEasting,
-  std::string UTMZone, double & Lat, double & Long)
+  const std::string UTMZone, double & Lat, double & Long)
 {
   UTMtoLL(UTMNorthing, UTMEasting, UTMZone.c_str(), Lat, Long);
 }

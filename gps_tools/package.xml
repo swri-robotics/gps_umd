@@ -14,8 +14,8 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-  <depend>geographiclib</depend>
 
+  <build_depend>geographiclib</build_depend>
   <build_depend>nav_msgs</build_depend>
   <build_depend>rclcpp</build_depend>
   <build_depend>rclcpp_components</build_depend>
@@ -26,6 +26,7 @@
   <exec_depend>rclcpp_components</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
 
+  <exec_depend>geographiclib</exec_depend>
   <exec_depend>gps_msgs</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
